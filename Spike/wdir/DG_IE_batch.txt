@@ -1,0 +1,10 @@
+-in ~/Code/Spike/wdir/ -out ~/Code/Spike/Results/SMSdg1tau5 Spike -rdf SMSdg1tau5.txt
+-out ~/Code/Spike/Results/SMSdg1tau50 Spike -rdf SMSdg1tau50.txt
+-out ~/Code/Spike/Results/SMSdg2tau5 Spike -rdf SMSdg2tau5.txt
+-out ~/Code/Spike/Results/SMSdg2tau50 Spike -rdf SMSdg2tau50.txt
+-out ~/Code/Spike/Results/SMSdg4tau5 Spike -rdf SMSdg4tau5.txt
+-out ~/Code/Spike/Results/SMSdg4tau50 Spike -rdf SMSdg4tau50.txt
+-out ~/Code/Spike/Results/SMSdg10tau5 Spike -rdf SMSdg10tau5.txt
+-out ~/Code/Spike/Results/SMSdg10tau50 Spike -rdf SMSdg10tau50.txt
+-out ~/Code/Spike/Results/SMSdg50tau5 Spike -rdf SMSdg50tau5.txt
+-out ~/Code/Spike/Results/SMSdg50tau50 Spike -rdf SMSdg50tau50.txt
