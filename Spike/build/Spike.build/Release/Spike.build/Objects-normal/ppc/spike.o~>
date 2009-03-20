@@ -1,7 +1,0 @@
-/Network/Servers/mac0.cns.ox.ac.uk/Volumes/Data/Users/evans/Code/Spike/spike.c:22:17: error: omp.h: No such file or directory
-/Network/Servers/mac0.cns.ox.ac.uk/Volumes/Data/Users/evans/Code/Spike/spike.c: In function 'update_network':
-/Network/Servers/mac0.cns.ox.ac.uk/Volumes/Data/Users/evans/Code/Spike/spike.c:1521: error: 'tm1delta_g_IE' undeclared (first use in this function)
-/Network/Servers/mac0.cns.ox.ac.uk/Volumes/Data/Users/evans/Code/Spike/spike.c:1521: error: (Each undeclared identifier is reported only once
-/Network/Servers/mac0.cns.ox.ac.uk/Volumes/Data/Users/evans/Code/Spike/spike.c:1521: error: for each function it appears in.)
-/Network/Servers/mac0.cns.ox.ac.uk/Volumes/Data/Users/evans/Code/Spike/spike.c:1570: error: 'tm1delta_g_EI' undeclared (first use in this function)
-/Network/Servers/mac0.cns.ox.ac.uk/Volumes/Data/Users/evans/Code/Spike/spike.c:1600: error: 'tm1delta_g_II' undeclared (first use in this function)
