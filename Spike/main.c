@@ -79,6 +79,7 @@ int main (int argc, const char * argv[])
 				
 				case 'p':
 					// Code to pass a parameter string e.g. "param=0"
+					// Should write to a param file to be loaded later
 					break;
 				
 				default:
