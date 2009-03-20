@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 44;
+	objectVersion = 45;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -43,11 +43,9 @@
 /* Begin PBXFileReference section */
 		010D9BF50EE047F400F13FC5 /* read_parameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = read_parameters.h; sourceTree = "<group>"; };
 		010D9BF60EE047F400F13FC5 /* read_parameters.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = read_parameters.c; sourceTree = "<group>"; };
-		010D9DAC0EEEF01200F13FC5 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = main.h; sourceTree = "<group>"; };
 		010D9DC10EEEF2D100F13FC5 /* globals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = globals.h; sourceTree = "<group>"; };
 		0118F1ED0F3A13D80043C7E9 /* array_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = array_utils.h; sourceTree = "<group>"; };
 		0118F1EE0F3A13D80043C7E9 /* array_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = array_utils.c; sourceTree = "<group>"; };
-		0118F2000F4461900043C7E9 /* junk.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = junk.h; sourceTree = "<group>"; };
 		013A2BB00E0A94F7007F4286 /* spike.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = spike.h; sourceTree = "<group>"; };
 		013A2BB50E0AD6D7007F4286 /* spike.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = spike.c; sourceTree = "<group>"; };
 		01A355550E598FD600BE1EA9 /* parameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parameters.h; sourceTree = "<group>"; };
@@ -86,11 +84,9 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				0118F2000F4461900043C7E9 /* junk.h */,
 				0118F1ED0F3A13D80043C7E9 /* array_utils.h */,
 				0118F1EE0F3A13D80043C7E9 /* array_utils.c */,
 				010D9DC10EEEF2D100F13FC5 /* globals.h */,
-				010D9DAC0EEEF01200F13FC5 /* main.h */,
 				010D9BF50EE047F400F13FC5 /* read_parameters.h */,
 				010D9BF60EE047F400F13FC5 /* read_parameters.c */,
 				01A355560E59C39E00BE1EA9 /* rng.h */,
@@ -147,7 +143,7 @@
 		08FB7793FE84155DC02AAC07 /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = 1DEB928908733DD80010E9CD /* Build configuration list for PBXProject "Spike" */;
-			compatibilityVersion = "Xcode 3.0";
+			compatibilityVersion = "Xcode 3.1";
 			hasScannedForEncodings = 1;
 			mainGroup = 08FB7794FE84155DC02AAC07 /* Spike */;
 			projectDirPath = "";
@@ -210,10 +206,13 @@
 		1DEB928A08733DD80010E9CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_OPENMP_SUPPORT = YES;
+				GCC_VERSION = 4.2;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.5.sdk";
+				SDKROOT = macosx10.5;
+				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Debug;
 		};
@@ -224,10 +223,13 @@
 					ppc,
 					i386,
 				);
+				ENABLE_OPENMP_SUPPORT = YES;
+				GCC_VERSION = 4.2;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.5.sdk";
+				SDKROOT = macosx10.5;
+				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Release;
 		};
