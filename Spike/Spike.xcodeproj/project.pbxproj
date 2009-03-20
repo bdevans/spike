@@ -72,8 +72,6 @@
 		08FB7794FE84155DC02AAC07 /* Spike */ = {
 			isa = PBXGroup;
 			children = (
-				01BAD21B0F4D8C2900007DF6 /* utils.h */,
-				01BAD21C0F4D8C2900007DF6 /* utils.c */,
 				08FB7795FE84155DC02AAC07 /* Source */,
 				C6A0FF2B0290797F04C91782 /* Documentation */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
@@ -85,7 +83,9 @@
 			isa = PBXGroup;
 			children = (
 				0118F1ED0F3A13D80043C7E9 /* array_utils.h */,
+				01BAD21B0F4D8C2900007DF6 /* utils.h */,
 				0118F1EE0F3A13D80043C7E9 /* array_utils.c */,
+				01BAD21C0F4D8C2900007DF6 /* utils.c */,
 				010D9DC10EEEF2D100F13FC5 /* globals.h */,
 				010D9BF50EE047F400F13FC5 /* read_parameters.h */,
 				010D9BF60EE047F400F13FC5 /* read_parameters.c */,
