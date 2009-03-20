@@ -78,7 +78,7 @@ int main (int argc, const char * argv[])
 					break;
 				
 				case 'p':
-					// Code to pass a parameter string "param=0"
+					// Code to pass a parameter string e.g. "param=0"
 					break;
 				
 				default:
