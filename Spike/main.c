@@ -76,12 +76,11 @@ int main (int argc, const char * argv[])
 					dynamic = true;
 					omp_set_dynamic(dynamic);
 					break;
-				/*	
-				case 'ALPHA_C':
-					ALPHA_C = *++argv[0];
-					argc--;
+				
+				case 'p':
+					// Code to pass a parameter string "param=0"
 					break;
-				*/	
+				
 				default:
 					printf("Illegal arguement: %c\n", c);
 					argc = 0;
