@@ -21,6 +21,7 @@ a		= 0.0;
 
 %### Network ###
 nLayers = 2;
+inputInhib = 1;
 	nExcit = 120;
 		nSynEfE = 60;
 		nSynElE = 0;
