@@ -30,7 +30,7 @@ void * myalloc(int n)
 	return mem;
 }
 
-/*FILE * myfopen(const char * filename, const char * args)
+FILE * myfopen(const char * filename, const char * args)
 {
 	FILE * fp;
 	fp = fopen(filename, args);
@@ -41,7 +41,7 @@ void * myalloc(int n)
 	}
 	else
 		return fp;
-}*/
+}
 
 void filecopy(FILE * ifp, FILE * ofp)
 {
@@ -52,7 +52,7 @@ void filecopy(FILE * ifp, FILE * ofp)
 	return;
 }
 
-/*bool file_exists(const char * filename)
+bool file_exists(const char * filename)
 {
 	FILE * file;
 	if (file = fopen(filename, "r"))
@@ -61,4 +61,4 @@ void filecopy(FILE * ifp, FILE * ofp)
 		return true;
 	}
 	return false;
-}*/
+}

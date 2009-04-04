@@ -13,7 +13,6 @@
 /**********************************/
 
 #define DT		0.00001
-
 #define EPS		1.2e-7
 #define BIG		999999
 
@@ -30,13 +29,11 @@ extern char * RESDIR;
 extern char * DPFILE;
 #define OUTPUTPFILE		"parameters.m"	/* Default output parameter file name */
 extern char * MPFILE;
-
 /* Define a diagnostic parameter file to run for debugging */
 
 #define FNAMEBUFF	32
 
 #endif // _FILE_H
-
 
 /* Notes */
 /* 
@@ -48,26 +45,22 @@ extern char * MPFILE;
  arr[0] == *arr
  arr[n] == *(arr + n)
  
- Zero spike bins
- Try calloc or double Array[size]={0} for the first time, memset(Array, 0, size), bzero. 
+ Zero spike bins: Try calloc or double Array[size]={0} for the first time, memset(Array, 0, size), bzero. 
  May be quicker just to loop. 
  
  memcpy(DestArray, SourceArray, sizeof(DestArray)); // Quick way of copying contents of an array	
-
  
  Nifty tricks
  ============
  
- #1
- // Allocate memory or write files without keeping track of variable type
+ #1 // Allocate memory or write files without keeping track of variable type
  fwrite(array, sizeof(array), arraydim, ArrayFile);
  
  #2
  if(!(ptr = malloc(...)))
 	fprintf(stderr, "Error: Out of memory!");
  
- #3
- // Allocate memory and test allocation (or fopen)
+ #3 // Allocate memory and test allocation (or fopen)
  if ( ( a = (int *)malloc(i*sizeof(int)) ) == NULL )
  {
 	printf("\nError, memory not allocated.\n");

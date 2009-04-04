@@ -7,8 +7,10 @@
  *
  */
 
+#ifndef _PARAMETERS_H
+#define _PARAMETERS_H
+
 #include <stdbool.h>
-//#include "globals.h"
 
 typedef enum {
 	INHIB,
@@ -64,6 +66,7 @@ typedef struct {
 	// Network
 	int nLayers;// = 2;
 	int nWLayers;
+	bool inputInhib;
 	int nExcit;// = 120;
 	int nSynEfE;
 	int nSynElE;
@@ -110,8 +113,7 @@ typedef struct {
 	float gMax;// = 48.0e-10;
 } PARAMS;
 
-PARAMS * mp;
-//extern PARAMS * mp; // PARAMS P;
+//PARAMS * mp;
+extern PARAMS * mp;
 
-//typedef PARAMS * MP;
-//MP params;
+#endif

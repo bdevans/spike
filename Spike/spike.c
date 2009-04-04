@@ -7,26 +7,9 @@
  *
  */
 
-/*** Include files ***/
-
-//#include "main.h"
-#include "parameters.h"
 #include "spike.h"
-#include "globals.h"
-#include "rng.h"
-#include "array_utils.h"
 
-#include <stdbool.h> // Necessary for bool variable type
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <omp.h>
-
-/*********************/
-
-int spike(char * pfile)
+int spike(PARAMS * mp)
 {
 	/*** Declare variables ***/
 	tstep t;	//unsigned long long t = 0; // Update spikeTimes and set spikeTimes[0] = -BIG and update all functions of t to tstep t not int t
@@ -36,7 +19,7 @@ int spike(char * pfile)
 	int n, p, syn, l, wl;
 	REGIMETYPE regime;
 	char *plural = "";
-	char rfpath[FNAMEBUFF]; // Results file path
+	
 	char filename[FNAMEBUFF];
 
 	int *** trn_stimuli, *** tst_stimuli; // Place this group in a structure
@@ -50,7 +33,7 @@ int spike(char * pfile)
 	//RECORD *r_ptr = RECS;
 	
 	/*** Declare file pointers ***/
-	FILE * parameters_ptr;
+	//FILE * parameters_ptr;
 	FILE * output_spikes_ptr;
 	FILE * weights_ptr;
 	FILE * stimuli_FP;
@@ -68,12 +51,6 @@ int spike(char * pfile)
 	
 	printf("Ventral Visual Stream Spiking Neural Network Simulation starting...\n");
 	
-	// Read in parameters from .prm file
-	printf("\tReading parameters file: \"%s\"...", !pfile ? DPFILE : pfile);
-	mp = myalloc(sizeof(*mp));
-	read_parameters(mp, pfile);
-	printf("\tParsing complete!\n");
-	
 	/*************** Build Network ****************/
 	
 	printf("\tNow building the network...");
@@ -83,10 +60,6 @@ int spike(char * pfile)
 	calc_connectivity();		// Calculate network connectivity
 	
 	/************** FILE OUTPUT **************/
-	if (pfile != NULL)
-		sprintf(rfpath, "%s/%s/", RESDIR, pfile); // strtok(pfile, "."));
-	else
-		sprintf(rfpath, "%s/", RESDIR);
 	
 	for (l=0; l<mp->nWLayers; l++) // Loop up to nWLayers
 	{
@@ -128,19 +101,6 @@ int spike(char * pfile)
 		fclose(connections_FP);
 	}
 
-	parameters_ptr = fopen(MPFILE, "w"); // Variables to read into Matlab
-	fprintf(parameters_ptr, "DT=%f;\n",DT);
-	fprintf(parameters_ptr, "TotalMS=%d;\n",mp->TotalMS);
-	fprintf(parameters_ptr, "rfpath='%s';\n\n",rfpath);
-	if (pfile != NULL)
-	{
-		FILE * paramFP = fopen(pfile, "r");
-		assert(paramFP != NULL);
-		filecopy(paramFP, parameters_ptr);
-		fclose(paramFP);
-	}
-	fclose(parameters_ptr);
-	
 	/************** END OF FILE OUTPUT **************/
 	
 	printf("\tBuilding complete!\n");
@@ -192,6 +152,7 @@ int spike(char * pfile)
 				calc_input(loop, p, trans, tst_stimuli, input, shuffle, regime); // Move print statements outside
 				t_start = ((mp->transP_Test * trans) + (mp->transP_Test * mp->nTransPS * p)) * ceil(1/DT);
 				t_end = t_start + (mp->transP_Test * ceil(1/DT));
+//#pragma omp barrier
 #pragma omp parallel default(shared) private (t) // Parallelize p loop?
 				for (t=t_start; t<t_end; t++)
 					update_network(t, loop, input, regime);
@@ -560,7 +521,7 @@ void calc_connectivity() /* This function randomly connects the neurons together
 			n_E[l][n].n = 0; 
 			n_E[l][n].nFAff_E = (l!=0) ? mp->nSynEfE : 0;
 			n_E[l][n].nLAff_E = mp->nSynElE;
-			n_E[l][n].nLAff_I = mp->nSynIE;
+			n_E[l][n].nLAff_I = (l==0 && !mp->inputInhib) ? 0 : mp->nSynIE;
 		}
 	}
 	
@@ -574,8 +535,8 @@ void calc_connectivity() /* This function randomly connects the neurons together
 			n_I[l][n].nLEff_I = 0;
 			n_I[l][n].n = 0; 
 			n_I[l][n].nFAff_E = 0;
-			n_I[l][n].nLAff_E = mp->nSynEI;
-			n_I[l][n].nLAff_I = mp->nSynII;
+			n_I[l][n].nLAff_E = (l==0 && !mp->inputInhib) ? 0 : mp->nSynEI;
+			n_I[l][n].nLAff_I = (l==0 && !mp->inputInhib) ? 0 : mp->nSynII;
 		}
 	}
 	
@@ -1176,6 +1137,7 @@ void update_network(int t, int loop, int input[], int regime)
 	for (n=0; n<mp->nInhib; n++)
 		for (l=0; l<mp->nLayers; l++)
 			update_V(t, decay_rate, gLeak, Vrest, Thresh, Vhyper, 0, &n_I[l][n]);
+//#pragma omp barrier
 
 	/* Update presynaptic conductances */
 	decay_E = (DT/mp->tauEE);
@@ -1187,14 +1149,15 @@ void update_network(int t, int loop, int input[], int regime)
 	
 	decay_E = (DT/mp->tauEI);
 	decay_I = (DT/mp->tauII);
-#pragma omp for nowait private(n, l)
+#pragma omp for private(n, l)
 	for (n=0; n<mp->nInhib; n++)
 		for (l=0; l<mp->nLayers; l++)
 			update_g(&n_I[l][n], decay_E, decay_I, t);
+//#pragma omp barrier
 	
 	if (regime==Learning) // Learning
 	{
-		/* Update synaptic weights */
+		/* Update synaptic weights */ // Move after C & D and use instantaeous values? N.B. Redo nowait clauses
 #pragma omp for nowait private(n, l) // shared(n_E[][])
 		for (n=0; n<mp->nExcit; n++) // Make parallel and n private
 			for (l=1; l<mp->nLayers; l++) // Only nLayers-1 of weight layers
@@ -1211,6 +1174,7 @@ void update_network(int t, int loop, int input[], int regime)
 		for (n=0; n<mp->nExcit; n++)
 			for (l=1; l<mp->nLayers; l++) // Only nLayers-1 of weight layers
 				update_D(&n_E[l][n], t);
+//#pragma omp barrier
 	}
 		
 	/* Copy solution variables to _tm1 counterparts and reset spike flags / axons */
@@ -1247,7 +1211,7 @@ void update_network(int t, int loop, int input[], int regime)
 		}
 	}
 		
-#pragma omp for nowait private(l, n, s)
+#pragma omp for private(l, n, s)
 	for (n=0; n<mp->nInhib; n++)
 	{
 		for (l=0; l<mp->nLayers; l++)
@@ -1268,6 +1232,7 @@ void update_network(int t, int loop, int input[], int regime)
 			}
 		}
 	}
+//#pragma omp barrier
 	
 	if (mp->nRecordsPL && regime && (t % mp->TSperMS == 0)) // && loop==RLOOP) 		// Save neuron states
 	{
@@ -1288,6 +1253,7 @@ void update_network(int t, int loop, int input[], int regime)
 						n_E[l][n].rec->SynDG[loop][syn][bin] = n_E[l][n].FAffs_E[syn]->delta_g;
 					}
 				}
+//#pragma omp barrier
 	}
 
 	return; // void;
@@ -1323,7 +1289,7 @@ void update_V(int t, float decay_rate, float gLeak, float Vrest, float Thresh, f
 							  + stim);
 							// + noise_E[n][l]);
 		
-		n->V = ((n->V < mp->VrevI) ? mp->VrevI : n->V); // Neurons may never become more -ve than Inhib cells
+		n->V = ((n->V < mp->VrevI) ? mp->VrevI : n->V); // Neurons can not be more -ve than Inhib reversal potential
 		
 		if (n->V >= Thresh) // tm1cellV_E? - gives one timestep to depolarise (peak)
 		{
@@ -1381,8 +1347,8 @@ void update_weights(NEURON * n, int t)
 	int syn;
 	for (syn=0; syn<n->nFAff_E; syn++)
 	{
-		LTD = (t == next_spike(n->FAffs_E[syn])) ? n->FAffs_E[syn]->delta_g_tm1 * n->D_tm1 : 0.0;
-		LTP = (t == n->lastSpike) ? (1 - n->FAffs_E[syn]->delta_g_tm1) * n->FAffs_E[syn]->C_tm1 : 0.0;
+		LTD = (t == next_spike(n->FAffs_E[syn])) ? n->FAffs_E[syn]->delta_g_tm1 * n->D_tm1 : 0.0; //tm0?
+		LTP = (t == n->lastSpike) ? (1 - n->FAffs_E[syn]->delta_g_tm1) * n->FAffs_E[syn]->C_tm1 : 0.0; //tm0?
 		n->FAffs_E[syn]->delta_g += (LTP - LTD) * mp->learnR; //*DT/TAU_DG;
 	}
 	return;

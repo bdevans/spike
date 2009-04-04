@@ -7,6 +7,28 @@
  *
  */
 
+#ifndef _SPIKE_H
+#define _SPIKE_H
+
+/*** Include files ***/
+
+#include <stdbool.h> // Necessary for bool variable type
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <omp.h>
+
+//#include "main.h"
+//#include "utils.h"
+#include "array_utils.h"
+#include "parameters.h"
+#include "globals.h"
+#include "rng.h"
+
+/*********************/
+
 /* Must use these multiline comments */
 
 //int output_spikes[TBINS][NEXCIT]={0};
@@ -106,7 +128,7 @@ NEURON ** n_I;
 
 /* Prototypes from spike.c */
 
-extern int spike(char * pfile);
+extern int spike(PARAMS * mp);
 extern NEURON ** allocn(int nlays, int nneurons, NTYPE type);
 extern int unallocn(NEURON ** narray, int nlays, int nneurons);
 extern void calc_connectivity();
@@ -129,3 +151,5 @@ extern int dequeue(AXON * a);
 extern int next_spike(AXON * a);
 extern int isempty(AXON * a);
 extern void print_queue(AXON * a);
+
+#endif

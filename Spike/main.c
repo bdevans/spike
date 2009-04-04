@@ -5,38 +5,57 @@
 #include <stdbool.h>
 #include <omp.h>
 
-#include "rng.h"
-//#include "parameters.h"
-//#include "spike.h"
 #include "utils.h"
 #include "globals.h"
+#include "rng.h"
+#include "parameters.h"
+#include "read_parameters.h"
+
+//#include "spike.h"
+extern int spike(PARAMS * mp);
+//extern void set_random_seeds();
 
 char * RESDIR = RESULTSDIRECTORY;
 char * DPFILE = DEFAULTPFILE;
 char * MPFILE = OUTPUTPFILE;
-//extern void set_random_seeds();
-extern int spike(char * pfile);
 
-int hours = 0;
-int mins = 0;
-int secs = 0;
-char *plural = "";
-//char *scheduling = "FALSE";
-char *dthreads = "FALSE";
-char *nested = "FALSE";
-char *pfile = NULL;
-char *sfile = NULL;
-int RERUN;
-int NRECORDS;
-bool dynamic = false;
+int RERUN = 0; // rng.c require this to be global
+
+PARAMS * mp;
 
 int main (int argc, const char * argv[])
-{
+{	
+	int hours = 0;
+	int mins = 0;
+	int secs = 0;
+	char *plural = "";
+	//char *scheduling = "FALSE";
+	char *dthreads = "FALSE";
+	char *nested = "FALSE";
+	char *pfile = NULL;
+	char *sfile = NULL;
+	char *cpfile = "CLIparams.m";
+	//char *tmpfile = "tmp";
+	FILE * cli_FP;
+	FILE * params_FP;
+	char rfpath[FNAMEBUFF]; // Results file path
+	FILE * parameters_ptr;
+	//int NRECORDS;
+	bool dynamic = false;
+
+	bool p_flag = false;	// Parameter (CLI) flag
+	bool pf_flag = false;	// Parameter file flag
+	int pINcount = 0;
+	int dcount = 0; //Default parameter count
+	int fcount = 0; // File parameter count
+	int pcount = 0; // Parameter count
+	
 	time_t start;
 	time_t finish;
 	double begin, end;
     int c, result;
 	//int th_id;
+
 	int num_thd = 0;
 	int skip_arg = 0;
 	
@@ -47,39 +66,46 @@ int main (int argc, const char * argv[])
 		{
 			switch (c)
 			{
-				case 'f': // Parameter file name
+				case 'f':	// Parameter file name
+					pf_flag = true;
 					pfile = myalloc(strlen(*++argv)+1);
 					strcpy(pfile, *argv);
 					skip_arg = 1;
 					argc--;
 					break;
 				
-				case 'r':
+				case 'r':	// Rerun with last seed
 					RERUN = 1;
-					// Code to test next argument does not have a '-'
-
 					break;
 					
-				case 's':
-					// Finish this
+				case 's':	// Random seed file name - Finish this
 					sfile = myalloc(strlen(*++argv)+1);
 					strcpy(sfile, *argv);
 					skip_arg = 1;
 					argc--;
-					// Read in list of neurons
+					break;
+					
+				case 'k':	// Read in list of neurons
 					// Dynamically alloc memory for array of structures
 					//NRECORDS = *++argv[0];
 					//argc--;
 					break;
 					
-				case 'd': // May reduce num_thd depending on system load
+				case 'd':	// May reduce num_thd depending on system load
 					dynamic = true;
 					omp_set_dynamic(dynamic);
 					break;
 				
-				case 'p':
-					// Code to pass a parameter string e.g. "param=0"
-					// Should write to a param file to be loaded later
+				case 'p':	// Code to pass a parameter string e.g. "param=0"
+					if (!p_flag)
+					{
+						cli_FP = myfopen(cpfile, "w");
+						p_flag = true;
+					}
+					fprintf(cli_FP, "%s;\n", *++argv);
+					skip_arg = 1;
+					argc--;
+					pINcount++;
 					break;
 				
 				default:
@@ -112,14 +138,47 @@ int main (int argc, const char * argv[])
 		}
 	}
 	
-    printf("Now setting random seeds\n");
+	// Read in parameters from .prm file
+	printf("\tReading parameters file: \"%s\"...", !pfile ? DPFILE : pfile);
+	if (p_flag)
+		fclose(cli_FP);
+	mp = myalloc(sizeof(*mp));
+	dcount = read_parameters(mp, DPFILE); // Count defaults?
+	fcount = (pfile != NULL) ? read_parameters(mp, pfile) : 0;
+	pcount = (p_flag) ? read_parameters(mp, cpfile) : 0;
+	assert(pcount == pINcount);
+	printf(" {%d},{%d},{%d}\tParsing complete!\n",dcount, fcount, pcount);
+	
+	if (pfile != NULL)
+		sprintf(rfpath, "%s/%s/", RESDIR, pfile); // strtok(pfile, "."));
+	else
+		sprintf(rfpath, "%s/", RESDIR);
+	
+	parameters_ptr = myfopen(MPFILE, "w"); // Variables to read into Matlab
+	fprintf(parameters_ptr, "DT=%f;\n",DT);
+	fprintf(parameters_ptr, "TotalMS=%d;\n",mp->TotalMS);
+	fprintf(parameters_ptr, "rfpath='%s';\n\n",rfpath);
+	if (pfile != NULL)
+	{
+		params_FP = myfopen(pfile, "r");
+		filecopy(params_FP, parameters_ptr);
+		fclose(params_FP);
+	}
+	
+	if (p_flag)
+	{
+		cli_FP = myfopen(cpfile, "r");
+		filecopy(cli_FP, parameters_ptr);
+		fclose(cli_FP);
+	}
+	fclose(parameters_ptr);
 
+	printf("Now setting random seeds\n");
 	set_random_seeds(RERUN);
 	start = time(NULL); // Use omp function omp_get_wtime
 	begin = omp_get_wtime();
 	
-	/* Load filename if passed, otherwise load the default file */
-	result = spike(pfile);
+	result = spike(mp);
 	
 	end = omp_get_wtime();
 	printf("Total wall time = %lf\n", end - begin);
