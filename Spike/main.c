@@ -138,6 +138,10 @@ int main (int argc, const char * argv[])
 		}
 	}
 	
+#ifdef NDEBUG
+	printf("Warning: Executing without error checking!\n");
+#endif
+	
 	// Read in parameters from .prm file
 	printf("\tReading parameters file: \"%s\"...", !pfile ? DPFILE : pfile);
 	if (p_flag)
@@ -168,6 +172,7 @@ int main (int argc, const char * argv[])
 	if (p_flag)
 	{
 		cli_FP = myfopen(cpfile, "r");
+		fprintf(parameters_ptr, "\n");
 		filecopy(cli_FP, parameters_ptr);
 		fclose(cli_FP);
 	}

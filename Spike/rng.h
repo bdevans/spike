@@ -6,6 +6,8 @@
  *  Copyright 2008 __MyCompanyName__. All rights reserved.
  *
  */
+#ifndef _RNG_H
+#define _RNG_H
 
 #include <stdio.h>
 #include <math.h>
@@ -16,8 +18,9 @@
 FILE *random_seeds_ptr; 
 
 /************ RNG macros ************/
-
+#ifndef RSFILE
 #define RSFILE	"random_seeds.rsd"	/* Default random seed file name */
+#endif
 
 #define MBIG	1000000000
 #define MSEED	161803398
@@ -61,8 +64,4 @@ extern float ran1(long *idum);				/* Required for gasdev									*/
 extern int set_random_seeds(int rerun);				/*														*/
 extern int rands1_new(int mn,int mx,int *iv,int mode);/* Draw ints from [mn,mx] without replacement */
 extern int rnd_new(int mn, int mx);			/* Call at start of program to initialise RNG			*/
-
-
-/************ END OF RNG CODE *************/
-
-
+#endif

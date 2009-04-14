@@ -17,7 +17,7 @@
 #define BIG		999999
 
 /* Debugging output */
-#define DEBUG	0	/* Debug output level																*/
+#define DEBUG	1	/* Debug output level																*/
 #if DEBUG == 0
 #define NDEBUG		/* Define to turn off assert statements	- must come before #include <assert.h>		*/
 #endif
