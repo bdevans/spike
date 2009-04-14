@@ -83,15 +83,15 @@
 			isa = PBXGroup;
 			children = (
 				0118F1ED0F3A13D80043C7E9 /* array_utils.h */,
-				01BAD21B0F4D8C2900007DF6 /* utils.h */,
 				0118F1EE0F3A13D80043C7E9 /* array_utils.c */,
+				01BAD21B0F4D8C2900007DF6 /* utils.h */,
 				01BAD21C0F4D8C2900007DF6 /* utils.c */,
 				010D9DC10EEEF2D100F13FC5 /* globals.h */,
+				01A355550E598FD600BE1EA9 /* parameters.h */,
 				010D9BF50EE047F400F13FC5 /* read_parameters.h */,
 				010D9BF60EE047F400F13FC5 /* read_parameters.c */,
 				01A355560E59C39E00BE1EA9 /* rng.h */,
 				01A355570E59C39E00BE1EA9 /* rng.c */,
-				01A355550E598FD600BE1EA9 /* parameters.h */,
 				013A2BB50E0AD6D7007F4286 /* spike.c */,
 				013A2BB00E0A94F7007F4286 /* spike.h */,
 				08FB7796FE84155DC02AAC07 /* main.c */,
