@@ -15,9 +15,11 @@ int set_random_seeds(int RERUN)
 {
 	/* This routine sets the random seeds */
 	
-	char dummy;
+	char * dummy;
+	char * s, * string, buff[BUFFER];
 	int count = 0;
 	char * rsfile = RSFILE;
+	// FILE * random_seeds_ptr;
 	//long file_location; // Variable to hold the current location in the file
 	
 	if (RERUN == 1)
@@ -29,14 +31,22 @@ int set_random_seeds(int RERUN)
 		printf("Rerunning simulation with %s\n",rsfile);
 		if ((random_seeds_ptr = fopen(rsfile, "r")) == NULL)
 		{	
-			printf("Error: %s could not be opened!\n",rsfile);
+			fprintf(stderr, "Error: %s could not be opened!\n", rsfile);
+			fclose(random_seeds_ptr);
 			return 1;
 		}
-		while(!feof(random_seeds_ptr))
+		while ((string = fgets(buff, sizeof(buff), random_seeds_ptr)) != NULL) 	/* Read next line */
 		{
-			fscanf(random_seeds_ptr,"%s %d", &dummy, &ans[count]);
-			count++;	
+			//sscanf(s, "%s %ld", dummy, &ans[count]);
+			dummy = strtok(string, ":");
+			ans[count] = atoi(strtok(NULL, ":"));
+			count++;
 		}
+		/*while(!feof(random_seeds_ptr))
+		{
+			fscanf(random_seeds_ptr,"%s %ld", dummy, &ans[count]);
+			count++;	
+		}*/
 		fclose(random_seeds_ptr); 
 	}
 	else
@@ -44,9 +54,7 @@ int set_random_seeds(int RERUN)
 		random_seeds_ptr = fopen(rsfile, "w");
 	}	
 	
-	/* Set up a few parameters */
 	(void) rnd_new(0, 0);	/* Reseed random number generators */
-	
 		
 	if (SEED_RAN3 == 0)
 	{
@@ -107,6 +115,7 @@ int set_random_seeds(int RERUN)
 	
 	return 0;
 }
+
 
 int rands1_new(int mn, int mx, int *iv, int mode)
 {
@@ -191,11 +200,12 @@ int rands1_new(int mn, int mx, int *iv, int mode)
 	return ret;
 }
 
+
 /* Return a random number in the range [mn, mx]
  Reseed generator if mx <= mn */
-int     rnd_new(int mn, int mx)
+int rnd_new(int mn, int mx)
 {
-	int     d, seed;
+	int d, seed;
 	
 	d = mx - mn + 1;
 	
@@ -218,15 +228,16 @@ int     rnd_new(int mn, int mx)
 			seed = SEED_RANDS1_NEW;
 			srand(SEED_RANDS1_NEW);
 		}
-		printf("Random number seed for rands1_new is %d\n", seed);
+		printf("Random number seed for rands1_new is %ld\n", seed);
 		if (RERUN != 1)
 		{
-			fprintf(random_seeds_ptr, "rands1_new: \t%d\n", seed);
+			fprintf(random_seeds_ptr, "rands1_new: \t%ld\n", seed);
 		}
 		return 0;
 	}
 	return (rand() % d) + mn;
 }
+
 
 float gasdev(long *idum)
 {
@@ -250,6 +261,7 @@ float gasdev(long *idum)
 		return gset;
 	}
 }
+
 
 float ran1(long *idum)
 {

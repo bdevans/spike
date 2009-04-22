@@ -41,6 +41,7 @@ int read_parameters(PARAMS * params, char * paramfile)
 	fp = myfopen(paramfile, "r");
 	while ((s = fgets(buff, sizeof(buff), fp)) != NULL) 	/* Read next line */
 		count += parse_string(params, buff);
+	fclose(fp);
 	
 	/* Additional calculations */
 	float transP = (params->transP_Train >= params->transP_Test ? params->transP_Train : params->transP_Test);

@@ -25,6 +25,7 @@ PARAMS * mp;
 
 int main (int argc, const char * argv[])
 {	
+	int set_error = 0;
 	int hours = 0;
 	int mins = 0;
 	int secs = 0;
@@ -96,6 +97,12 @@ int main (int argc, const char * argv[])
 					omp_set_dynamic(dynamic);
 					break;
 				
+				case 't':	// Set the number of threads from the CLI
+					omp_set_num_threads(atoi(*++argv));
+					skip_arg = 1;
+					argc--;
+					break;
+					
 				case 'p':	// Code to pass a parameter string e.g. "param=0"
 					if (!p_flag)
 					{
@@ -179,7 +186,13 @@ int main (int argc, const char * argv[])
 	fclose(parameters_ptr);
 
 	printf("Now setting random seeds\n");
-	set_random_seeds(RERUN);
+	set_error = set_random_seeds(RERUN);
+	if (set_error)
+	{
+		RERUN = 0;
+		fprintf(stderr,  "WARNING: Creating new seeds...\n");
+		set_random_seeds(RERUN);
+	}
 	start = time(NULL); // Use omp function omp_get_wtime
 	begin = omp_get_wtime();
 	

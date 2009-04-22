@@ -10,9 +10,9 @@
 #define _RNG_H
 
 #include <stdio.h>
+//#include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include <stdio.h>
 #include <ctype.h>
 
 FILE *random_seeds_ptr; 
@@ -20,6 +20,10 @@ FILE *random_seeds_ptr;
 /************ RNG macros ************/
 #ifndef RSFILE
 #define RSFILE	"random_seeds.rsd"	/* Default random seed file name */
+#endif
+
+#ifndef BUFFER
+#define BUFFER	512
 #endif
 
 #define MBIG	1000000000
@@ -52,7 +56,7 @@ long idum;
 long idum_gasdev;
 int i, iv;
 
-long int ans[3]; // array to store values read from file
+long ans[3]; // array to store values read from file
 extern int RERUN;
 
 /* Function Prototypes */
