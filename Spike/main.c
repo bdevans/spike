@@ -29,6 +29,7 @@ int main (int argc, const char * argv[])
 	int hours = 0;
 	int mins = 0;
 	int secs = 0;
+	int nThreads = 0;
 	char *plural = "";
 	//char *scheduling = "FALSE";
 	char *dthreads = "FALSE";
@@ -98,7 +99,11 @@ int main (int argc, const char * argv[])
 					break;
 				
 				case 't':	// Set the number of threads from the CLI
-					omp_set_num_threads(atoi(*++argv));
+					nThreads = atoi(*++argv);
+					if (nThreads >= omp_get_num_procs())
+						omp_set_dynamic(true);
+					else
+						omp_set_num_threads(nThreads);
 					skip_arg = 1;
 					argc--;
 					break;

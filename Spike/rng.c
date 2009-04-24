@@ -16,7 +16,7 @@ int set_random_seeds(int RERUN)
 	/* This routine sets the random seeds */
 	
 	char * dummy;
-	char * s, * string, buff[BUFFER];
+	char * string, buff[BUFFER];
 	int count = 0;
 	char * rsfile = RSFILE;
 	// FILE * random_seeds_ptr;
@@ -38,7 +38,7 @@ int set_random_seeds(int RERUN)
 		while ((string = fgets(buff, sizeof(buff), random_seeds_ptr)) != NULL) 	/* Read next line */
 		{
 			//sscanf(s, "%s %ld", dummy, &ans[count]);
-			dummy = strtok(string, ":");
+			dummy = (char *) strtok(string, ":");
 			ans[count] = atoi(strtok(NULL, ":"));
 			count++;
 		}
