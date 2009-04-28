@@ -75,6 +75,7 @@ typedef struct {
 typedef struct NEURON{
 	//enum NTYPE type;
 	NTYPE type;
+	int l; // Layer index
 	int n; // Index ?? l_ind, n_ind
 	float V, V_tm1;
 	float D, D_tm1; // afferent

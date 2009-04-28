@@ -19,6 +19,7 @@
 #include <stdbool.h>
 //#include <string.h>
 
+extern void exit_error(const char * process, const char * statement);
 extern void * myalloc(int n);
 extern FILE * myfopen(const char * filename, const char * args);
 extern void filecopy(FILE * ifp, FILE * ofp);

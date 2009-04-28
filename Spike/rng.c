@@ -205,7 +205,7 @@ int rands1_new(int mn, int mx, int *iv, int mode)
  Reseed generator if mx <= mn */
 int rnd_new(int mn, int mx)
 {
-	int d, seed;
+	long d, seed;
 	
 	d = mx - mn + 1;
 	

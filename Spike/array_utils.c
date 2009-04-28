@@ -141,7 +141,7 @@ int ** get_2D_iarray(int nrows, int ncols, int init)
 	return array2D;	
 }
 
-void free_2D_iarray(int ** array2D, int ncols, int nrows)
+void free_2D_iarray(int ** array2D, int nrows)
 {
 	int i;
 	
@@ -187,7 +187,7 @@ int *** get_3D_iarray(int nlays, int nrows, int ncols, int init)
 }
 
 
-void free_3D_iarray(int *** array3D, int nlays, int ncols, int nrows)
+void free_3D_iarray(int *** array3D, int nlays, int nrows)
 {
 	int y,z;
 	for (z=0; z<nlays; z++)
@@ -224,7 +224,7 @@ float ** get_2D_farray(int nrows, int ncols, float init)
 	return array2D;	
 }
 
-void free_2D_farray(float ** array2D, int ncols, int nrows)
+void free_2D_farray(float ** array2D, int nrows)
 {
 	int i;
 	
@@ -270,7 +270,7 @@ float *** get_3D_farray(int nlays, int nrows, int ncols, float init)
 }
 
 
-void free_3D_farray(float *** array3D, int nlays, int nrows, int ncols)
+void free_3D_farray(float *** array3D, int nlays, int nrows)
 {
 	int y,z;
 	for (z=0; z<nlays; z++)

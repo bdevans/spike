@@ -55,7 +55,9 @@ void filecopy(FILE * ifp, FILE * ofp)
 bool file_exists(const char * filename)
 {
 	FILE * file;
-	if (file = fopen(filename, "r"))
+	file = fopen(filename, "r");
+	//if (file = fopen(filename, "r"))
+	if(file)
 	{
 		fclose(file);
 		return true;

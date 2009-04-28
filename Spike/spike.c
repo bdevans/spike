@@ -104,8 +104,10 @@ int spike(PARAMS * mp)
 	/************** END OF FILE OUTPUT **************/
 	
 	printf("\tBuilding complete!\n");
+#if DEBUG > 0
 	printf("NEURON structures require %d bytes.\n",sizeof(NEURON));
 	printf("An int requires %d bytes.\t A tstep requires %d bytes.\n",sizeof(int), sizeof(tstep));
+#endif
 	printf("\tNow initialising the network...");
 	
 	regime = Learning;			// 0: Testing (No STDP); 1: Training (STDP);
@@ -468,14 +470,14 @@ int unallocn (NEURON ** narray, int nlays, int nneurons)
 				free(narray[l][n].LEffs_I);
 			if (narray[l][n].rec_flag)
 			{
-				free_2D_farray(narray[l][n].rec->cellV, mp->loops, mp->TotalMS);
+				free_2D_farray(narray[l][n].rec->cellV, mp->loops);
 				if (l>0)
-					free_2D_farray(narray[l][n].rec->cellD, mp->loops, mp->TotalMS);
+					free_2D_farray(narray[l][n].rec->cellD, mp->loops);
 				if (l<mp->nWLayers)
 				{
-					free_3D_farray(narray[l][n].rec->SynC, mp->loops, narray[l][n].nFAff_E, mp->TotalMS);
-					free_3D_farray(narray[l][n].rec->SynG, mp->loops, narray[l][n].nFAff_E, mp->TotalMS);
-					free_3D_farray(narray[l][n].rec->SynDG, mp->loops, narray[l][n].nFAff_E, mp->TotalMS);
+					free_3D_farray(narray[l][n].rec->SynC, mp->loops, narray[l][n].nFAff_E);
+					free_3D_farray(narray[l][n].rec->SynG, mp->loops, narray[l][n].nFAff_E);
+					free_3D_farray(narray[l][n].rec->SynDG, mp->loops, narray[l][n].nFAff_E);
 				}
 				free(narray[l][n].rec);
 			}
@@ -518,7 +520,8 @@ void calc_connectivity() /* This function randomly connects the neurons together
 			n_E[l][n].nFEff_E = 0;
 			n_E[l][n].nLEff_E = 0;
 			n_E[l][n].nLEff_I = 0;
-			n_E[l][n].n = 0; 
+			n_E[l][n].n = n;
+			n_E[l][n].l = l;
 			n_E[l][n].nFAff_E = (l!=0) ? mp->nSynEfE : 0;
 			n_E[l][n].nLAff_E = mp->nSynElE;
 			n_E[l][n].nLAff_I = (l==0 && !mp->inputInhib) ? 0 : mp->nSynIE;
@@ -533,7 +536,8 @@ void calc_connectivity() /* This function randomly connects the neurons together
 			n_I[l][n].nFEff_E = 0;
 			n_I[l][n].nLEff_E = 0;
 			n_I[l][n].nLEff_I = 0;
-			n_I[l][n].n = 0; 
+			n_I[l][n].n = n;
+			n_I[l][n].l = l;
 			n_I[l][n].nFAff_E = 0;
 			n_I[l][n].nLAff_E = (l==0 && !mp->inputInhib) ? 0 : mp->nSynEI;
 			n_I[l][n].nLAff_I = (l==0 && !mp->inputInhib) ? 0 : mp->nSynII;
@@ -755,11 +759,11 @@ void create_axons(NEURON * n)
 		{
 			case UniformD:
 				delay = round(((ran3(&idum)*span)+mp->d_min)/DT);
-				nbins = ceil(delay*DT/mp->refract);
+				nbins = ceil((delay*DT)/mp->refract);
 				break;
 			case GaussD:
 				delay = round((mp->d_mean + mp->d_sd*gasdev(&idum))/DT);
-				nbins = ceil(delay*DT/mp->refract);
+				nbins = ceil((delay*DT)/mp->refract);
 				break;
 			default:
 				break;
@@ -775,11 +779,11 @@ void create_axons(NEURON * n)
 		{
 			case UniformD:
 				delay = round(((ran3(&idum)*span)+mp->d_min)/DT);
-				nbins = ceil(delay*DT/mp->refract);
+				nbins = ceil((delay*DT)/mp->refract);
 				break;
 			case GaussD:
 				delay = round((mp->d_mean + mp->d_sd*gasdev(&idum))/DT);
-				nbins = ceil(delay*DT/mp->refract);
+				nbins = ceil((delay*DT)/mp->refract);
 				break;
 			default:
 				break;
@@ -795,11 +799,11 @@ void create_axons(NEURON * n)
 		{
 			case UniformD:
 				delay = round(((ran3(&idum)*span)+mp->d_min)/DT);
-				nbins = ceil(delay*DT/mp->refract);
+				nbins = ceil((delay*DT)/mp->refract);
 				break;
 			case GaussD:
 				delay = round((mp->d_mean + mp->d_sd*gasdev(&idum))/DT);
-				nbins = ceil(delay*DT/mp->refract);
+				nbins = ceil((delay*DT)/mp->refract);
 				break;
 			default:
 				break;
@@ -1403,11 +1407,11 @@ void init_queue(AXON *a)
 
 void enqueue(AXON *a, int x)
 {
-	/*
+	
 	if (a->count >= a->size)
 		printf("Warning: queue overflow enqueue x=%d\n",x);
-	else {
-	 */
+	//else {
+	 
 	assert(a->count < a->size);
 	a->last = (a->last+1) % a->size;
 	a->queue[ a->last ] = x + a->delay;
