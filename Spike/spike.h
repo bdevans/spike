@@ -132,7 +132,7 @@ NEURON ** n_I;
 extern int spike(PARAMS * mp);
 extern NEURON ** allocn(int nlays, int nneurons, NTYPE type);
 extern int unallocn(NEURON ** narray, int nlays, int nneurons);
-extern void calc_connectivity();
+extern void calc_connectivity(void);
 extern void wire_afferents(NEURON * n, int l, int * affNcnx_fE, int * affNcnx_lE, int * affNcnx_I);
 extern void alloc_efferents(NEURON * n);
 extern void wire_efferents(NEURON * n);
