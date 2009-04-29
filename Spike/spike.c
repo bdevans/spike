@@ -105,8 +105,8 @@ int spike(PARAMS * mp)
 	
 	printf("\tBuilding complete!\n");
 #if DEBUG > 0
-	printf("NEURON structures require %d bytes.\n",sizeof(NEURON));
-	printf("An int requires %d bytes.\t A tstep requires %d bytes.\n",sizeof(int), sizeof(tstep));
+	printf("NEURON structures require %ld bytes.\n",sizeof(NEURON));
+	printf("An int requires %ld bytes.\t A tstep requires %ld bytes.\n",sizeof(int), sizeof(tstep));
 #endif
 	printf("\tNow initialising the network...");
 	
@@ -152,8 +152,14 @@ int spike(PARAMS * mp)
 			for (trans=0; trans<mp->nTransPS; trans++)
 			{
 				calc_input(loop, p, trans, tst_stimuli, input, shuffle, regime); // Move print statements outside
-				t_start = ((mp->transP_Test * trans) + (mp->transP_Test * mp->nTransPS * p)) * ceil(1/DT);
-				t_end = t_start + (mp->transP_Test * ceil(1/DT));
+				t_start = round(((mp->transP_Test * trans) + (mp->transP_Test * mp->nTransPS * p)) * ceil(1/DT));
+				t_end = t_start + round(mp->transP_Test * ceil(1/DT));
+#if DEBUG>0 // Level 1
+				fprintf(stderr, "\nUpdating network from timestep %lld to %lld.\n", t_start, t_end-1);
+				for (n=0; n<mp->nExcit; n++)
+					fprintf(stderr, "%d ",input[n]);
+				fprintf(stderr, "\n");
+#endif
 //#pragma omp barrier
 #pragma omp parallel default(shared) private (t) // Parallelize p loop?
 				for (t=t_start; t<t_end; t++)
@@ -230,10 +236,10 @@ int spike(PARAMS * mp)
 					}
 					else
 						calc_input(loop, (mp->trainPause)?(p/2)+1:p, trans, trn_stimuli, input, shuffle, regime);
-					t_start = ((mp->transP_Train * trans) + (mp->transP_Train * mp->nTransPS * p)) * ceil(1/DT);
-					t_end = t_start + (mp->transP_Train * ceil(1/DT));
+					t_start = round(((mp->transP_Train * trans) + (mp->transP_Train * mp->nTransPS * p)) * ceil(1/DT));
+					t_end = t_start + round((mp->transP_Train * ceil(1/DT)));
 #if DEBUG>0 // Level 1
-					fprintf(stderr, "\n\nEntering update_network at timestep %d.\n", t_start);
+					fprintf(stderr, "\nUpdating network from timestep %lld to %lld.\n", t_start, t_end-1);
 					for (n=0; n<mp->nExcit; n++)
 						fprintf(stderr, "%d ",input[n]);
 					fprintf(stderr, "\n");
@@ -259,8 +265,8 @@ int spike(PARAMS * mp)
 		for (trans=0; trans<mp->nTransPS; trans++)
 		{
 			calc_input(loop, p, trans, tst_stimuli, input, shuffle, regime);
-			t_start = ((mp->transP_Test * trans) + (mp->transP_Test * mp->nTransPS * p)) * ceil(1/DT);
-			t_end = t_start + (mp->transP_Test * ceil(1/DT));
+			t_start = round(((mp->transP_Test * trans) + (mp->transP_Test * mp->nTransPS * p)) * ceil(1/DT));
+			t_end = t_start + round((mp->transP_Test * ceil(1/DT)));
 #pragma omp parallel default(shared) private (t) // Parallelize p loop?
 			for (t=t_start; t<t_end; t++)
 				update_network(t, loop, input, regime);
