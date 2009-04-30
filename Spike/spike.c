@@ -1413,11 +1413,11 @@ void init_queue(AXON *a)
 
 void enqueue(AXON *a, int x)
 {
-	
+	/*
 	if (a->count >= a->size)
 		printf("Warning: queue overflow enqueue x=%d\n",x);
 	//else {
-	 
+	*/
 	assert(a->count < a->size);
 	a->last = (a->last+1) % a->size;
 	a->queue[ a->last ] = x + a->delay;
