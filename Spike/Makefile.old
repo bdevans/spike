@@ -1,28 +1,0 @@
-# Makefile for spiking neural network simulation
-# To see the rules and macros being used type: make -p
-# http://www.spec.org/omp/results/flags/Intel-ic10.1-intel64-linux-flags-file-20071211.html
-
-CC=gcc
-OPTIMISE -O2 -xT
-CFLAGS	= -I/usr/local/include
-LDFLAGS	= -L/usr/local/lib
-LIBS	= -lgomp
-SOURCES= main.c spike.c rng.c
-OBJECTS=$(SOURCES:.c=.o)
-EXECUTABLE=spike
-
-all: $(SOURCES) $(EXECUTABLE)
-
-$(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OPTIMISE) $(CFLAGS) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
-
-.c.o:
-	$(CC) $(CFLAGS) $< -o $@
-
-install:	
-
-clean:	
-	rm -rf $(OBJECTS)
-
-
-# $@	The file name of the target.# $<	The name of the first dependency.# $*	The part of a filename which matched a suffix rule.# $?	The names of all the dependencies newer than the target separated by spaces.# $^    The names of all the dependencies separated by spaces, but with duplicate names removed.# $+    The names of all the dependencies separated by spaces with duplicate names included and in the same order as in the rule.
