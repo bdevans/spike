@@ -1,9 +1,11 @@
-function SpikeAnalysis(sim)
+function SpikeAnalysis(sim,rdir)
 
-rdir = '~/Code/Spike/Results/';
+if nargin == 1
+    rdir = '~/Results/SpikeNet/';
+end
 
 path(path, '~/Code/Spike/');
-eval(['cd ',strcat(rdir,sim)]); %eval(['! cd ',strcat(rdir,sim)]);
+eval(['cd ',strcat(rdir,sim)]);
 
 %%
 defaults;
@@ -35,13 +37,17 @@ load L1affNeuronsEfE.dat;
 load L1weightsEfE.dat;
 
 L0ExcitSpikes = dlmread('L0ExcitSpikes.dat');
+L0ExcitSpikes = L0ExcitSpikes(:,2:end);
 L1ExcitSpikes = dlmread('L1ExcitSpikes.dat');
+L1ExcitSpikes = L1ExcitSpikes(:,2:end);
 L0InhibSpikes = dlmread('L0InhibSpikes.dat');
+L0InhibSpikes = L0InhibSpikes(:,2:end);
 L1InhibSpikes = dlmread('L1InhibSpikes.dat');
+L1InhibSpikes = L1InhibSpikes(:,2:end);
 
 
-% Calculate bins and centres
-bins = 0.025:0.05:0.975;
+% Calculate weight bins and centres
+wbins = 0.025:0.05:0.975;
 % bstart=TEST_PERIOD_TS/(NSTIMULI*2);
 % bstep=bstart*2;
 % bend=TEST_PERIOD_TS-bstart;
@@ -57,17 +63,51 @@ bins = 0.025:0.05:0.975;
 
 testPeriodMS = transP_Test * nStimuli * nTransPS * 1000;
 
+step = 0.005; % seconds
+tstart = step/2;
+tend = (testPeriodMS/1000)-step/2;
+testBins = tstart:step:tend;
+
+spikes = L1ExcitSpikes.*DT;
+spikes(spikes(:)==0)=[];
+
+Fs = 1/step;
+
+figure()
+freqs = hist(spikes,testBins)/(nExcit*step); % Normalise
+%freqs = freqs - mean(freqs);
+bar(testBins,freqs);
+xlim([0,testPeriodMS/1000]); % Redo
+xlabel('Seconds (Binned)');
+ylabel('Frequency');
+saveas(gcf,strcat('L1ESpikeHist',sim),'png');
+
+figure()
+%freqs=freqs(1:length(freqs)/2);
+freqs = freqs - mean(freqs);
+NFFT = 2^nextpow2(freqs); % Next power of 2 from length of freqs
+FFT = fft(freqs,NFFT)/Fs;
+f = linspace(0,Fs/2,NFFT/2);
+plot(f,2*abs(FFT(1:NFFT/2)));
+xlabel('Frequency (Hz)');
+ylabel('|Amplitute|');
+xlim([-1,(Fs/2+1)]);
+saveas(gcf,strcat('L1ESpikeFourier',sim),'png');
+
+
 % Plot pre-training results
 if pretrain==1
+    figure();
     pt_output_spikes = dlmread('ptL1ExcitSpikes.dat');
     load ptL1weightsEfE.dat;
     subplot(2,3,1);
-    imagesc(sort_matrix(ptL1weightsEfE'));
+    %imagesc(sort_matrix(ptL1weightsEfE'));
+    imagesc(ptL1weightsEfE');
     xlabel('Output neuron');
     ylabel('Input neuron');
 
     subplot(2,3,4);
-    hist(reshape(ptL1weightsEfE,1,[]),bins);
+    hist(reshape(ptL1weightsEfE,1,[]),wbins);
     xlabel('Synaptic weight');
     ylabel('Frequency');
 
@@ -82,14 +122,21 @@ figure();
 raster(L0ExcitSpikes,testPeriodMS,DT);
 saveas(gcf,strcat('inputs',sim),'png');
 
+if inputInhib == 1
+    figure();
+    raster(L0InhibSpikes,testPeriodMS,DT);
+    saveas(gcf,strcat('InhibInputs',sim),'png');
+end
+
 figure();
 subplot(2,3,1);
-imagesc(sort_matrix(L1weightsEfE'));
+%imagesc(sort_matrix(L1weightsEfE'));
+imagesc(L1weightsEfE');
 xlabel('Output neuron');
 ylabel('Input neuron');
 
 subplot(2,3,4);
-hist(reshape(L1weightsEfE,1,[]),bins);
+hist(reshape(L1weightsEfE,1,[]),wbins);
 xlabel('Synaptic weight');
 ylabel('Frequency');
 
