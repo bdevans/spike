@@ -155,7 +155,7 @@ int main (int argc, const char * argv[])
 #endif
 	
 	// Read in parameters from .prm file
-	printf("\tReading parameters file: \"%s\"...", !pfile ? DPFILE : pfile);
+	printf("Reading parameters file: \"%s\"...", !pfile ? DPFILE : pfile);
 	if (p_flag)
 		fclose(cli_FP);
 	mp = myalloc(sizeof(*mp));
