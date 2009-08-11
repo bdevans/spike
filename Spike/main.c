@@ -19,7 +19,7 @@ char * RESDIR = RESULTSDIRECTORY;
 char * DPFILE = DEFAULTPFILE;
 char * MPFILE = OUTPUTPFILE;
 
-int RERUN = 0; // rng.c require this to be global
+int RERUN = 0; // rng.c requires this to be global
 
 PARAMS * mp;
 
@@ -150,12 +150,15 @@ int main (int argc, const char * argv[])
 		}
 	}
 	
+#if DEBUG > 0
+	printf("*** Executing with Debug level %d ***\n", DEBUG);
+#endif
 #ifdef NDEBUG
 	printf("Warning: Executing without error checking!\n");
 #endif
 	
 	// Read in parameters from .prm file
-	printf("Reading parameters file: \"%s\"...", !pfile ? DPFILE : pfile);
+	printf("Reading parameters file: \"%s\"", !pfile ? DPFILE : pfile);
 	if (p_flag)
 		fclose(cli_FP);
 	mp = myalloc(sizeof(*mp));
@@ -202,6 +205,8 @@ int main (int argc, const char * argv[])
 	begin = omp_get_wtime();
 	
 	result = spike(mp);
+	
+	free(mp);
 	
 	end = omp_get_wtime();
 	printf("Total wall time = %lf\n", end - begin);

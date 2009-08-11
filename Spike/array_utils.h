@@ -20,7 +20,7 @@
 #ifndef EPS
 #define EPS		1.2e-7
 #endif
-
+//const double eps = 1.0e-8;
 
 extern void normalize(double *vec, int size);
 extern double ndp(double *vec_x, double *vec_y, int size);

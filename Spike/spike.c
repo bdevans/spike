@@ -21,9 +21,11 @@ int spike(PARAMS * mp)
 	char *plural = "";
 	
 	char filename[FNAMEBUFF];
-
-	int *** trn_stimuli, *** tst_stimuli; // Place this group in a structure
-	int ** shuffle;
+	
+	STIMULI * stim;
+	//int *** trn_stimuli, *** tst_stimuli; // Place this group in a structure
+	//int ** stimShuffle;
+	//int *** transShuffle;
 	int * input;
 	
 	//PARAMS * mp; // const?
@@ -34,6 +36,7 @@ int spike(PARAMS * mp)
 	
 	/*** Declare file pointers ***/
 	//FILE * parameters_ptr;
+	FILE * input_spikes_FP;
 	FILE * output_spikes_ptr;
 	FILE * weights_ptr;
 	FILE * stimuli_FP;
@@ -117,13 +120,14 @@ int spike(PARAMS * mp)
 	
 	printf("\tNow creating the stimuli...");
 	
-	gen_stimuli(mp->localRep, &trn_stimuli, &tst_stimuli, &input, &shuffle);			// Generate Patterns
-	
+	stim = myalloc(sizeof(*stim));
+	gen_stimuli(mp->localRep, stim, &input);			// Generate Patterns
+		
 	stimuli_FP = fopen("trn_stimuli.dat", "w");
 	for (p=0; p<mp->nStimuli; p++)
 	{
 		fprintf(stimuli_FP, "*** Stimulus %d ***\n", p+1);
-		print_iarray(stimuli_FP, trn_stimuli[p], mp->nTransPS, mp->nExcit);
+		print_iarray(stimuli_FP, (stim->trn_stimuli)[p], mp->nTransPS, mp->nExcit);
 		fprintf(stimuli_FP, "\n");
 	}
 	fclose(stimuli_FP);
@@ -132,7 +136,7 @@ int spike(PARAMS * mp)
 	for (p=0; p<mp->nStimuli; p++)
 	{
 		fprintf(stimuli_FP, "*** Stimulus %d ***\n", p+1);
-		print_iarray(stimuli_FP, tst_stimuli[p], mp->nTransPS, mp->nExcit);
+		print_iarray(stimuli_FP, stim->tst_stimuli[p], mp->nTransPS, mp->nExcit);
 		fprintf(stimuli_FP, "\n");
 	}
 	fclose(stimuli_FP);
@@ -151,7 +155,8 @@ int spike(PARAMS * mp)
 		{
 			for (trans=0; trans<mp->nTransPS; trans++)
 			{
-				calc_input(loop, p, trans, tst_stimuli, input, shuffle, regime); // Move print statements outside
+				init_network(Settle);
+				calc_input(loop, p, trans, stim, input, regime); // Move print statements outside
 				t_start = round(((mp->transP_Test * trans) + (mp->transP_Test * mp->nTransPS * p)) * ceil(1/DT));
 				t_end = t_start + round(mp->transP_Test * ceil(1/DT));
 #if DEBUG>0 // Level 1
@@ -166,18 +171,7 @@ int spike(PARAMS * mp)
 					update_network(t, loop, input, regime);
 			}
 		}
-/*#pragma omp parallel default(shared) private (t)
-		{
-		for (t=0; t<TEST_PERIOD_TS; t++) // Think about the presentation time
-		{
-#pragma omp single
-			{
-			if ((t % cueTS) == 0) // Impose stimulus
-				calc_input(t, loop, tst_stimuli, input, regime); // Calculate input pattern
-			}
-			update_network(t, loop, input, regime);
-		}
-		}*/
+
 		printf("\tTesting complete!\n");
 		
 		printf("\tSaving results...");
@@ -221,34 +215,60 @@ int spike(PARAMS * mp)
 		
 		for (loop=0; loop < mp->loops; loop++)
 		{
-			init_network(0);	// Reinitialise parameters here to reset V's, g's, C's, D's and spike buffers
+			init_network(NoLearning);	// Reinitialise parameters here to reset V's, g's, C's, D's and spike buffers
 			printf("\tLoop %d/%d\n", loop+1, mp->loops);
 			
-			int nPatterns = (!mp->trainPause) ? mp->nStimuli : (2*mp->nStimuli)-1;
-			for (p=0; p<nPatterns; p++)
+			if (mp->interleaveTrans)
 			{
 				for (trans=0; trans<mp->nTransPS; trans++)
 				{
-					if (mp->trainPause && (p % 2 == 1))
+					for (p=0; p<mp->nStimuli; p++)
 					{
-						memset(input, 0, mp->nExcit * sizeof(*input));
-						printf("\t\tLetting the network settle for %.2fs after stimulus %d...\n",mp->transP_Train,(p+1)/2);
-					}
-					else
-						calc_input(loop, (mp->trainPause)?(p/2)+1:p, trans, trn_stimuli, input, shuffle, regime);
-					t_start = round(((mp->transP_Train * trans) + (mp->transP_Train * mp->nTransPS * p)) * ceil(1/DT));
-					t_end = t_start + round((mp->transP_Train * ceil(1/DT)));
+						calc_input(loop, p, trans, stim, input, regime);
+						t_start = round(((mp->transP_Train * mp->nStimuli * trans) + (mp->transP_Train * p)) * ceil(1/DT));
+						t_end = t_start + round((mp->transP_Train * ceil(1/DT)));
 #if DEBUG>0 // Level 1
-					fprintf(stderr, "\nUpdating network from timestep %lld to %lld.\n", t_start, t_end-1);
-					for (n=0; n<mp->nExcit; n++)
-						fprintf(stderr, "%d ",input[n]);
-					fprintf(stderr, "\n");
+						fprintf(stderr, "\nUpdating network from timestep %lld to %lld.\n", t_start, t_end-1);
+						for (n=0; n<mp->nExcit; n++)
+							fprintf(stderr, "%d ",input[n]);
+						fprintf(stderr, "\n");
 #endif
 #pragma omp parallel default(shared) private (t) // Parallelize p loop?
-					for (t=t_start; t<t_end; t++)
-						update_network(t, loop, input, regime);
+						for (t=t_start; t<t_end; t++)
+							update_network(t, loop, input, regime);
+					}
 				}
 			}
+			else 
+			{
+				for (p=0; p<mp->nStimuli; p++)
+				{
+					if (mp->trainPause)
+						init_network(Settle);
+					
+					for (trans=0; trans<mp->nTransPS; trans++)
+					{
+						calc_input(loop, p, trans, stim, input, regime);
+						t_start = round(((mp->transP_Train * trans) + (mp->transP_Train * mp->nTransPS * p)) * ceil(1/DT));
+						t_end = t_start + round((mp->transP_Train * ceil(1/DT)));
+#if DEBUG>0 // Level 1
+						fprintf(stderr, "\nUpdating network from timestep %lld to %lld.\n", t_start, t_end-1);
+						for (n=0; n<mp->nExcit; n++)
+							fprintf(stderr, "%d ",input[n]);
+						fprintf(stderr, "\n");
+#endif
+#pragma omp parallel default(shared) private (t) // Parallelize p loop?
+						for (t=t_start; t<t_end; t++)
+							update_network(t, loop, input, regime);
+					}
+				}
+			}
+			/* Save input layer spikes after each epoch */
+			sprintf(filename, "E%dL%dExcitSpikes.dat", loop,0);
+			input_spikes_FP = fopen(filename, "w");
+			for (n=0; n<mp->nExcit; n++)
+				print_irow(input_spikes_FP, n_E[0][n].spikeTimes, n_E[0][n].spkbin+1); // spikeTimes[0] = -BIG?
+			fclose(input_spikes_FP);
 		}
 		printf("\tThe network has been trained!\n");
 	}
@@ -264,7 +284,8 @@ int spike(PARAMS * mp)
 	{
 		for (trans=0; trans<mp->nTransPS; trans++)
 		{
-			calc_input(loop, p, trans, tst_stimuli, input, shuffle, regime);
+			init_network(Settle);
+			calc_input(loop, p, trans, stim, input, regime);
 			t_start = round(((mp->transP_Test * trans) + (mp->transP_Test * mp->nTransPS * p)) * ceil(1/DT));
 			t_end = t_start + round((mp->transP_Test * ceil(1/DT)));
 #pragma omp parallel default(shared) private (t) // Parallelize p loop?
@@ -416,9 +437,19 @@ int spike(PARAMS * mp)
 		
 	printf("\tResults saved!\n"); // Print path
 	
-	//unallocn(n_E, mp->nLayers, mp->nExcit);
-	//unallocn(n_I, mp->nLayers, mp->nInhib);
+	unallocn(n_E, mp->nLayers, mp->nExcit);
+	unallocn(n_I, mp->nLayers, mp->nInhib);
 	// Free other arrays...
+	free(input);
+	free_3D_iarray(stim->trn_stimuli, mp->nStimuli, mp->nTransPS);
+	free_3D_iarray(stim->tst_stimuli, mp->nStimuli, mp->nTransPS);
+	if (mp->randStimOrder)
+		free_2D_iarray(stim->stimShuffle, mp->loops);
+	if (mp->randTransOrder)
+		free_3D_iarray(stim->transShuffle, mp->loops, mp->nStimuli);
+	free(stim);
+	
+	printf("\tMemory Deallocated!\n");
 
 	return 0;
 }
@@ -488,8 +519,9 @@ int unallocn (NEURON ** narray, int nlays, int nneurons)
 				free(narray[l][n].rec);
 			}
 		}
-		free(narray[l]);
+		//free(narray[l]);
 	}
+	free(*narray);
 	free(narray);
 	return 0;
 }
@@ -580,6 +612,31 @@ void calc_connectivity() /* This function randomly connects the neurons together
 			wire_efferents(&n_I[l][n]);
 	
 	/*** Axonal delays ***/
+#if DEBUG >	1
+	switch (mp->axonDelay) 
+	{
+		case MinD:
+			printf("\nSetting axonal delays to minimum\n");
+			break;
+			
+		case ConstD:
+			printf("\nSetting axonal delays to %f seconds\n",mp->d_const);
+			break;
+			
+		case UniformD:
+			printf("\nDrawing axonal delays from [%f, %f]\n",mp->d_min, mp->d_max);
+			break;
+			
+		case GaussD:
+			printf("\nDrawing axonal delays from N(%f,%f)\n",mp->d_mean, mp->d_sd);
+			break;
+			
+		default:
+			printf("\nError: Unknown axonal delay model!\n");
+			break;
+	}
+#endif
+	
 	for (n=0; n<mp->nExcit; n++)
 		for (l=0; l<mp->nLayers; l++)
 			create_axons(&n_E[l][n]);
@@ -693,7 +750,6 @@ void wire_efferents(NEURON * n)
 			effCount = pre_n->nLEff_E++; // records how many post-syn connections have been wired up
 			n->LAffs_I[s] = &pre_n->LEffs_E[effCount];	// Point to presynaptic efferent axon
 			pre_n->lp0postsyn_E[effCount] = n;			// Point to postsynaptic neuron
-			
 		}
 	}
 	
@@ -730,32 +786,20 @@ void create_axons(NEURON * n)
 	switch (mp->axonDelay) 
 	{
 		case MinD:
-#if DEBUG > 1
-			printf("\nSetting axonal delays to minimum\n");
-#endif
 			delay = 1;
 			nbins = 1;
 			break;
 		case ConstD:
-#if DEBUG > 1			
-			printf("\nSetting axonal delays to %f seconds\n",mp->d_const);
-#endif
 			delay = ceil(mp->d_const/DT);
 			nbins = ceil(mp->d_const/mp->refract);
 			break;
 		case UniformD:
-#if DEBUG > 1
-			printf("\nDrawing axonal delays from [%f, %f]\n",mp->d_min, mp->d_max);
-#endif
 			span = mp->d_max - mp->d_min;
 			break;
 		case GaussD:
-#if DEBUG > 1
-			printf("\nDrawing axonal delays from N(%f,%f)\n",mp->d_mean, mp->d_sd);
-#endif
 			break;
 		default:
-			printf("\nError: Unknown axonal delay model!\n");
+			exit_error("create_axons", "Unknown axonal delay model!");
 			break;
 	}
 	
@@ -903,7 +947,7 @@ void init_network(int regime)
 					n_I[l][n].LEffs_I[s].delta_g = n_I[l][n].LEffs_I[s].delta_g_tm1 = mp->Dg_II;
 		
 		
-		switch (mp->noise)
+		/*switch (mp->noise)
 		{
 			case 0: // No noise // Already initialised to 0 when declared
 				break;
@@ -911,7 +955,7 @@ void init_network(int regime)
 				break;
 			case 2: // Gaussian noise
 				break;
-		} // End of NOISE switch		
+		} // End of NOISE switch	*/	
 	} // End of if (regime==1) clause
 	
 
@@ -942,11 +986,14 @@ void init_network(int regime)
 				n_E[l][n].LEffs_I[s].g = n_E[l][n].LEffs_I[s].g_tm1 = 0.0;
 				init_queue(&(n_E[l][n].LEffs_I[s]));
 			}
+			
 			n_E[l][n].lastSpike = 0; //-BIG;
-			n_E[l][n].spkbin = 0;
-			memset(n_E[l][n].spikeTimes, 0, mp->spkBuffer*sizeof(n_E[l][n].spikeTimes[0])); //[0]?
-			/*for (s=0; s<mp->spkBuffer; s++)
-				n_E[l][n].spikeTimes[s] = 0;*/
+			
+			if (regime != Settle)
+			{
+				n_E[l][n].spkbin = 0;
+				memset(n_E[l][n].spikeTimes, 0, mp->spkBuffer*sizeof(n_E[l][n].spikeTimes[0])); //[0]?
+			}
 		}
 	}
 	
@@ -965,14 +1012,19 @@ void init_network(int regime)
 				n_I[l][n].LEffs_I[s].g = n_I[l][n].LEffs_I[s].g_tm1 = 0.0;
 				init_queue(&(n_I[l][n].LEffs_I[s]));
 			}
+			
 			n_I[l][n].lastSpike = 0; //-BIG;
-			n_I[l][n].spkbin = 0;
-			memset(n_I[l][n].spikeTimes, 0, mp->spkBuffer*sizeof(n_I[l][n].spikeTimes[0]));
+			
+			if (regime != Settle)
+			{
+				n_I[l][n].spkbin = 0;
+				memset(n_I[l][n].spikeTimes, 0, mp->spkBuffer*sizeof(n_I[l][n].spikeTimes[0]));
+			}
 		}
 	}
 
 	/* Recording structures */
-	if (mp->nRecordsPL)
+	if (mp->nRecordsPL && regime != Settle)
 		for (n=0; n<mp->nExcit; n++)
 			for (l=0; l<mp->nLayers; l++)
 				if (n_E[l][n].rec_flag)
@@ -997,7 +1049,7 @@ void init_network(int regime)
 	return;
 }
 
-void gen_stimuli(bool rep, int ****trn_stimuli, int ****tst_stimuli, int ** input, int *** shuffle)
+void gen_stimuli(bool rep, STIMULI * stim, int ** input)
 {
 	// Place array arguements in a patterns structure
 	int loop;
@@ -1013,8 +1065,9 @@ void gen_stimuli(bool rep, int ****trn_stimuli, int ****tst_stimuli, int ** inpu
 	// Or read in list of pairs from another array
 	
 	*input = myalloc(mp->nExcit * sizeof(**input));
-	*trn_stimuli = get_3D_iarray(mp->nStimuli, mp->nTransPS, mp->nExcit, 0);
-	*tst_stimuli = get_3D_iarray(mp->nStimuli, mp->nTransPS, mp->nExcit, 0);
+	
+	stim->trn_stimuli = get_3D_iarray(mp->nStimuli, mp->nTransPS, mp->nExcit, 0);
+	stim->tst_stimuli = get_3D_iarray(mp->nStimuli, mp->nTransPS, mp->nExcit, 0);
 	
 	//int nFiringNeurons = floor(mp->a * mp->nExcit);
 	
@@ -1029,7 +1082,7 @@ void gen_stimuli(bool rep, int ****trn_stimuli, int ****tst_stimuli, int ** inpu
 				{
 					// Sample from possible pre-synaptic neurons without replacement
 					choice=rands1_new(0,mp->nExcit-1,&iv,1); // see p11
-					(*trn_stimuli)[p][trans][choice] = (*tst_stimuli)[p][trans][choice] = 1;
+					stim->trn_stimuli[p][trans][choice] = stim->tst_stimuli[p][trans][choice] = 1;
 				}
 			}			
 			break;
@@ -1040,7 +1093,7 @@ void gen_stimuli(bool rep, int ****trn_stimuli, int ****tst_stimuli, int ** inpu
 			for (p=0; p<mp->nStimuli; p++)
 				for (trans=0; trans<mp->nTransPS; trans++)
 					for (n=(p*block)+(trans*mp->shift); n<(mp->nFiringNeurons+(p*block)+(trans*mp->shift)); n++)
-						(*trn_stimuli)[p][trans][n] = (*tst_stimuli)[p][trans][n] = 1;
+						stim->trn_stimuli[p][trans][n] = stim->tst_stimuli[p][trans][n] = 1;
 			break;
 	}
 	
@@ -1053,14 +1106,40 @@ void gen_stimuli(bool rep, int ****trn_stimuli, int ****tst_stimuli, int ** inpu
 		------------------------333333333***
 	 */ // Extend this to 2D - cf MSc code
 	
-	if (mp->random_order)
+#if DEBUG>0 // Level 1
+	fprintf(stderr, "\nPrinting generated training stimuli...\n");
+	for (p=0; p<mp->nStimuli; p++)
+		for (trans=0; trans<mp->nTransPS; trans++)
+		{
+			fprintf(stderr, "S%dT%d: ",p+1,trans+1);
+			for (n=0; n<mp->nExcit; n++)
+				fprintf(stderr, "%d ",stim->trn_stimuli[p][trans][n]);
+			fprintf(stderr, "\n");
+		}
+#endif
+	
+	if (mp->randStimOrder)
 	{
-		*shuffle = get_2D_iarray(mp->loops, mp->nStimuli, 0);
+		stim->stimShuffle = get_2D_iarray(mp->loops, mp->nStimuli, 0);
 		for (loop=0; loop<mp->loops; loop++)
 		{
 			i=rands1_new(0,0,&iv,1);	// Initialise RNG (clear internal array of numbers drawn)
 			for (p=0; p<mp->nStimuli; p++)
-				(*shuffle)[loop][p] = rands1_new(0,mp->nStimuli-1,&iv,1);
+				stim->stimShuffle[loop][p] = rands1_new(0,mp->nStimuli-1,&iv,1);
+		}
+	}
+	
+	if (mp->randTransOrder)
+	{
+		stim->transShuffle = get_3D_iarray(mp->loops, mp->nStimuli, mp->nTransPS, 0);
+		for (loop=0; loop<mp->loops; loop++)
+		{
+			for (p=0; p<mp->nStimuli; p++)
+			{
+				i=rands1_new(0,0,&iv,1);	// Initialise RNG (clear internal array of numbers drawn)
+				for (trans=0; trans<mp->nTransPS; trans++)
+					stim->transShuffle[loop][p][trans] = rands1_new(0,mp->nTransPS-1,&iv,1);
+			}
 		}
 	}
 	
@@ -1074,30 +1153,19 @@ void gen_stimuli(bool rep, int ****trn_stimuli, int ****tst_stimuli, int ** inpu
 	return; // void;
 }
 
-void calc_input(int loop, int pat, int trans, int ***stimuli, int * input, int ** shuffle, int regime) // return int * input?
+void calc_input(int loop, int pat, int trans, STIMULI * stim, int * input, int regime) // return int * input?
 {	// Assumes all stimuli translate
-	// No need to pass stimuli since tst_stimuli and trn_stimuli are global
-	/*
-	int p, pat;
-	int trans;
-	float transP;
 	
-	transP = ((regime==Learning) ? mp->transP_Train : mp->transP_Test);
-	p = floor(t*DT/(transP*mp->nTransPS));
-	
-	trans = floor((t*DT)/transP);
-	trans %= mp->nTransPS;
-	*/
 	switch (regime)
 	{
 		case 0: // Testing stimuli
-			//pat=p;
-			memcpy(input, stimuli[pat][trans], mp->nExcit*sizeof(input[0])); // Copy row of tst_stimuli to input array
+			memcpy(input, stim->tst_stimuli[pat][trans], mp->nExcit*sizeof(input[0])); // Copy row of tst_stimuli to input
 			break;
 			
 		case 1: // Training stimuli
-			pat=((mp->random_order) ? (shuffle[loop][pat]) : pat );
-			memcpy(input, stimuli[pat][trans], mp->nExcit*sizeof(input[0]));
+			pat = (mp->randStimOrder) ? stim->stimShuffle[loop][pat] : pat;
+			trans = (mp->randTransOrder) ? stim->transShuffle[loop][pat][trans] : trans;
+			memcpy(input, stim->trn_stimuli[pat][trans], mp->nExcit*sizeof(input[0]));
 			break;
 	}
 

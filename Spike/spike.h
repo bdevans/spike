@@ -124,6 +124,13 @@ typedef struct NEURON{
 NEURON ** n_E;
 NEURON ** n_I;
 
+typedef struct {
+	int *** trn_stimuli;
+	int *** tst_stimuli;
+	int ** stimShuffle;
+	int *** transShuffle;
+} STIMULI;
+
 // Array of arrays of structures?
 // Expand to RECORDS[NLAYERS][NTYPES][NRECORDS] where NTYPES:= {0,1} (Excitatory, Inhibitory)
 
@@ -138,8 +145,8 @@ extern void alloc_efferents(NEURON * n);
 extern void wire_efferents(NEURON * n);
 extern void create_axons(NEURON * n);
 extern void init_network(int regime);
-extern void gen_stimuli(bool rep, int **** trn_stimuli, int **** tst_stimuli, int ** input, int *** shuffle);
-extern void calc_input(int loop, int pat, int trans, int *** stimuli, int * input, int ** shuffle, int regime);
+extern void gen_stimuli(bool rep, STIMULI * stim, int ** input);
+extern void calc_input(int loop, int pat, int trans, STIMULI * stim, int * input, int regime);
 extern void update_network(int t, int loop, int input[], int regime);
 extern void update_V(int t, float decay_rate, float gLeak, float Vrest, float Thresh, float Vhyper, int inj, NEURON * n);
 extern void update_g(NEURON * n, float decay_E, float decay_I, int t);

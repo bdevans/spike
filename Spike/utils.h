@@ -25,4 +25,12 @@ extern FILE * myfopen(const char * filename, const char * args);
 extern void filecopy(FILE * ifp, FILE * ofp);
 extern bool file_exists(const char * filename);
 
+#if !defined(MAX) 
+#define MAX(A, B) ((A) > (B) ? (A) : (B)) 
+#endif 
+
+#if !defined(MIN) 
+#define MIN(A, B) ((A) < (B) ? (A) : (B)) 
+#endif 
+
 #endif // _UTILS_H

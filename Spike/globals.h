@@ -17,7 +17,9 @@
 #define BIG		999999
 
 /* Debugging output */
-#define DEBUG	0	/* Debug output level																*/
+#ifndef DEBUG
+#define DEBUG	0	/* Debug output level (defined as 5 in the Xcode Debug build)						*/
+#endif
 #if DEBUG == 0
 #define NDEBUG		/* Define to turn off assert statements	- must come before #include <assert.h>		*/
 #endif

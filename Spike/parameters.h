@@ -19,7 +19,8 @@ typedef enum {
 
 typedef enum {
 	NoLearning,
-	Learning
+	Learning,
+	Settle
 } REGIMETYPE;
 
 typedef enum {
@@ -52,7 +53,9 @@ typedef struct {
 	int spkBuffer;
 	
 	// Stimuli
-	bool random_order;// = true;
+	bool randStimOrder;// = true;
+	bool randTransOrder;
+	bool interleaveTrans;
 	bool localRep;// = true;
 	float current;// = 1.25e-9;
 	int nStimuli;

@@ -9,12 +9,39 @@
 
 #include "read_parameters.h"
 
-/*
- * trim: get rid of trailing and leading whitespace...
- *       ...including the annoying "\n" from fgets()
- */
-char * trim(char * s)
+
+int read_parameters(PARAMS * params, char * paramfile)
 {
+	int count = 0;
+	char * s, buff[BUFFER];
+	FILE * fp;
+	
+	fp = myfopen(paramfile, "r");
+	while ((s = fgets(buff, sizeof(buff), fp)) != NULL) 	/* Read next line */
+		count += parse_string(params, buff);
+	fclose(fp);
+	
+	/* Additional calculations */
+	float transP = (params->transP_Train >= params->transP_Test ? params->transP_Train : params->transP_Test);
+	params->TotalTime = params->nStimuli * params->nTransPS * transP;
+	params->TotalMS = ceil(params->TotalTime * 1000);
+	params->TotalTS = ceil(params->TotalTime/DT);
+	params->TSperMS = ceil(1/(DT*1000));
+	params->spkBuffer = ceil(params->TotalTime / params->refract);
+	if (floor(params->a * params->nExcit) < 1)
+		params->nFiringNeurons = floor(params->nExcit/(params->nStimuli * params->nTransPS));
+	else
+		params->nFiringNeurons = floor(params->nExcit * params->a);
+	//params->nFiringNeurons = (params->a == 0.0) ? floor(params->nExcit/(params->nStimuli * params->nTransPS)) : floor(params->nExcit * params->a);
+
+	/*if (params->interleaveTrans)
+		params->randStimOrder = false;*/
+	
+	return count;
+}
+
+char * trim(char * s)
+{ // Remove leading and trailing whitespace
 	/* Initialize start, end pointers */
 	char *s1 = s, *s2 = &s[strlen (s) - 1];
 	
@@ -30,36 +57,6 @@ char * trim(char * s)
 	/* Copy finished string */
 	strcpy(s, s1);
 	return s;
-}
-
-int read_parameters(PARAMS * params, char * paramfile)
-{
-	int count = 0;
-	char * s, buff[BUFFER];
-	FILE * fp;
-	
-	fp = myfopen(paramfile, "r");
-	while ((s = fgets(buff, sizeof(buff), fp)) != NULL) 	/* Read next line */
-		count += parse_string(params, buff);
-	fclose(fp);
-	
-	/* Additional calculations */
-	float transP = (params->transP_Train >= params->transP_Test ? params->transP_Train : params->transP_Test);
-	if (!params->trainPause)
-		params->TotalTime = params->nStimuli * params->nTransPS * transP;
-	else
-		params->TotalTime = ((2 * params->nStimuli) - 1) * params->nTransPS * transP;
-	params->TotalMS = ceil(params->TotalTime * 1000);
-	params->TotalTS = ceil(params->TotalTime/DT);
-	params->TSperMS = ceil(1/(DT*1000));
-	params->spkBuffer = ceil(params->TotalTime / params->refract);
-	if (floor(params->a * params->nExcit) < 1)
-		params->nFiringNeurons = floor(params->nExcit/(params->nStimuli * params->nTransPS));
-	else
-		params->nFiringNeurons = floor(params->nExcit * params->a);
-	//params->nFiringNeurons = (params->a == 0.0) ? floor(params->nExcit/(params->nStimuli * params->nTransPS)) : floor(params->nExcit * params->a);
-	
-	return count;
 }
 
 int parse_string(PARAMS * params, char * string)
@@ -105,8 +102,12 @@ int parse_string(PARAMS * params, char * string)
 		params->nRecordsPL = atoi(value);
 	
 	/* Stimuli */
-	else if (strcmp(name, "random_order")==0)
-		params->random_order = atoi(value);
+	else if (strcmp(name, "randStimOrder")==0)
+		params->randStimOrder = atoi(value);
+	else if (strcmp(name, "randTransOrder")==0)
+		params->randTransOrder = atoi(value);
+	else if (strcmp(name, "interleaveTrans")==0)
+		params->interleaveTrans = atoi(value);
 	else if (strcmp(name, "localRep")==0)
 		params->localRep = atoi(value);
 	else if (strcmp(name, "current")==0)
