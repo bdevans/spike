@@ -118,6 +118,27 @@ void print_farray(FILE *file_ptr, float **data, int nrows, int ncols)
 }
 
 
+void print_darray(FILE *file_ptr, double **data, int nrows, int ncols)
+{ // Change to void **data in order to take ints and doubles
+	int i = 0;
+	int j = 0;
+	//FILE * file_ptr;
+	//file_ptr = fopen(file_name, "w"); // See nifty trick #2
+	assert(file_ptr != NULL);
+	for (i=0; i<nrows; i++)
+	{
+		for (j=0; j<ncols; j++)
+		{
+			fprintf(file_ptr, "%lf\t", data[i][j]);
+		}
+		fprintf(file_ptr, "\n");
+		fflush(file_ptr); // Is this necessary?
+	}
+	//fclose(file_ptr);
+	return;
+}
+
+
 int ** get_2D_iarray(int nrows, int ncols, int init)
 {
 	int i, j;
@@ -126,25 +147,26 @@ int ** get_2D_iarray(int nrows, int ncols, int init)
 	
 	int **array2D = myalloc(nrows * sizeof(int *));
 	array2D[0] = myalloc(nrows * ncols * sizeof(int));
+	if (!array2D[0]) // if (array2D[0] == NULL)
+		return NULL;
 	for (i=1; i<nrows; i++) 
 		array2D[i] = array2D[0] + (i * ncols);
 	
 	if (init == 0)
 		memset(array2D[0], 0, nrows*ncols*sizeof(int)); //sizeof(**array2D)); 
 	else
-	{
 		for (i=0; i<nrows; i++)
 			for (j=0; j<ncols; j++)
 				array2D[i][j] = init; //(i * ncols) + j;
-	}
 	
 	return array2D;	
 }
 
-void free_2D_iarray(int ** array2D, int nrows)
+void free_2D_iarray(int ** array2D)//, int nrows)
 {
-	int i;
-	
+	//int i;
+	if (!array2D)
+		return;
 /*	for (i=0; i<nrows; i++)
 		free(array2D[i]);*/
 	free(*array2D); // Since the memory is contiguous
@@ -162,6 +184,8 @@ int *** get_3D_iarray(int nlays, int nrows, int ncols, int init)
 	// sizeof(***array) = sizeof(int)
 	
 	int *space = myalloc(nlays * nrows * ncols * sizeof(*space)); // sizeof(int)
+	if (!space)
+		return NULL;
 	int ***array3D = myalloc(nlays * sizeof(*array3D)); // sizeof(int **)
 	
 	for (z=0; z<nlays; z++)
@@ -175,20 +199,21 @@ int *** get_3D_iarray(int nlays, int nrows, int ncols, int init)
 	if (init == 0)
 		memset(array3D[0][0], 0, nlays*nrows*ncols*sizeof(*space));
 	else
-	{
 		for (z=0; z<nlays; z++)
 			for (y=0; y<nrows; y++)
 				for (x=0; x<ncols; x++)
 					array3D[z][y][x] = init; //(z * nrows * ncols) + (y * ncols) + x;
-	}
 	
 	return array3D;
 }
 
 
-void free_3D_iarray(int *** array3D, int nlays, int nrows)
+void free_3D_iarray(int *** array3D, int nlays)//, int nrows)
 {
-	int y,z;
+	//int y,z;
+	int z;
+	if (!array3D)
+		return;
 	free(**array3D);
 	for (z=0; z<nlays; z++)
 	{
@@ -209,25 +234,26 @@ float ** get_2D_farray(int nrows, int ncols, float init)
 	
 	float **array2D = myalloc(nrows * sizeof(float *));
 	array2D[0] = myalloc(nrows * ncols * sizeof(float));
+	if (!array2D[0])
+		return NULL;
 	for (i=1; i<nrows; i++) 
 		array2D[i] = array2D[0] + (i * ncols);
 	
 	if (fabs(init) <= EPS) // (int) init == 0
-		memset(array2D, 0, nrows*ncols*sizeof(**array2D));
+		memset(array2D[0], 0, nrows*ncols*sizeof(**array2D));
 	else
-	{
 		for (i=0; i<nrows; i++)
 			for (j=0; j<ncols; j++)
 				array2D[i][j] = init; //(i * ncols) + j;
-	}
 	
 	return array2D;	
 }
 
-void free_2D_farray(float ** array2D, int nrows)
+void free_2D_farray(float ** array2D)//, int nrows)
 {
-	int i;
-	
+	//int i;
+	if (!array2D)
+		return;
 	/*for (i=0; i<nrows; i++)
 		free(array2D[i]);*/
 	free(array2D[0]); // Since memory is contiguous
@@ -244,6 +270,8 @@ float *** get_3D_farray(int nlays, int nrows, int ncols, float init)
 	// sizeof(***array) = sizeof(int)
 	
 	float *space = myalloc(nlays * nrows * ncols * sizeof(*space)); // sizeof(int)
+	if (!space)
+		return NULL;
 	float ***array3D = myalloc(nlays * sizeof(*array3D)); // sizeof(int **)
 	
 	for (z=0; z<nlays; z++)
@@ -255,22 +283,23 @@ float *** get_3D_farray(int nlays, int nrows, int ncols, float init)
 	
 	/* Assign values to 3D array */
 	if (fabs(init) <= EPS)
-		memset(array3D, 0, nlays*nrows*ncols*sizeof(***array3D));
+		memset(array3D[0][0], 0, nlays*nrows*ncols*sizeof(***array3D));
 	else
-	{
 		for (z=0; z<nlays; z++)
 			for (y=0; y<nrows; y++)
 				for (x=0; x<ncols; x++)
 					array3D[z][y][x] = init; //(z * nrows * ncols) + (y * ncols) + x;
-	}
 	
 	return array3D;
 }
 
 
-void free_3D_farray(float *** array3D, int nlays, int nrows)
+void free_3D_farray(float *** array3D, int nlays)//, int nrows)
 {
-	int y,z;
+	//int y,z;
+	int z;
+	if (!array3D)
+		return;
 	free(**array3D);
 	for (z=0; z<nlays; z++)
 	{
@@ -283,3 +312,87 @@ void free_3D_farray(float *** array3D, int nlays, int nrows)
 }
 
 
+double ** get_2D_darray(int nrows, int ncols, double init)
+{
+	int i, j;
+	// sizeof(*array) = sizeof(int *)
+	// sizeof(**array) = sizeof(int)
+	
+	double **array2D = myalloc(nrows * sizeof(double *));
+	array2D[0] = myalloc(nrows * ncols * sizeof(double));
+	if (!array2D[0])
+		return NULL;
+	for (i=1; i<nrows; i++) 
+		array2D[i] = array2D[0] + (i * ncols);
+	
+	if (fabs(init) <= EPS) // (int) init == 0
+		memset(array2D[0], 0, nrows*ncols*sizeof(**array2D));
+	else
+		for (i=0; i<nrows; i++)
+			for (j=0; j<ncols; j++)
+				array2D[i][j] = init; //(i * ncols) + j;
+	
+	return array2D;	
+}
+
+void free_2D_darray(double ** array2D)//, int nrows)
+{
+	//int i;
+	if (!array2D)
+		return;
+	/*for (i=0; i<nrows; i++)
+	 free(array2D[i]);*/
+	free(array2D[0]); // Since memory is contiguous
+	free(array2D);
+	return;
+}
+
+double *** get_3D_darray(int nlays, int nrows, int ncols, double init)
+{
+	int x, y, z;
+	
+	// sizeof(*array) = sizeof(int **)
+	// sizeof(**array) = sizeof(int *)
+	// sizeof(***array) = sizeof(int)
+	
+	double *space = myalloc(nlays * nrows * ncols * sizeof(*space)); // sizeof(int)
+	if (!space)
+		return NULL;
+	double ***array3D = myalloc(nlays * sizeof(*array3D)); // sizeof(int **)
+	
+	for (z=0; z<nlays; z++)
+	{
+		array3D[z] = myalloc(nrows * sizeof(**array3D)); // sizeof(int *)
+		for (y=0; y<nrows; y++)
+			array3D[z][y] = space + (z*ncols*nrows) + (y*ncols);
+	}
+	
+	/* Assign values to 3D array */
+	if (fabs(init) <= EPS)
+		memset(array3D[0][0], 0, nlays*nrows*ncols*sizeof(***array3D));
+	else
+		for (z=0; z<nlays; z++)
+			for (y=0; y<nrows; y++)
+				for (x=0; x<ncols; x++)
+					array3D[z][y][x] = init; //(z * nrows * ncols) + (y * ncols) + x;
+	
+	return array3D;
+}
+
+
+void free_3D_darray(double *** array3D, int nlays)//, int nrows)
+{
+	//int y,z;
+	int z;
+	if (!array3D)
+		return;
+	free(**array3D);
+	for (z=0; z<nlays; z++)
+	{
+		/*for (y=0; y<nrows; y++)
+		 free(array3D[z][y]);*/
+		free(array3D[z]);
+	}
+	free(array3D);
+	return;
+}

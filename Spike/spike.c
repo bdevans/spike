@@ -76,7 +76,7 @@ int spike(PARAMS * mp)
 	{
 		sprintf(filename, "L%daffNeuronsElE.dat", l);
 		connections_FP = fopen(filename, "w");
-		print_iarray(connections_FP, affNeurons_ElE[l], mp->nExcit, mp->nSynElE);
+		print_iarray(connections_FP, (affNeurons_ElE)?affNeurons_ElE[l]:NULL, mp->nExcit, mp->nSynElE);
 		fclose(connections_FP);
 	}
 	
@@ -441,12 +441,12 @@ int spike(PARAMS * mp)
 	unallocn(n_I, mp->nLayers, mp->nInhib);
 	// Free other arrays...
 	free(input);
-	free_3D_iarray(stim->trn_stimuli, mp->nStimuli, mp->nTransPS);
-	free_3D_iarray(stim->tst_stimuli, mp->nStimuli, mp->nTransPS);
+	free_3D_iarray(stim->trn_stimuli, mp->nStimuli);//, mp->nTransPS);
+	free_3D_iarray(stim->tst_stimuli, mp->nStimuli);//, mp->nTransPS);
 	if (mp->randStimOrder)
-		free_2D_iarray(stim->stimShuffle, mp->loops);
+		free_2D_iarray(stim->stimShuffle);//, mp->loops);
 	if (mp->randTransOrder)
-		free_3D_iarray(stim->transShuffle, mp->loops, mp->nStimuli);
+		free_3D_iarray(stim->transShuffle, mp->loops);//, mp->nStimuli);
 	free(stim);
 	
 	printf("\tMemory Deallocated!\n");
@@ -507,14 +507,14 @@ int unallocn (NEURON ** narray, int nlays, int nneurons)
 				free(narray[l][n].LEffs_I);
 			if (narray[l][n].rec_flag)
 			{
-				free_2D_farray(narray[l][n].rec->cellV, mp->loops);
+				free_2D_farray(narray[l][n].rec->cellV);//, mp->loops);
 				if (l>0)
-					free_2D_farray(narray[l][n].rec->cellD, mp->loops);
+					free_2D_farray(narray[l][n].rec->cellD);//, mp->loops);
 				if (l<mp->nWLayers)
 				{
-					free_3D_farray(narray[l][n].rec->SynC, mp->loops, narray[l][n].nFAff_E);
-					free_3D_farray(narray[l][n].rec->SynG, mp->loops, narray[l][n].nFAff_E);
-					free_3D_farray(narray[l][n].rec->SynDG, mp->loops, narray[l][n].nFAff_E);
+					free_3D_farray(narray[l][n].rec->SynC, mp->loops);//, narray[l][n].nFAff_E);
+					free_3D_farray(narray[l][n].rec->SynG, mp->loops);//, narray[l][n].nFAff_E);
+					free_3D_farray(narray[l][n].rec->SynDG, mp->loops);//, narray[l][n].nFAff_E);
 				}
 				free(narray[l][n].rec);
 			}
@@ -586,7 +586,7 @@ void calc_connectivity() /* This function randomly connects the neurons together
 	
 	for (n=0; n<mp->nExcit; n++)
 		for (l=0; l<mp->nLayers; l++) // int * EfE_ptr = (l>0) ? affNeurons_EfE[l-1][n] : NULL;
-			wire_afferents(&n_E[l][n], l, (l>0)?affNeurons_EfE[l-1][n]:NULL, affNeurons_ElE[l][n], affNeurons_IE[l][n]);
+			wire_afferents(&n_E[l][n], l, (l>0)?affNeurons_EfE[l-1][n]:NULL, (affNeurons_ElE)?affNeurons_ElE[l][n]:NULL, affNeurons_IE[l][n]);
 		//((l>0)?affNeurons_EfE[l-1][n]:NULL)
 			
 	for (n=0; n<mp->nInhib; n++)
@@ -1193,6 +1193,7 @@ void update_network(int t, int loop, int input[], int regime)
 
 	}
 */
+	// *** Make the update functions inline? ***
 	
 	/* Update Excitatory cell potentials */
 	decay_rate = DT/mp->capE;
