@@ -5,8 +5,11 @@ loops 		= 5;    % Number of training epochs         [int >= 1]
 train 		= 1;    % Train the network                 [0,1]
 pretrain 	= 1;    % Test the network before training  [0,1]
 trainPause	= 0;    % Reset neurons between stimuli     [0,1]
-noise		= 0;    % Not yet implemented
+noise		= 0;    % Noise model
+noiseScale	= 0.015;	% Masquelier et al 2009
 nRecordsPL 	= 5;    % Neurons to record per layer       [0 <= i <= nExcit]
+printConnections = 0;	% Output connectivity files		{0,1}
+probConnect	= 0;
 
 %### Stimuli ###
 randStimOrder 	= 1;    % Randomize stimuli during training     [0,1]
@@ -14,12 +17,16 @@ randTransOrder	= 0;    % Randomize transforms during training  [0,1]
 interleaveTrans	= 0;    % Interleave transforms during training [0,1]
 localRep 	= 1;        % Distributed or local stimuli          [0,1]
 current 	= 1.25e-9;	% (float) 0.00000000125 # Amps
+currentSpread	= 0.25e-9;
 nStimuli 	= 6;        % Number of stimuli                     [int >= 1]
 nTransPS 	= 4;        % Number of transforms per stimulus     [int >= 1]
+newTestSet	= 0;
 transP_Train 	= 1.00;	% Transform presentation period (training)  # s
 transP_Test 	= 1.00;	% Transform presentation period (testing)   # s
 shift 		= 2;		% Number of neurons to move each transform by
 a		= 0.0;          % Sparsity of input layer -> nFiringNeurons
+useFilteredImages = 0;
+gabor	= 1;
 
 %### Network ###
 nLayers = 2;            % Number of layers      [int >= 2]
@@ -31,7 +38,7 @@ inputInhib = 1;         % Presence of input inhibitory connections  [0,1]
 	nInhib = 40;        % Number of Inhibitory neurons per layer (int)
 		nSynEI = 60;    % Number of (lateral) E -> I synapses per I neuron
 		nSynII = 5;     % Number of (lateral) I -> I synapses per I neuron
-%#noise = 0;
+noise = 0;
 %       {NONE, CONST, UNIFORM, GAUSSIAN}
 axonDelay = 0;          % Axonal delay model {0,1,2,3}
 % Constant delay (1)

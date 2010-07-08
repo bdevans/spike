@@ -23,6 +23,9 @@ gspath='/usr/local/bin/gs';
 %%
 defaults;
 parameters;
+if (useFilteredImages == true)
+    imageParams;
+end
 %eval(['! cp ',wdir,'*.dat ',mdir,'.']);
 %%
 close all;
@@ -39,22 +42,44 @@ close all;
 %% Load all spike time data
 
 plotInhib=0;
+if (useFilteredImages == true)
+    plotInput=false;
+end
 outLayer = nLayers - 1;
 % Place into cells?
 if pretrain == 1
+    if exist('preTraining.tbz','file')
+        system('tar -xvf preTraining.tbz'); 
+    end
     ptESpikes = cell(1,nLayers);
+    ptWeights = cell(1,nLayers-1);
+end
+if exist('postTraining.tbz','file')
+    system('tar -xvf postTraining.tbz'); 
 end
 ESpikes = cell(1,nLayers);
 ISpikes = cell(1,nLayers);
+Weights = cell(1,nLayers-1);
+%if exist('training.tbz','file')
+%    system('tar -xvf training.tbz'); 
+%end
 for l=0:outLayer
     prefix = strcat(['L',int2str(l)]);
-    eval(['load ',prefix,'affNeuronsEI.dat']);
-    eval(['load ',prefix,'affNeuronsElE.dat']);
-    eval(['load ',prefix,'affNeuronsIE.dat']);
-    eval(['load ',prefix,'affNeuronsII.dat']);
+    if printConnections && exist('connectivity.tbz','file')
+        system('tar -xvf connectivity.tbz'); 
+    end
+    %eval(['load ',prefix,'affNeuronsEI.dat']);
+    %eval(['load ',prefix,'affNeuronsElE.dat']);
+    %eval(['load ',prefix,'affNeuronsIE.dat']);
+    %eval(['load ',prefix,'affNeuronsII.dat']);
     if (l>0)
-        eval(['load ',prefix,'affNeuronsEfE.dat']);
-        eval(['load ',prefix,'weightsEfE.dat']);
+        %eval(['load ',prefix,'affNeuronsEfE.dat']);
+        Weights{l} = dlmread(strcat(prefix,'weightsEfE.dat')); %eval(['load ',prefix,'weightsEfE.dat']);
+        Weights{l}(Weights{l}==0) = NaN;
+        if pretrain == 1
+            ptWeights{l} = dlmread(strcat('pt',prefix,'weightsEfE.dat'));
+            ptWeights{l}(ptWeights{l}==0) = NaN;
+        end
     end
     if pretrain == 1
         ptESpikes{l+1} = dlmread(strcat('pt',prefix,'ExcitSpikes.dat'));
@@ -80,11 +105,11 @@ nBestCells = 5;
 
 % Bin the Excitatory output spikes
 if pretrain == 1
-    ptoutFrates = calc_fRates(ptESpikes{nLayers}, nStimuli, nTransPS, nExcit, transP_Test * 1/DT);
-    ptINFO = infoAnalysis(ptoutFrates, nStimuli, nTransPS, nExcit, nBestCells, sLayer, transP_Test, simrun);
+    ptoutFrates = calc_fRates(ptESpikes{nLayers}, nStimuli, nTransPS, vExcit(nLayers), transP_Test * 1/DT);
+    ptINFO = infoAnalysis(ptoutFrates, nStimuli, nTransPS, vExcit(nLayers), nBestCells, sLayer, transP_Test, simrun);
 end
-outFrates = calc_fRates(ESpikes{nLayers}, nStimuli, nTransPS, nExcit, transP_Test * 1/DT);
-INFO = infoAnalysis(outFrates, nStimuli, nTransPS, nExcit, nBestCells, sLayer, transP_Test, simrun);
+outFrates = calc_fRates(ESpikes{nLayers}, nStimuli, nTransPS, vExcit(nLayers), transP_Test * 1/DT);
+INFO = infoAnalysis(outFrates, nStimuli, nTransPS, vExcit(nLayers), nBestCells, sLayer, transP_Test, simrun);
  
 
 %% Plot results of information analysis
@@ -149,9 +174,7 @@ wbins = 0.025:0.05:0.975;
 % bstart=TEST_PERIOD_TS/(NSTIMULI*2);
 % bstep=bstart*2;
 % bend=TEST_PERIOD_TS-bstart;
-% 
 % centres=(bstart:bstep:bend);
-% 
 % bins=zeros(NSTIMULI,NEXCIT);
 % for c=1:size(output_spikes,2)
 %     tmp=output_spikes(:,c);
@@ -205,46 +228,49 @@ saveas(gcf,strcat('L',int2str(outLayer),'ESpikeFourier',simrun),'png');
 % Plot pre-training results
 if pretrain==1
     figure();
-    pt_output_spikes = dlmread('ptL1ExcitSpikes.dat');
-    load ptL1weightsEfE.dat;
+    %pt_output_spikes = dlmread('ptL1ExcitSpikes.dat');
+    %load ptL1weightsEfE.dat;
     subplot(2,3,1);
     %imagesc(sort_matrix(ptL1weightsEfE'));
-    imagesc(ptL1weightsEfE');
+    imagesc(ptWeights{nLayers-1}); %imagesc(ptL1weightsEfE');
     xlabel('Input neuron');
     ylabel('Output neuron'); % Check these labels
     title('Synaptic Weight Matrix');
 
     subplot(2,3,4);
-    hist(reshape(ptL1weightsEfE,1,[]),wbins);
+    hist(reshape(ptWeights{nLayers-1},1,[]),wbins); %hist(reshape(ptL1weightsEfE,1,[]),wbins);
     xlabel('Synaptic weight bins');
     ylabel('Frequency');
     title('Synaptic Weight Distribution');
 
     subplot(2,3,[2 6]);
-    raster(pt_output_spikes,testPeriodMS,DT);
+    raster(ptESpikes{nLayers},testPeriodMS,DT); %pt_output_spikes
     saveas(gcf,strcat('PT',simrun),'epsc');
     eps2pdf(strcat('PT',simrun,'.eps'),gspath);
     saveas(gcf,strcat('PT',simrun),'png');
 end
 
 % Plot training stimuli
-for e=0:loops-1
-    figure();
-    trnSpikes = dlmread(strcat('E',int2str(e),'L0ExcitSpikes.dat'));
-    trnSpikes(:,1) = []; % Delete the first column
-    raster(trnSpikes,trainPeriodMS,DT);
-    saveas(gcf,strcat('E',int2str(e),'inputs',simrun),'epsc');
-    eps2pdf(strcat('E',int2str(e),'inputs',simrun,'.eps'),gspath);
-    saveas(gcf,strcat('E',int2str(e),'inputs',simrun),'png');
+if plotInput==true
+    for e=0:loops-1
+        figure();
+        trnSpikes = dlmread(strcat('E',int2str(e),'L0ExcitSpikes.dat'));
+        trnSpikes(:,1) = []; % Delete the first column
+        raster(trnSpikes,trainPeriodMS,DT);
+        saveas(gcf,strcat('E',int2str(e),'inputs',simrun),'epsc');
+        eps2pdf(strcat('E',int2str(e),'inputs',simrun,'.eps'),gspath);
+        saveas(gcf,strcat('E',int2str(e),'inputs',simrun),'png');
+    end
 end
 
 % Plot post-training results
-
-figure();
-raster(ESpikes{1},testPeriodMS,DT); %L0ExcitSpikes
-saveas(gcf,strcat('inputs',simrun),'epsc');
-eps2pdf(strcat('inputs',simrun,'.eps'),gspath);
-saveas(gcf,strcat('inputs',simrun),'png');
+if plotInput==true
+    figure();
+    raster(ESpikes{1},testPeriodMS,DT); %L0ExcitSpikes
+    saveas(gcf,strcat('inputs',simrun),'epsc');
+    eps2pdf(strcat('inputs',simrun,'.eps'),gspath);
+    saveas(gcf,strcat('inputs',simrun),'png');
+end
 
 if plotInhib == 1
     if inputInhib == 1
@@ -266,13 +292,15 @@ end
 figure();
 subplot(2,3,1);
 %imagesc(sort_matrix(L1weightsEfE'));
-imagesc(eval(['L',int2str(nLayers-1),'weightsEfE']));
+%imagesc(eval(['L',int2str(nLayers-1),'weightsEfE']));
+imagesc(Weights{nLayers-1});
 xlabel('Input neuron');
 ylabel('Output neuron'); % Check these labels
 title('Synaptic Weight Matrix');
 
 subplot(2,3,4);
-hist(reshape(eval(['L',int2str(nLayers-1),'weightsEfE']),1,[]),wbins);
+%hist(reshape(eval(['L',int2str(nLayers-1),'weightsEfE']),1,[]),wbins);
+hist(reshape(Weights{nLayers-1},1,[]),wbins);
 xlabel('Synaptic weight bins');
 ylabel('Frequency');
 title('Synaptic Weight Distribution');
@@ -282,8 +310,6 @@ raster(ESpikes{nLayers},testPeriodMS,DT); %eval(['L',int2str(nLayers-1),'ExcitSp
 saveas(gcf, simrun, 'epsc');
 eps2pdf(strcat(simrun,'.eps'),gspath);
 saveas(gcf, simrun, 'png');
-
-
 
 %% Calculate MD5 hashs
 %eval('! md5 bweights.dat | tee bweights.md5');
@@ -312,19 +338,15 @@ save matlab_workspace
 %     cell_analysis(f,1);
 % end
 
-
 function fRates = calc_fRates(spikeTimes, nStimuli, nTransPS, nCells, transTS)
 
 fRates = zeros(nTransPS, nCells, nStimuli);
-% spikeTimes = ESpikes{nLayers}; %eval(strcat('L',int2str(sLayer),'ExcitSpikes'));
-
 edges = (0 : (nTransPS * nStimuli)) * transTS; % Calculate bin edges
 spikeTimes(spikeTimes==0) = -1; % Don't count zeros padding the matrix
 freqs = histc(spikeTimes',edges);
 freqs(end-1,:)=freqs(end-1,:)+freqs(end,:); % include spikes at last timestep
 freqs = freqs(1:end-1,:); % remove n^th +1 bin (spikeTimes==edges(end))
 %freqs = freqs * 1/transP_Test; %-timewin makes this redundant
-
 for s=1:nStimuli
     fRates(:,:,s) = freqs(1+(s-1)*nTransPS:s*nTransPS,:);
 end
