@@ -15,7 +15,7 @@ int set_random_seeds(int RERUN)
 {
 	/* This routine sets the random seeds */
 	
-	char * dummy;
+	//char * dummy;
 	char * string, buff[BUFFER];
 	int count = 0;
 	char * rsfile = RSFILE;
@@ -35,18 +35,16 @@ int set_random_seeds(int RERUN)
 			fclose(random_seeds_ptr);
 			return 1;
 		}
-		while ((string = fgets(buff, sizeof(buff), random_seeds_ptr)) != NULL) 	/* Read next line */
+		/*while ((string = fgets(buff, sizeof(buff), random_seeds_ptr)) != NULL) 	// Read next line
 		{
 			//sscanf(s, "%s %ld", dummy, &ans[count]);
 			dummy = (char *) strtok(string, ":");
-			ans[count] = atoi(strtok(NULL, ":"));
-			count++;
-		}
-		/*while(!feof(random_seeds_ptr))
-		{
-			fscanf(random_seeds_ptr,"%s %ld", dummy, &ans[count]);
-			count++;	
+			ans[count++] = atol(strtok(NULL, ":"));
 		}*/
+		/*while(!feof(random_seeds_ptr))
+			fscanf(random_seeds_ptr,"%s %ld", dummy, &ans[count++]);*/
+		while ((string = fgets(buff, sizeof(buff), random_seeds_ptr)) != NULL) // Read next line
+			ans[count++] = atol(strrchr(string,':')+1);
 		fclose(random_seeds_ptr); 
 	}
 	else
@@ -205,7 +203,8 @@ int rands1_new(int mn, int mx, int *iv, int mode)
  Reseed generator if mx <= mn */
 int rnd_new(int mn, int mx)
 {
-	long d, seed;
+	long d = 0;
+	long seed = 0;
 	
 	d = mx - mn + 1;
 	

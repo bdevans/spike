@@ -12,13 +12,13 @@
 #define _GLOBALS_H
 /**********************************/
 
-#define DT		0.00001
+#define DT		0.0001
 #define EPS		1.2e-7
 #define BIG		999999
 
 /* Debugging output */
 #ifndef DEBUG
-#define DEBUG	0	/* Debug output level (defined as 5 in the Xcode Debug build)						*/
+#define DEBUG	1	/* Debug output level (defined as 3 in the Xcode Debug TARGETS build settings)		*/
 #endif
 #if DEBUG == 0
 #define NDEBUG		/* Define to turn off assert statements	- must come before #include <assert.h>		*/
@@ -31,9 +31,12 @@ extern char * RESDIR;
 extern char * DPFILE;
 #define OUTPUTPFILE		"parameters.m"	/* Default output parameter file name */
 extern char * MPFILE;
+#define IMGPARAMFILE	"imageParams.m"
+extern char * IPFILE;
 /* Define a diagnostic parameter file to run for debugging */
 
-#define FNAMEBUFF	32
+#define DIRBUFF		128
+#define FNAMEBUFF	256
 
 #endif // _FILE_H
 

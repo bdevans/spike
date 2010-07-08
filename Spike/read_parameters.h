@@ -28,9 +28,15 @@
 
 #define MAXLEN 256
 #define BUFFER 512 // Make larger for comments or break up comments
+#define VECBUFF 4
 
-char * trim(char * s);
+char * trim(char * string);
 int parse_string(PARAMS * params, char * string);
 int read_parameters(PARAMS * params, char * paramfile);
+int parseIntVector(char * string, int ** array);
+int parseFloatVector(char * string, float ** array);
+int printParameters(PARAMS * mp, char * paramfile);
+void printIntArray(FILE * fp, char * name, int * array, int len);
+void printFloatArray(FILE * fp, char * name, float * array, int len);
 
 #endif

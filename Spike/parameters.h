@@ -11,17 +11,23 @@
 #define _PARAMETERS_H
 
 #include <stdbool.h>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 
-typedef enum {
-	INHIB,
-	EXCIT
-} NTYPE;
+typedef int tstep; // Signed to allow spikeTimes[0] = -BIG //long long
 
-typedef enum {
-	NoLearning,
-	Learning,
-	Settle
-} REGIMETYPE;
+typedef unsigned char uchar;
+
+struct SIMULATION{
+	bool Xgrid;
+	tstep tally;
+	tstep ptTS;
+	tstep trainTS;
+	tstep testTS;
+	tstep totTS;
+} SIM;
+
+//extern SIMULATION SIM;
 
 typedef enum {
 	Off,
@@ -45,39 +51,77 @@ typedef struct {
 	bool pretrain;// = true;
 	bool trainPause;
 	int noise;
+	float noiseScale;
+	float SigmaE;
+	float SigmaI;
 	int nRecordsPL;// = 0;
 	float TotalTime;
 	int TotalMS;
 	int TotalTS;
 	int TSperMS;
 	int spkBuffer;
+	//int inpSpkBuff;
+	bool printConnections;
+	bool saveInputSpikes;
+	bool probConnect;
 	
 	// Stimuli
+	char * imageList;
 	bool randStimOrder;// = true;
 	bool randTransOrder;
 	bool interleaveTrans;
 	bool localRep;// = true;
 	float current;// = 1.25e-9;
+	float currentSpread;
 	int nStimuli;
 	int nTransPS;
+	bool newTestSet;
+	int nTestStimuli;
+	int nTestTransPS;
 	float transP_Train;
 	float transP_Test;
 	int shift;
 	int nFiringNeurons;
 	float a; // Sparseness of stimuli
+	bool useFilteredImages;
+	bool gabor;
+	int nScales;
+	int * vScales;
+	int nOrients;
+	int * vOrients;
+	int nPhases;
+	int * vPhases;
+	int sInputs;
+	int nRows;
+	int nCols;
 	
 	// Network
 	int nLayers;// = 2;
 	int nWLayers;
 	bool inputInhib;
 	int nExcit;// = 120;
+	int * vExcit;
+	int LvExcit;
 	int nSynEfE;
+	float * pCnxEfE;
+	int LpEfE;
 	int nSynElE;
+	float * pCnxElE;
+	int LpElE;
 	int nSynIE;
+	float * pCnxIE;
+	int LpIE;
 	int nInhib;// = 40;
+	float rInhib;
+	int * vInhib;
+	int LvInhib;
 	int nSynEI;
+	float * pCnxEI;
+	int LpEI;
 	int nSynII;
-	//bool noise;// = false;
+	float * pCnxII;
+	int LpII;
+	//bool noise; // = false;
 	DELAY axonDelay;
 	float d_const;
 	float d_min;
@@ -118,5 +162,6 @@ typedef struct {
 
 //PARAMS * mp;
 extern PARAMS * mp;
+extern gsl_rng ** states;
 
 #endif
