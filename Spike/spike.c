@@ -1291,6 +1291,8 @@ int loadGaborOutput(const char * filename, float * array, int size)
 	{
 		assert(-1 <= array[e] && array[e] <= 1);
 		array[e] = (array[e] * mp->currentSpread) + mp->current;
+		if (array[e] < 0) // Check that negative currents are not injected
+			array[e] = 0;
 	}
 
 	if (!err)
@@ -1551,11 +1553,13 @@ void simulatePhase(PHASE sPhase, STIMULI * stim)
 				calc_input(loop, p, tr, stim, &input, regime);
 				t_start = round((*i + (*o * iCount)) * transP * ceil(1/DT));
 				t_end = t_start + round(transP * ceil(1/DT));
-#if DEBUG>1 // Level 2
+#if DEBUG > 1 // Level 2
 				fprintf(stderr, "\nUpdating network from timestep %d to %d.\n", t_start, t_end-1); //%lld
-				//print_frow(stderr, input, mp->sInputs);
 #endif
-
+				
+#if DEBUG > 3
+				print_frow(stderr, input, mp->sInputs);
+#endif
 				updateNetwork(t_start, t_end, loop, input, regime);
 				/*if (mp->saveInputSpikes)
 				{
@@ -1577,8 +1581,9 @@ void simulatePhase(PHASE sPhase, STIMULI * stim)
 						percentage = (double) 100*((mp->pretrain)?SIM.ptTS:0.0 + (SIM.trainTS*loop/(double)mp->loops) + t_end + 1)/SIM.totTS;
 					else if (sPhase == Testing)
 						percentage = (double) 100*((mp->pretrain)?SIM.ptTS:0.0 + (mp->train)?SIM.trainTS:0.0 + t_end + 1)/SIM.totTS;*/
-						
-					printf("\n<xgrid>{control = statusUpdate; percentDone = %.0lf; }</xgrid>\n", percentage);
+					
+					printf("<xgrid>{control = statusUpdate; percentDone = %.0lf; }</xgrid>\n", percentage);
+					fflush(stdout);
 				}
 			}
 		}
