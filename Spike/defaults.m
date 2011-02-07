@@ -1,12 +1,14 @@
 %# Default parameters for Spiking Neural Network Simulation
 
 %### Simulation ###
+DT          = 0.0001;   % Numerical time step
 loops 		= 5;    % Number of training epochs         [int >= 1]
 train 		= 1;    % Train the network                 [0,1]
 pretrain 	= 1;    % Test the network before training  [0,1]
 trainPause	= 0;    % Reset neurons between stimuli     [0,1]
-noise		= 0;    % Noise model
+noise		= 0;    % Noise model {NONE, UNIFORM, GAUSSIAN}
 noiseScale	= 0.015;	% Masquelier et al 2009
+normalise   = 0;    % Normalise weights                 {0,1,2}
 nRecordsPL 	= 5;    % Neurons to record per layer       [0 <= i <= nExcit]
 printConnections = 0;	% Output connectivity files		{0,1}
 probConnect	= 0;
@@ -14,6 +16,7 @@ probConnect	= 0;
 %### Stimuli ###
 randStimOrder 	= 1;    % Randomize stimuli during training     [0,1]
 randTransOrder	= 0;    % Randomize transforms during training  [0,1]
+randTransDirection  = 0;% Random direction of transforms during training {0,1}
 interleaveTrans	= 0;    % Interleave transforms during training [0,1]
 localRep 	= 1;        % Distributed or local stimuli          [0,1]
 current 	= 1.25e-9;	% (float) 0.00000000125 # Amps
@@ -21,6 +24,8 @@ currentSpread	= 0.25e-9;
 nStimuli 	= 6;        % Number of stimuli                     [int >= 1]
 nTransPS 	= 4;        % Number of transforms per stimulus     [int >= 1]
 newTestSet	= 0;
+K           = 1;
+M           = 2;
 transP_Train 	= 1.00;	% Transform presentation period (training)  # s
 transP_Test 	= 1.00;	% Transform presentation period (testing)   # s
 shift 		= 2;		% Number of neurons to move each transform by
@@ -38,9 +43,7 @@ inputInhib = 1;         % Presence of input inhibitory connections  [0,1]
 	nInhib = 40;        % Number of Inhibitory neurons per layer (int)
 		nSynEI = 60;    % Number of (lateral) E -> I synapses per I neuron
 		nSynII = 5;     % Number of (lateral) I -> I synapses per I neuron
-noise = 0;
-%       {NONE, CONST, UNIFORM, GAUSSIAN}
-axonDelay = 0;          % Axonal delay model {0,1,2,3}
+axonDelay = 0;          % Axonal delay model {0,1,2,3} {NONE, CONST, UNIFORM, GAUSSIAN}
 % Constant delay (1)
 	d_const = 0.005;	% Constant delay (float)        # s
 % delay = UNIFORM; (2)
@@ -49,6 +52,16 @@ axonDelay = 0;          % Axonal delay model {0,1,2,3}
 % delay = GAUSSIAN; (3)
 	d_mean 	= 0.005;    % Mean delay (float)            # s
 	d_sd 	= 0.002;    % Standard deviation (float)    # s
+% delay = SOM; (4)
+    spatialScale = 16.0;    % Neurons
+    condSpeed = 1.0;        % Neurons/s
+    maxDelay = 0.025;       % Delay (s) across 1/2 longest input dimension
+SOM         = 0;        % Use SOM architecture (bool)
+    SOMinput    = 1;        % Use SOM architecture in input layer (bool)
+    SOMsigE     = 4;        % S.D. of SOM for excitatory neurons
+    SOMsigI     = 4;        % S.D. of SOM for inhibitory neurons
+    SOMclip     = 3;        % S.D.s at which to clip connections i.e. 3sigma
+vSquare     = [0,1];
 
 %### Cell bodies ###
 %# See Song, Miller & Abbot 2000
@@ -74,6 +87,12 @@ VrevI 	= -0.090;	%# Volts
 
 refract = 0.001;	%# Seconds
 
+adaptation = 0;         %# Liu+Wang2001
+    alphaCa = 200e-9;   %# 0.00000002;
+	tauCa   = 0.050;    %# Seconds
+	gAHP    = 15e-6;    %# 0.000015; %# S/cm^2
+	VK      = -0.080;   %# Volts
+
 %### Synapses ###
 %# Perrinet+++01
 alphaC 	= 0.5;		%# (Dimensionless)
@@ -82,6 +101,8 @@ alphaD	= 0.5;		%# (Dimensionless)
 tauD 	= 0.005;	%# s
 learnR 	= 0.1;		%# (Dimensionless)
 gMax 	= 50.0e-9;	%# 0.0000000048
+modEf   = 1.0;
+Dg_ElE  = 1.0;
 Dg_IE 	= 0.1;
 Dg_EI 	= 1.0;		
 Dg_II 	= 0.1;
