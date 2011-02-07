@@ -32,20 +32,23 @@ void * myalloc(int n)
 }
 
 void * myrealloc(void * mem, int n)
-{ // What if n==0?
-	void * tmp;
+{ // N.B. the returned pointer must be assigned to the passed pointer as memory could be moved to a new location
+	void * new;
 	/*if (!mem)	mem = myalloc(n); // Implicit in realloc */
 	
-	if (!n)
+	if (!n) // if size==0 free memory
 		mem = myfree(mem);
 	else
-		if ( (tmp = realloc(mem, n)) == NULL )
+		if ( (new = realloc(mem, n)) == NULL ) // realloc and check for NULL pointer
 		{
 			mem = myfree(mem);
 			exit_error("MYREALLOC", "NULL pointer from realloc");
 		}
-		else 
-			mem = tmp;
+		else
+		{
+			mem = new;
+		}
+			
 	return mem;
 }
 

@@ -1,15 +1,11 @@
 /*
  *  read_parameters.h
  *  Spike
+ *	parse simple name/value pairs
  *
  *  Created by Ben Evans on 28/11/2008.
  *  Copyright 2008 __MyCompanyName__. All rights reserved.
  *
- */
-
-/*
- * parse: parse simple name/value pairs
- * SAMPLE BUILD: cc -g -Wall -o parse parse.c
  */
 
 #ifndef _READ_PARAMETERS_H
@@ -25,6 +21,8 @@
 #include "globals.h"
 #include "parameters.h"
 #include "utils.h"
+#include <gsl/gsl_sf_gamma.h> // N choose M funcion
+
 
 #define MAXLEN 256
 #define BUFFER 512 // Make larger for comments or break up comments

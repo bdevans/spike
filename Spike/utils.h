@@ -44,8 +44,14 @@ extern void getFileParts(char * fullname, FILEPARTS * fp);
 #define PRINT_FLOAT(token) printf(#token " = %G;\n", token);
 #define FPRINT_INT(fptr, token) fprintf(fptr, #token " = %d;\n", token);
 #define FPRINT_FLOAT(fptr, token) fprintf(fptr, #token " = %G;\n", token);
-#define FPRINT_STRING(fptr, token) fprintf(fptr, #token " = %s;\n", token);
+#define FPRINT_STRING(fptr, token) fprintf(fptr, #token " = '%s';\n", token);
 
+// http://www.xgc.com/manuals/gcc-erc32-ug/p2node29.html
+/* #define max(a,b) \
+ ({typedef _ta = (a), _tb = (b);  \
+ _ta _a = (a); _tb _b = (b);     \
+ _a > _b ? _a : _b; })
+ */
 #if !defined(MAX) 
 #define MAX(A, B) ((A) > (B) ? (A) : (B)) 
 #endif 

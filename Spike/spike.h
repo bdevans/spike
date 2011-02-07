@@ -28,7 +28,8 @@
 #include "array_utils.h"
 #include "parameters.h"
 #include "globals.h"
-#include "rng.h"
+#include "read_parameters.h" // One use of printIntArray()
+//#include "rng.h"
 
 /*********************/
 
@@ -60,11 +61,12 @@ typedef enum {
 
 typedef struct {
 	int bin;
-	float ** cellV; 	//double cellV[LOOPS][TOT_MS];
-	float ** cellD;		//double D[LOOPS][TOT_MS];
-	float *** SynC;		//double C[LOOPS][TOT_MS];
-	float *** SynG;		//double synG[LOOPS][NSYN_EE][(int)(1000*TOT_TIME)]; // Generalise
-	float *** SynDG; 	//double delta_g[LOOPS][NSYN_PN][TOT_MS]; // Generalise
+	float * cellV;
+	float * cellcCa;
+	float * cellD;
+	float ** SynC;
+	float ** SynG;
+	float ** SynDG;
 } RECORD;
 
 //RECORD *RECSP[NLAYERS][NRECORDS_PL];
@@ -81,7 +83,7 @@ int *** affNeurons_II;
 typedef struct AXON {
 	tstep delay; // Actual axonal delay in timesteps
 	tstep * queue;
-	unsigned short int size;
+	unsigned short int nBins;
 	unsigned short int count;
 	unsigned short int next;
 	unsigned short int last;
@@ -111,10 +113,17 @@ typedef struct NEURON {
 	NTYPE type;
 	int l; // Layer index
 	int n; // Index ?? l_ind, n_ind
-	//int row;
-	//int col;
+	int row; // Row index (topological)
+	int col; // Column index (topological)
+	//int scale;
+	//int orient;
+	//int phase;
+	float x; // Neuron centre
+	float y; // Neuron centre
 	float V, V_tm1;
 	float D, D_tm1; // afferent
+	float cCa, cCa_tm1;
+	
 	int spkbin;
 	tstep * spikeTimes;	// Array of spike times
 	tstep lastSpike;
@@ -168,7 +177,7 @@ typedef struct {
 	float ******* tstImages; // Arrays for filtered images
 } STIMULI;
 
-
+float *** distE;
 
 // Array of arrays of structures?
 // Expand to RECORDS[NLAYERS][NTYPES][NRECORDS] where NTYPES:= {0,1} (Excitatory, Inhibitory)
@@ -182,8 +191,9 @@ extern NEURON ** allocn(int nlays, int * vNeurons, NTYPE type);
 extern int unallocn(NEURON ** narray, int nlays, int * vNeurons);
 extern void calcConnectivity(bool probConnect);
 extern void wireAfferents(NEURON * n, float pEfn, float pEln, float pIln);
-extern void calc_connectivity(void);
-extern void wire_afferents(NEURON * n, int l, int * affNcnx_fE, int * affNcnx_lE, int * affNcnx_I);
+//extern void calc_connectivity(void);
+extern float calcDistance(NEURON * n1, NEURON * n2, float scale); // DIM * D);
+//extern void wire_afferents(NEURON * n, int l, int * affNcnx_fE, int * affNcnx_lE, int * affNcnx_I);
 extern void alloc_efferents(NEURON * n);
 extern void wire_efferents(NEURON * n);
 extern void create_axons(NEURON * n);
@@ -195,13 +205,15 @@ extern void gen_stimuli(bool rep, STIMULI * stim, PARAMS * mp);
 extern int genShuffles(STIMULI * stim, PARAMS * mp);
 extern void calc_input(int loop, int pat, int trans, STIMULI * stim, float ** input, int regime);
 extern void simulatePhase(PHASE sPhase, STIMULI * stim);
-extern void updateNetwork(tstep t_start, tstep t_end, int loop, float input[], int regime);
-extern void update_network(tstep t, int loop, float input[], int regime);
+extern void updateNetwork(tstep t_start, tstep t_end, float input[], int regime); //int loop, 
+//extern void update_network(tstep t, int loop, float input[], int regime);
 extern void update_V(tstep t, float decay_rate, float gLeak, float Vrest, float Thresh, float Vhyper, float inj, NEURON * n);
-extern void update_g(NEURON * n, float decay_E, float decay_I, tstep t);
+extern inline void update_cCa(NEURON * n, tstep t);
+extern inline void update_g(NEURON * n, float decay_E, float decay_I, tstep t);
 extern void update_weights(NEURON * n, tstep t);
 extern void update_C(NEURON * n, tstep t);
 extern void update_D(NEURON * n, tstep t);
+extern int normalise(NEURON ** narray, PARAMS * mp);
 extern void init_queue(AXON * a);
 extern inline void enqueue(AXON * a, tstep t);
 extern int dequeue(AXON * a);

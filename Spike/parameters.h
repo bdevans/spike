@@ -27,6 +27,12 @@ struct SIMULATION{
 	tstep totTS;
 } SIM;
 
+typedef struct DIMENSIONS {
+	int nRows;
+	int nCols;
+	int nFilt;
+} DIM;
+
 //extern SIMULATION SIM;
 
 typedef enum {
@@ -39,13 +45,21 @@ typedef enum {
 	MinD,
 	ConstD,
 	UniformD,
-	GaussD
+	GaussD,
+	SOM
 } DELAY;
+
+typedef enum {
+	None,
+	MaintainLength,
+	MaintainSum
+} NORMALISATION;
 
 /********************** Main Network Parmeters *************************/
 // Update read_parameters and defaults.m when a new parameter is added
 typedef struct {
 	// Simulation
+	float DT;
 	int loops;
 	bool train;// = true;
 	bool pretrain;// = true;
@@ -54,6 +68,7 @@ typedef struct {
 	float noiseScale;
 	float SigmaE;
 	float SigmaI;
+	NORMALISATION normalise;
 	int nRecordsPL;// = 0;
 	float TotalTime;
 	int TotalMS;
@@ -69,6 +84,7 @@ typedef struct {
 	char * imageList;
 	bool randStimOrder;// = true;
 	bool randTransOrder;
+	bool randTransDirection;
 	bool interleaveTrans;
 	bool localRep;// = true;
 	float current;// = 1.25e-9;
@@ -76,6 +92,8 @@ typedef struct {
 	int nStimuli;
 	int nTransPS;
 	bool newTestSet;
+	int M; // Degree of training i.e. train with M of the NCK
+	int K; // Number of stimuli presented simultaneously
 	int nTestStimuli;
 	int nTestTransPS;
 	float transP_Train;
@@ -121,13 +139,24 @@ typedef struct {
 	int nSynII;
 	float * pCnxII;
 	int LpII;
-	//bool noise; // = false;
 	DELAY axonDelay;
 	float d_const;
 	float d_min;
 	float d_max;
 	float d_mean;
 	float d_sd;
+	float spatialScale;
+	float condSpeed;
+	float maxDelay;
+	bool SOM;
+	bool SOMinput;
+	float SOMsigE;
+	float SOMsigI;
+	float SOMclip;
+	//float SOMstrE;
+	//float SOMstrI;
+	DIM * layDim; 
+	int * vSquare;
 	
 	// Cell bodies
 	float capE;// = 2.0e-10;
@@ -143,6 +172,11 @@ typedef struct {
 	float VrevE;
 	float VrevI;
 	float refract;// = 0.002
+	bool adaptation;
+	float alphaCa;
+	float tauCa;
+	float gAHP;
+	float VK;
 	
 	// Synapses (afferent axons)
 	float alphaC;// = 0.5;
@@ -150,7 +184,10 @@ typedef struct {
 	float alphaD;// = 0.5;
 	float tauD;// = 0.009;
 	float learnR;// = 0.1;
+	float modEf; // alter the strength of Excit f-f synapses
 	float tauEE;// = 0.01;
+	float Dg_ElE;
+	float tauElE;
 	float Dg_IE;// = 0.5;
 	float tauIE;// = 0.001
 	float Dg_EI;// = 0.5;
@@ -162,6 +199,7 @@ typedef struct {
 
 //PARAMS * mp;
 extern PARAMS * mp;
+extern gsl_rng * mSeed;
 extern gsl_rng ** states;
 
 #endif

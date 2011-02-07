@@ -12,7 +12,7 @@
 #define _GLOBALS_H
 /**********************************/
 
-#define DT		0.0001
+//#define DT		0.0001
 #define EPS		1.2e-7
 #define BIG		999999
 
@@ -33,6 +33,10 @@ extern char * DPFILE;
 extern char * MPFILE;
 #define IMGPARAMFILE	"imageParams.m"
 extern char * IPFILE;
+#ifndef RSFILE
+#define RSFILE	"random_seeds.rsd"	/* Default random seed file name */
+#endif
+extern char * rsfile; // = RSFILE;
 /* Define a diagnostic parameter file to run for debugging */
 
 #define DIRBUFF		128

@@ -279,14 +279,14 @@ float *** get_3D_farray(int nlays, int nrows, int ncols, float init)
 	// sizeof(**array) = sizeof(int *)
 	// sizeof(***array) = sizeof(int)
 	
-	float *space = myalloc(nlays * nrows * ncols * sizeof(*space)); // sizeof(int)
+	float *space = myalloc(nlays * nrows * ncols * sizeof(*space)); // sizeof(float)
 	if (!space)
 		return NULL;
-	float ***array3D = myalloc(nlays * sizeof(*array3D)); // sizeof(int **)
+	float ***array3D = myalloc(nlays * sizeof(*array3D)); // sizeof(float **)
 	
 	for (z=0; z<nlays; z++)
 	{
-		array3D[z] = myalloc(nrows * sizeof(**array3D)); // sizeof(int *)
+		array3D[z] = myalloc(nrows * sizeof(**array3D)); // sizeof(float *)
 		for (y=0; y<nrows; y++)
 			array3D[z][y] = space + (z*ncols*nrows) + (y*ncols);
 	}
@@ -321,6 +321,143 @@ void free_3D_farray(float *** array3D, int nlays)//, int nrows)
 	return;
 }
 
+
+float *** getLowTriF(int nlays, int * lDims, float init)
+{
+	int tot = 0;
+	int z, y, x, laySum, rowSum, n;
+	z = y = x = laySum = rowSum = n = 0;
+	for (z=0; z<nlays; z++)
+		tot += lDims[z]*(lDims[z]+1)/2; // Gauss' method
+	float *space = myalloc(tot * sizeof(*space));
+	float ***lowTri = myalloc(nlays * sizeof(*lowTri));
+	for (z=0; z<nlays; z++)
+	{
+		laySum += (z>0) ? lDims[z-1]*(lDims[z-1]+1)/2 : 0; // layer size
+		lowTri[z] = myalloc(lDims[z] * sizeof(**lowTri));
+		rowSum = 0;
+		n = 0; // lDims[z];
+		for (y=0; y<lDims[z]; y++)
+		{
+			rowSum += n++; //(y>0) ? n-- : 0;
+			lowTri[z][y] = space + laySum + rowSum;
+		}
+	}
+	
+	/* Assign values to 3D array */
+	if (fabs(init) <= EPS)
+		memset(lowTri[0][0], 0, tot*sizeof(***lowTri));
+	else
+		for (z=0; z<nlays; z++)
+			for (y=0; y<lDims[z]; y++)
+				for (x=0; x<y+1; x++)
+					lowTri[z][y][x] = init; //(z * nrows * ncols) + (y * ncols) + x;
+	/*for (z=0; z<tot; z++)
+		lowTri[0][0][z] = z;
+	
+	for (z=0; z<nlays; z++)
+		for (y=0; y<lDims[z]; y++)
+			for (x=0; x<y+1; x++)
+				fprintf(stderr, "L%d(%d,%d)=%.0f",z,y,x,lowTri[z][y][x]);*/
+	
+	return lowTri;
+}
+
+inline float readLowTriF(float *** lowTri, int l, int x, int y)
+{
+	return (x < y) ? lowTri[l][y][x] : lowTri[l][x][y];
+}
+
+
+/*int printLowTriF()
+{
+	for (l=0; l<mp->nLayers; l++)
+	{
+		slen = snprintf(filename, FNAMEBUFF, "L%ddistElE.dat", l);
+		assert(slen < FNAMEBUFF);
+		connections_FP = myfopen(filename, "w");
+		for (i=0; i<mp->vExcit[l]; i++)
+		{
+			for (j=0; j<=i; j++) // 0 -> i
+				fprintf(connections_FP, "%f\t", distE[l][i][j]);
+			fprintf(connections_FP, "\n");
+		}
+		fclose(connections_FP);
+	}
+	
+}*/
+
+
+float *** getUppTriF(int nlays, int * lDims, float init)
+{ // Fix me!!!
+	int tot = 0;
+	int z, y, x, laySum, rowSum, n;
+	z = y = x = laySum = rowSum = n = 0;
+	for (z=0; z<nlays; z++)
+		tot += lDims[z]*(lDims[z]+1)/2; // Gauss' method
+	float *space = myalloc(tot * sizeof(*space));
+	float ***uppTri = myalloc(nlays * sizeof(*uppTri));
+	for (z=0; z<nlays; z++)
+	{
+		laySum += (z>0) ? lDims[z-1]*(lDims[z-1]+1)/2 : 0; // layer size
+		uppTri[z] = myalloc(lDims[z] * sizeof(**uppTri));
+		rowSum = 0;
+		n = lDims[z];
+		for (y=0; y<lDims[z]; y++)
+		{
+			rowSum += (y>0) ? n-- : 0;
+			uppTri[z][y] = space + laySum + rowSum;
+		}
+	}
+	
+	/* Assign values to 3D array */
+	if (fabs(init) <= EPS)
+		memset(uppTri[0][0], 0, tot*sizeof(***uppTri));
+	else
+		for (z=0; z<nlays; z++)
+			for (y=0; y<lDims[z]; y++)
+				for (x=y; x<lDims[z]; x++) // Needs to start at 0 or memory is skipped
+					uppTri[z][y][x] = init; //(z * nrows * ncols) + (y * ncols) + x;
+	
+	return uppTri;
+}
+
+inline float readUppTriF(float *** uppTri, int l, int x, int y)
+{
+	return (y < x) ? uppTri[l][y][x] : uppTri[l][x][y];
+}
+
+/*int printUppTriF(FILE * outfile, float *** uppTri, int nlays, int * lDims)
+{
+	int l=0;
+	int i=0;
+	int j=0;
+	for (l=0; l<mp->nLayers; l++)
+	{
+		slen = snprintf(filename, FNAMEBUFF, "L%ddistElE.dat", l);
+		assert(slen < FNAMEBUFF);
+		connections_FP = myfopen(filename, "w");
+		for (i=0; i<mp->vExcit[l]; i++)
+		{
+			for (j=i; j<mp->vExcit[l]; j++) // i -> Dim (j_max)
+				fprintf(connections_FP, "%f\t", distE[l][i][j]);
+			fprintf(connections_FP, "\n");
+		}
+		fclose(connections_FP);
+	}
+}*/
+
+void freeTriF(float ***tri, int nlays)
+{
+	if (!tri)
+		return;
+	int z = 0;
+	free(**tri);
+	for (z=0; z<nlays; z++)
+		free(tri[z]);
+	free(tri);
+	return;
+}
 
 double ** get_2D_darray(int nrows, int ncols, double init)
 {
