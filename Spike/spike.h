@@ -207,18 +207,18 @@ extern void calc_input(int loop, int pat, int trans, STIMULI * stim, float ** in
 extern void simulatePhase(PHASE sPhase, STIMULI * stim);
 extern void updateNetwork(tstep t_start, tstep t_end, float input[], int regime); //int loop, 
 //extern void update_network(tstep t, int loop, float input[], int regime);
-extern void update_V(tstep t, float decay_rate, float gLeak, float Vrest, float Thresh, float Vhyper, float inj, NEURON * n);
-extern inline void update_cCa(NEURON * n, tstep t);
-extern inline void update_g(NEURON * n, float decay_E, float decay_I, tstep t);
-extern void update_weights(NEURON * n, tstep t);
-extern void update_C(NEURON * n, tstep t);
-extern void update_D(NEURON * n, tstep t);
+extern void update_V(NEURON * n, tstep t, float decay_rate, float gLeak, float Vrest, float Thresh, float Vhyper, float inj);
+extern inline void update_cCa(NEURON * n, tstep t, float decayRate);
+extern inline void update_g(NEURON * n, tstep t, float decay_E, float decay_I);
+extern inline void update_weights(NEURON * n, tstep t);
+extern inline void update_C(NEURON * n, tstep t, float decayRate);
+extern inline void update_D(NEURON * n, tstep t, float decayRate);
 extern int normalise(NEURON ** narray, PARAMS * mp);
-extern void init_queue(AXON * a);
+extern inline void init_queue(AXON * a);
 extern inline void enqueue(AXON * a, tstep t);
-extern int dequeue(AXON * a);
+extern inline int dequeue(AXON * a);
 extern inline int next_spike(AXON * a);
-extern bool isempty(AXON * a);
-extern void print_queue(AXON * a);
+extern inline bool isempty(AXON * a);
+extern inline int print_queue(AXON * a);
 
 #endif

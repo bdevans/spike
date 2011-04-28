@@ -23,36 +23,6 @@ int read_parameters(PARAMS * params, char * paramfile)
 	fclose(fp);
 	
 	/* Additional calculations */
-	float transP = (params->transP_Train >= params->transP_Test ? params->transP_Train : params->transP_Test);
-	params->TotalTime = params->nStimuli * params->nTransPS * transP;
-	params->TotalMS = round(params->TotalTime * 1000); // Was ceil, used for recording structures
-	params->TotalTS = round(params->TotalTime/mp->DT); // Was ceil
-	params->TSperMS = round(1/(mp->DT*1000)); // Was ceil, used for recording structures
-	params->spkBuffer = ceil(params->TotalTime / params->refract);
-	params->SigmaE = params->noiseScale * (params->ThreshE - params->VhyperE);
-	params->SigmaI = params->noiseScale * (params->ThreshI - params->VhyperI);
-	//params->inpSpkBuff = ceil(transP / params->refract);
-	
-	if (params->useFilteredImages) // Do not parse IPFILE if rerunning with parameter.m
-	{	
-		fp = myfopen(IPFILE, "r");	/* Read imgParams file */
-		while ((string = fgets(buff, sizeof(buff), fp)) != NULL) 	/* Read next line */
-			count += parse_string(params, buff);
-		fclose(fp); 
-		params->sInputs = params->nPhases*params->nScales*params->nOrients*params->nRows*params->nCols;
-	}
-	else
-	{
-		params->sInputs = (params->LvExcit) ? params->vExcit[0] : params->nExcit;
-		/*if (params->LvExcit == 0)
-			params->sInputs = params->nExcit; // Calculate input size automatically?
-		else 
-			params->sInputs = params->vExcit[0];*/
-		if (floor(params->a * params->sInputs) < 1)
-			params->nFiringNeurons = floor(params->sInputs/(params->nStimuli * params->nTransPS));
-		else
-			params->nFiringNeurons = floor(params->sInputs * params->a);	
-	}
 	
 	if (mp->K > 1)		// Assumption: when training with multiples, test with individual stimuli
 	{
@@ -64,7 +34,7 @@ int read_parameters(PARAMS * params, char * paramfile)
 		mp->M = (mp->nStimuli == 1) ? 1 : mp->M;
 		mp->nStimuli = mp->nTestStimuli * mp->M;
 		/*nCombs = gsl_sf_choose(mp->nTestStimuli, mp->K);
-		mp->nStimuli = (nCombs == 1) ? nCombs : mp->nStimuli;*/
+		 mp->nStimuli = (nCombs == 1) ? nCombs : mp->nStimuli;*/
 		
 		//mp->nStimuli = mp->M * gsl_sf_choose(mp->nTestStimuli, mp->K) / mp->nTestStimuli; // Check ////////
 		
@@ -75,6 +45,44 @@ int read_parameters(PARAMS * params, char * paramfile)
 		mp->newTestSet = false;
 		mp->nTestStimuli = mp->nStimuli;
 		mp->nTestTransPS = mp->nTransPS;
+	}
+	
+	float transP = (params->transP_Train >= params->transP_Test ? params->transP_Train : params->transP_Test);
+	params->TotalTime = params->nStimuli * params->nTransPS * transP;
+	params->TotalMS = round(params->TotalTime * 1000); // Was ceil, used for recording structures
+	params->TotalTS = round(params->TotalTime/mp->DT); // Was ceil
+	params->TSperMS = round(1/(mp->DT*1000)); // Was ceil, used for recording structures
+	params->spkBuffer = ceil(params->TotalTime / params->refract);
+	params->SigmaE = params->noiseScale * (params->ThreshE - params->VhyperE);
+	params->SigmaI = params->noiseScale * (params->ThreshI - params->VhyperI);
+	//params->inpSpkBuff = ceil(transP / params->refract);
+	
+	if (params->useFilteredImages && !(strcmp(paramfile, MPFILE)==0)) // Do not parse IPFILE if rerunning with parameters.m
+	{
+		int slen = strlen(mp->imgDir)+1+strlen(IPFILE)+1; // '/' & '\0'
+		char * imgParams = myalloc(slen);
+		if (snprintf(imgParams, slen, "%s/%s", mp->imgDir, IPFILE) >= slen)
+			fprintf(stderr, "Warning! Undersized buffer: %s", imgParams);
+		/*strncpy(imgParams, mp->imgDir, strlen(mp->imgDir)+1);
+		strncat(imgParams, "/", 1);
+		strncat(imgParams, IPFILE, strlen(IPFILE)+1);
+		imgParams[slen-1]='\0';*/
+		fp = myfopen(imgParams, "r");	/* Read imgParams file */
+		while ((string = fgets(buff, sizeof(buff), fp)) != NULL) 	/* Read next line */
+			count += parse_string(params, buff);
+		fclose(fp); 
+		params->sInputs = params->nPhases*params->nScales*params->nOrients*params->nRows*params->nCols;
+	}
+	else
+	{
+		params->sInputs = (params->LvExcit) ? params->vExcit[0] : params->nExcit;
+		if (floor(params->a * params->sInputs) < 1) // Change to use and output nFiringNeurons instead
+		{
+			params->nFiringNeurons = floor(params->sInputs/(params->nStimuli * params->nTransPS));
+			params->a = params->nFiringNeurons / params->sInputs;
+		}
+		else
+			params->nFiringNeurons = floor(params->sInputs * params->a);	
 	}
 	
 	// Change all myalloc to myrealloc?
@@ -90,8 +98,8 @@ int read_parameters(PARAMS * params, char * paramfile)
 	}
 	else if (params->LvExcit == (params->nLayers - 1))
 	{
-		params->vExcit = myrealloc(params->vExcit, params->nLayers*sizeof(int));
-		memmove((params->vExcit)+1, params->vExcit, params->LvExcit*sizeof(int));
+		params->vExcit = myrealloc(params->vExcit, params->nLayers*sizeof(params->vExcit[0]));
+		memmove((params->vExcit)+1, params->vExcit, params->LvExcit*sizeof(params->vExcit[0]));
 		params->vExcit[0] = params->sInputs;
 		params->LvExcit++;
 	}
@@ -102,6 +110,7 @@ int read_parameters(PARAMS * params, char * paramfile)
 	}
 	else
 		exit_error("read_parameters", "vExcit size mismatch!");
+	
 	
 	// *** Calculations for arrays of Inhibitory neurons
 	/*if (params->rInhib > EPS) // Pass ratio for each layer?
@@ -267,6 +276,33 @@ int read_parameters(PARAMS * params, char * paramfile)
 	assert(params->LpEI == params->nLayers);
 	assert(params->LpIE == params->nLayers);
 	assert(params->LpII == params->nLayers);
+	
+	if (params->nRecordsPL && params->vRecords==NULL)
+	{
+		params->nRecords = 0;
+		params->vRecords = myalloc(params->nLayers * params->nRecordsPL * sizeof(int));
+		for (l=0; l<params->nLayers; l++)
+		{
+			params->vRecords[l] = params->nRecordsPL;
+			assert((params->vRecords[l] >= 0) && (params->vRecords[l] <= params->vExcit[l]));
+			params->nRecords += params->vRecords[l];
+		}
+	}
+	
+	if (params->vRecords)
+	{
+		params->nRecords = 0;
+		for (l=0; l<params->nLayers; l++)
+		{
+			//assert((params->vRecords[l] >= 0) && (params->vRecords[l] <= params->vExcit[l]));
+			if (params->vRecords[l] < 0)
+				params->vRecords[l] = 0;
+			if (params->vRecords[l] > params->vExcit[l])
+				params->vRecords[l] = params->vExcit[l];
+			params->nRecords += params->vRecords[l];
+		}
+	}
+	
 	return count;
 }
 
@@ -288,14 +324,16 @@ char * trim(char * string)
 		s1++;
 	
 	/* Copy finished string */
-	strcpy(string, s1);
+	strncpy(string, s1, 1+strlen(s1)); // +1 to copy terminator
+	//strcpy(string, s1);
 	return string;
 }
+
 
 int parseIntVector(char * string, int ** array)
 { // Function to parse a row vector of integers, store it in an array and return the number of elements
 	char * tstr = NULL;
-	const char * delims = "[, ]";
+	const char * delims = "{[, ]}";
 	int numElements = 0;
 	int block = 1;
 	
@@ -303,7 +341,7 @@ int parseIntVector(char * string, int ** array)
 	*array = myalloc(VECBUFF*sizeof(int));
 	tstr = strtok(string, delims); // Get first token starting with the first nondelimiter char
 	
-	while ( (tstr != NULL) && (*trim(tstr) != ']') && (*tstr != '\0') ) // Trim and check not end
+	while ( (tstr != NULL) && (*trim(tstr) != (']' || '}')) && (*tstr != '\0') ) // Trim and check not end
 	{
 		if (numElements == block*VECBUFF) // Check array is not full up
 			*array = myrealloc(*array, ++block*VECBUFF*sizeof(int)); // Reallocate memory
@@ -323,7 +361,7 @@ int parseIntVector(char * string, int ** array)
 int parseFloatVector(char * string, float ** array)
 { // Function to parse a row vector of integers, store it in an array and return the number of elements
 	char * tstr = NULL;
-	const char * delims = "[, ]";
+	const char * delims = "{[, ]}";
 	int numElements = 0;
 	int block = 1;
 	
@@ -331,7 +369,7 @@ int parseFloatVector(char * string, float ** array)
 	*array = myalloc(VECBUFF*sizeof(float));
 	tstr = strtok(string, delims); // Get first token starting with the first nondelimiter char
 	
-	while ( (tstr != NULL) && (*trim(tstr) != ']') && (*tstr != '\0') ) // Trim and check not end
+	while ( (tstr != NULL) && (*trim(tstr) != (']' || '}')) && (*tstr != '\0') ) // Trim and check not end
 	{
 		if (numElements == block*VECBUFF) // Check array is not full up
 			*array = myrealloc(*array, ++block*VECBUFF*sizeof(float)); // Reallocate memory
@@ -359,30 +397,45 @@ typedef enum dataType {
 	FLOATS
 }
 
-int parseVector(char * string, data * vectors, dataType type)
+int parseVector(char * string, data * vectors, dataType type, const char * delims)
 { // Function to parse a row vector of integers, store it in an array and return the number of elements
 	char * tstr = NULL;
-	const char * delims = "[, ]";
+	//const char * delims = "[, ]";
 	int numElements = 0;
 	int block = 1;
+	if (!delims)
+		char * delims = "[, ]";
+	
+	switch (dataType) {
+		case 'int':
+			dsize = sizeof(int);
+			dRead = atoi();
+			break;
+		case 'float':
+			dsize = sizeof(float);
+			dRead = atof();
+			break
+		default:
+			break;
+	}
 	
 	free(array); // In case the array already exists
-	*array = myalloc(VECBUFF*sizeof(int *));
+	*array = myalloc(VECBUFF*dsize); //sizeof(int *)
 	tstr = strtok(string, delims); // Get first token starting with the first nondelimiter char
 	
 	while ( (*trim(tstr) != ']') && (*tstr != '\0') && (tstr != NULL) ) // Trim and check not end
 	{
 		if (numElements == block*VECBUFF) // Check array is not full up
-			*array = myrealloc(*array, ++block*VECBUFF*sizeof(int *)) // Reallocate memory
+			*array = myrealloc(*array, ++block*VECBUFF*dsize) // Reallocate memory
 			
-			*array[numElements++] = atoi(tstr); // convert to int for assignment
+			*array[numElements++] = dRead(tstr); //atoi(tstr); // convert to int for assignment
 		tstr = strtok(NULL, delims); // Get the next token
 	}
 	
 	if (numElements == 0)
 		fprintf(stderr, "Error! Vector: \"%s\" is empty",tstr);
 	else
-		if ( (*array = realloc(*array, numElements*sizeof(int *))) == NULL ) // Set array to correct size
+		if ( (*array = realloc(*array, numElements*dsize)) == NULL ) // Set array to correct size
 			exit_error("REALLOC", "NULL pointer from realloc");
 	
 	return numElements;
@@ -413,11 +466,14 @@ int parse_string(PARAMS * params, char * string)
 	else
 		strncpy(value, sptr, MAXLEN);
 	trim(name); // Necessary if using indented variables
-	//if (name[0] == 'M' && name[1] == 'P' && name[2] == '.')
+	if (name[0] == 'M' && name[1] == 'P' && name[2] == '.')
+		strncpy(name, &name[3], 1+strlen(name)-3); // +1 to copy terminator//name = name[3];
 		
 	trim(value);
 	
 	/* Copy into correct entry in parameters struct */ // Use strcmpi() for case insensitive comparisons
+//#define Match(arg)	(strcmp(argv[cur_arg], (arg)) == 0)
+//retval = (input) ? assign(param, value) : writeout(param, fp) ; 
 	/* Simulation */		
 	if (strcmp(name, "DT")==0)
 		params->DT = atof(value);
@@ -437,17 +493,26 @@ int parse_string(PARAMS * params, char * string)
 		params->normalise = atoi(value);
 	else if (strcmp(name, "nRecordsPL")==0)
 		params->nRecordsPL = atoi(value);
+	else if (strcmp(name, "vRecords")==0)
+		parseIntVector(value, &params->vRecords);
 	else if (strcmp(name, "printConnections")==0)
 		params->printConnections = atoi(value);
 	else if (strcmp(name, "probConnect")==0)
 		params->probConnect = atoi(value);
 	
 	/* Stimuli */
-	else if (strcmp(name, "imageList")==0)
+	else if ((strcmp(name, "imgList")==0)||(strcmp(name, "imageList")==0))
 	{
-		params->imageList = myalloc((strlen(trim(value))+1)*sizeof(char));
-		strcpy(params->imageList, value);
-		params->imageList[strlen(value)] = '\0';
+		params->imgList = myalloc(strlen(trim(value))+1);
+		strncpy(params->imgList, value, strlen(value));
+		params->imgList[strlen(value)] = '\0'; // Needed for strncpy
+		
+		//myalloc(strlen(IMGDIR)+strlen(trim(value))+2); //*sizeof(char)
+		/*strncpy(params->imgList, IMGDIR, strlen(IMGDIR));
+		strncat(params->imgList, "/", 1);
+		strncat(params->imgList, value, strlen(value));*/
+		//strcpy(params->imageList, value);
+		//params->imgList[strlen(IMGDIR)+1+strlen(value)] = '\0'; // Needed for strncpy
 	}
 	else if (strcmp(name, "randStimOrder")==0)
 		params->randStimOrder = atoi(value);
@@ -490,17 +555,11 @@ int parse_string(PARAMS * params, char * string)
 	else if (strcmp(name, "gabor")==0)
 		params->gabor = atoi(value);
 	else if (strcmp(name, "vScales")==0)
-	{
 		params->nScales = parseIntVector(value, &params->vScales);
-	}
 	else if (strcmp(name, "vOrients")==0)
-	{
 		params->nOrients = parseIntVector(value, &params->vOrients);
-	}
 	else if (strcmp(name, "vPhases")==0)
-	{
 		params->nPhases = parseIntVector(value, &params->vPhases);
-	}
 	else if (strcmp(name, "nRows")==0)
 		params->nRows = atoi(value);
 	else if (strcmp(name, "nCols")==0)
@@ -517,52 +576,33 @@ int parse_string(PARAMS * params, char * string)
 	else if (strcmp(name, "nExcit")==0)
 		params->nExcit = atoi(value);
 	else if (strcmp(name, "vExcit")==0)
-	{
-		/*if (params->LvExcit)
-		{
-			params->vExcit = myfree(params->vExcit);
-			params->LvExcit = 0;
-		}*/
 		params->LvExcit = parseIntVector(value, &params->vExcit);
-	}
 	else if (strcmp(name, "nSynEfE")==0)
 		params->nSynEfE = atoi(value);
 	else if (strcmp(name, "pCnxEfE")==0)
-	{
 		params->LpEfE = parseFloatVector(value, &params->pCnxEfE);
-	}
 	else if (strcmp(name, "nSynElE")==0)
 		params->nSynElE = atoi(value);
 	else if (strcmp(name, "pCnxElE")==0)
-	{
 		params->LpElE = parseFloatVector(value, &params->pCnxElE);
-	}
 	else if (strcmp(name, "nSynIE")==0)
 		params->nSynIE = atoi(value);
 	else if (strcmp(name, "pCnxIE")==0)
-	{
 		params->LpIE = parseFloatVector(value, &params->pCnxIE);
-	}
 	else if (strcmp(name, "nInhib")==0)
 		params->nInhib = atoi(value);
 	else if (strcmp(name, "rInhib")==0)
 		params->rInhib = atof(value);
 	else if (strcmp(name, "vInhib")==0)
-	{
 		params->LvInhib = parseIntVector(value, &params->vInhib);
-	}
 	else if (strcmp(name, "nSynEI")==0)
 		params->nSynEI = atoi(value);
 	else if (strcmp(name, "pCnxEI")==0)
-	{
 		params->LpEI = parseFloatVector(value, &params->pCnxEI);
-	}
 	else if (strcmp(name, "nSynII")==0)
 		params->nSynII = atoi(value);
 	else if (strcmp(name, "pCnxII")==0)
-	{
 		params->LpII = parseFloatVector(value, &params->pCnxII);
-	}
 	else if (strcmp(name, "axonDelay")==0)
 		params->axonDelay = atoi(value);
 	else if (strcmp(name, "d_const")==0)
@@ -700,6 +740,9 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	FPRINT_INT(pFile, MP.noise); c++;
 	FPRINT_FLOAT(pFile, MP.noiseScale); c++;
 	FPRINT_INT(pFile, MP.nRecordsPL); c++;
+	FPRINT_INT(pFile, MP.nRecords); c++;
+	if (mp->nRecords)
+		printIntArray(pFile, "MP.vRecords", mp->vRecords, mp->nLayers);
 	FPRINT_INT(pFile, MP.printConnections); c++;
 	FPRINT_INT(pFile, MP.probConnect); c++;
 	
@@ -731,14 +774,19 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	FPRINT_INT(pFile, MP.useFilteredImages); c++;
 	if (mp->useFilteredImages) // load other parameters from imageParams.m
 	{
-		FPRINT_STRING(pFile, MP.imageList); c++;
+		FPRINT_STRING(pFile, MP.imgList); c++;
 		FPRINT_INT(pFile, MP.gabor); c++;
 		printIntArray(pFile, "MP.vPhases", mp->vPhases, mp->nPhases); c++;
 		printIntArray(pFile, "MP.vScales", mp->vScales, mp->nScales); c++;
 		printIntArray(pFile, "MP.vOrients", mp->vOrients, mp->nOrients); c++;
 	}
 	else
+	{
 		FPRINT_INT(pFile, MP.shift); c++;
+		FPRINT_INT(pFile, MP.nFiringNeurons); c++;
+		FPRINT_FLOAT(pFile, MP.a); c++;
+	}
+		
 	
 	fprintf(pFile, "\n%%%% Network Parameters %%%%\n");
 	FPRINT_INT(pFile, MP.nLayers); c++;
@@ -774,12 +822,14 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 			break;
 		case SOM:
 			fprintf(pFile, "MP.axonDelay = 'SOM';\n"); c++;
-			FPRINT_FLOAT(pFile, MP.spatialScale); c++;
 			FPRINT_FLOAT(pFile, MP.condSpeed); c++;
 			FPRINT_FLOAT(pFile, MP.maxDelay); c++;
 		default:
 			break;
 	}
+	
+	FPRINT_FLOAT(pFile, MP.spatialScale); c++; // Needed for plotting connectivity
+	
 	FPRINT_INT(pFile, MP.SOM); c++;
 	if (MP.SOM)
 	{
@@ -845,6 +895,8 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 
 void printIntArray(FILE * fp, char * name, int * array, int len)
 {
+	if (!len || !array)
+		return;
 	int l=0;
 	fprintf(fp, "%s = [%d",name,array[0]);
 	for (l=1; l<len; l++)
@@ -855,6 +907,8 @@ void printIntArray(FILE * fp, char * name, int * array, int len)
 
 void printFloatArray(FILE * fp, char * name, float * array, int len)
 {
+	if (!len || !array)
+		return;
 	int l=0;
 	fprintf(fp, "%s = [%G",name,array[0]);
 	for (l=1; l<len; l++)

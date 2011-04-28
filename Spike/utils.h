@@ -39,6 +39,7 @@ typedef struct {
 }FILEPARTS;
 
 extern void getFileParts(char * fullname, FILEPARTS * fp);
+extern void getTimeString(char * timeStr, size_t buffer, double secs);
 
 #define PRINT_INT(token) printf(#token " = %d;\n", token);
 #define PRINT_FLOAT(token) printf(#token " = %G;\n", token);
@@ -60,4 +61,12 @@ extern void getFileParts(char * fullname, FILEPARTS * fp);
 #define MIN(A, B) ((A) < (B) ? (A) : (B)) 
 #endif 
 
+#if !defined(SWAP) // XOR swap - ints only I think
+#define SWAP(a, b) (((a) == (b)) || (((a) ^= (b)), ((b) ^= (a)), ((a) ^= (b))))
+#endif
+
 #endif // _UTILS_H
+
+// The snprintf() and vsnprintf() functions will write at most n-1 of the characters printed into the output string (the n'th character then gets the terminating `\0'); if the return value is greater than or equal to the n argument, the string was too short and some of the printed characters were discarded.  The output is always null-terminated.
+// The strncpy() function copies at most n characters from s2 into s1. If s2 is less than n characters long, the remainder of s1 is filled with `\0' characters. Otherwise, s1 is not terminated.
+// If src contains n or more characters, strncat() writes  n+1  characters to  dest  (n  from src plus the terminating null byte).  Therefore, the size of dest must be at least strlen(dest)+n+1

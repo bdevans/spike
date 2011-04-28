@@ -70,6 +70,8 @@ typedef struct {
 	float SigmaI;
 	NORMALISATION normalise;
 	int nRecordsPL;// = 0;
+	int nRecords;
+	int * vRecords;
 	float TotalTime;
 	int TotalMS;
 	int TotalTS;
@@ -81,7 +83,8 @@ typedef struct {
 	bool probConnect;
 	
 	// Stimuli
-	char * imageList;
+	char * imgDir;
+	char * imgList;
 	bool randStimOrder;// = true;
 	bool randTransOrder;
 	bool randTransDirection;

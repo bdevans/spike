@@ -165,3 +165,13 @@ void getFileParts(char * fullname, FILEPARTS * fp)
 	}
 	return;
 }
+
+void getTimeString(char * timeStr, size_t buffer, double secs)
+{
+	int hours = (int)(secs/3600); //floor
+	secs -= hours*3600;
+	int mins = (int)(secs/60);
+	secs -= mins*60; //secs = elapsed - (mins*60) - (hours*3600);
+	snprintf(timeStr, buffer, "%d:%02d:%05.2lf",hours,mins,secs);
+	return;
+}

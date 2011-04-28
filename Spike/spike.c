@@ -83,7 +83,7 @@ int spike(PARAMS * mp)
 	
 #if DEBUG > 1
 	//fprintf(stderr,"\nPresynaptic connection probabilites for Excitatory postsynaptic cells\n");
-	fprintf(stdout,"\tp(EfE)\tp(ElE)\tp(IE) \tE[syn] \tp(EI) \tp(II) \tE[syn]\tSize (MB)\n");
+	fprintf(stdout,"\n\tp(EfE)\tp(ElE)\tp(IE) \tE[syn] \tp(EI) \tp(II) \tE[syn]\tSize (MB)\n");
 #endif
 	// Assumes minimum delay model i.e. 1 spike bin per axon for all except ElE
 	for (l=0; l<mp->nLayers; l++)
@@ -102,7 +102,7 @@ int spike(PARAMS * mp)
 	}
 
 #if DEBUG > 1
-	fprintf(stdout, "Stimuli:\tStruct.\tTrain \tTest  \tRecords\n");
+	fprintf(stdout, "\nStimuli:\tStruct.\tTrain \tTest  \tRecords\n");
 #endif
 	if (mp->SOM)
 	{
@@ -112,11 +112,11 @@ int spike(PARAMS * mp)
 	}
 	
 	memE = 0.0;
-	if (mp->nRecordsPL)
+	if (mp->nRecords)
 	{
-		memE = (mp->nRecordsPL*mp->nLayers*(sizeof(RECORD)+((mp->adaptation)?3:2)*(mp->TotalMS+1)*sizeof(float)))/MB;
+		memE = (mp->vRecords[0]*(sizeof(RECORD)+((mp->adaptation)?3:2)*(mp->TotalMS+1)*sizeof(float)))/MB;
 		for (l=1; l<mp->nLayers; l++)
-			memE += mp->nRecordsPL*3*(mp->TotalMS+1)*(mp->vExcit[l-1]*mp->pCnxEfE[l])*sizeof(float)/MB;
+			memE += mp->vRecords[l]*3*(mp->TotalMS+1)*(mp->vExcit[l-1]*mp->pCnxEfE[l])*sizeof(float)/MB;
 	}
 	
 	memMisc += (float)(sizeof(PARAMS) + \
@@ -126,11 +126,11 @@ int spike(PARAMS * mp)
 	memTrain = (float)(mp->sInputs*mp->nStimuli*mp->nTransPS*sizeof(float))/MB;
 	memTest = (float)(mp->sInputs*mp->nTestStimuli*mp->nTestTransPS*sizeof(float))/MB;
 #if DEBUG > 1
-	fprintf(stdout, "Size (MB)\t%-6.2f\t%-6.2f\t%-6.2f\t%-6.2f\n",memMisc,memTrain,memTest,memE);
+	fprintf(stdout, "Size (MB)\t%-6.2f\t%-6.2f\t%-6.2f\t%-6.2f\n\n",memMisc,memTrain,memTest,memE);
 #endif
 	Tmem += (memMisc + memTrain + memTest + memE);	
-	fprintf(stdout, "Total memory requirements (MB):\t%-6.3f\n",Tmem);
-	
+	fprintf(stdout, "Total memory requirements (approx.):\t%-6.3G MB\n",Tmem);
+	fprintf(stdout, "--------------------------------------------------------------------------------\n"); // Replace with horizontal line cmd?
 	
 	printf("Ventral Visual Stream Spiking Neural Network Simulation starting...\n");
 	
@@ -241,7 +241,6 @@ int spike(PARAMS * mp)
 	unallocn(n_I, mp->nLayers, mp->vInhib);
 	if (mp->SOM || mp->axonDelay == SOM)
 		freeTriF(distE, mp->nLayers);
-	myfree(mp->layDim);
 	
 	if (mp->randStimOrder)
 		free_2D_iarray(stim->stimShuffle);//, mp->loops);
@@ -257,7 +256,7 @@ int spike(PARAMS * mp)
 	{
 		if (mp->newTestSet)
 			free_3D_farray(stim->trn_stimuli, mp->nStimuli);//, mp->nTransPS);
-		free_3D_farray(stim->tst_stimuli, mp->nStimuli);//, mp->nTransPS);
+		free_3D_farray(stim->tst_stimuli, mp->nTestStimuli);//, mp->nTransPS);
 	}
 	myfree(stim); // *** Free new image arrays too
 
@@ -317,7 +316,7 @@ NEURON ** allocn (int nLays, int * vNeurons, NTYPE type)
 			//	narray[l][n].spikeTimes = myalloc(mp->inpSpkBuff * sizeof(narray[l][n].spikeTimes[0]));
 			//else
 			narray[l][n].spikeTimes = myalloc(mp->spkBuffer * sizeof(narray[l][n].spikeTimes[0]));
-			narray[l][n].type = (type==EXCIT) ? EXCIT : INHIB;
+			narray[l][n].type = type; //(type==EXCIT) ? EXCIT : INHIB; 
 			narray[l][n].nFAff_E = 0;
 			narray[l][n].FAffs_E = NULL; // **
 			narray[l][n].lm1presyn_E = NULL; // **
@@ -1253,10 +1252,10 @@ void init_network(int regime)
 	
 	if (regime == Learning) // Only initialise before training, not testing
 	{
-		if (mp->nRecordsPL)
+		if (mp->nRecords)
 		{
 			int * choices = NULL;
-			int * chosen = myalloc(mp->nRecordsPL * sizeof(*chosen));
+			int * chosen = NULL;
 			// Print Records file
 			char rString[BUFSIZ];
 			int slen = 0;
@@ -1267,27 +1266,28 @@ void init_network(int regime)
 			printf("\n");
 			for (l=0; l<mp->nLayers; l++)
 			{
-				assert(mp->nRecordsPL <= mp->vExcit[l]);
+				assert((mp->vRecords[l] >= 0) && (mp->vRecords[l] <= mp->vExcit[l]));
+				chosen = myalloc(mp->vRecords[l] * sizeof(*chosen));
 				choices = myalloc(mp->vExcit[l] * sizeof(*choices));
 				for (n=0; n<mp->vExcit[l]; n++)
 					choices[n] = n;
 				//choice=rands1_new(0,0,&iv,1);	// Initialise RNG
-				gsl_ran_choose(mSeed, chosen, mp->nRecordsPL, choices, mp->vExcit[l], sizeof(*choices));
-				for (r=0; r<mp->nRecordsPL; r++)
+				gsl_ran_choose(mSeed, chosen, mp->vRecords[l], choices, mp->vExcit[l], sizeof(*choices));
+				for (r=0; r<mp->vRecords[l]; r++)
 				{
 					// Randomly set NRECORDS flags
 					//choice=rands1_new(0,mp->vExcit[l]-1,&iv,1);
 					//n_E[l][choice].rec_flag = true;
 					n_E[l][chosen[r]].rec_flag = true;
-					printf("\tLayer %d, Record %d Assigned nID: %d\n",l,r,chosen[r]);
+					printf("\tLayer %d, Record %d Assigned nID: %d\n",l,r+1,chosen[r]);
 				}
-				myfree(choices);
-
 				slen = snprintf(rString, BUFSIZ, "MP.Records{%d}", l+1);
 				assert(slen < BUFSIZ);
-				printIntArray(rFile, rString, chosen, mp->nRecordsPL); 
+				printIntArray(rFile, rString, chosen, mp->vRecords[l]); 
+				myfree(chosen);
+				myfree(choices);
 			}
-			myfree(chosen);
+			//myfree(chosen);
 			fclose(rFile); // Close Records file
 			/* Create recording structures - (mp->TotalMS+1) so that initial conditions are recorded */
 			for (l=0; l<mp->nLayers; l++)
@@ -1503,7 +1503,9 @@ int loadImages(STIMULI * stim, PARAMS * mp)
 	mp->newTestSet = false;
 	float ******* array = stim->trnImages;
 	
-	iList = myfopen(mp->imageList, "r");
+	sLen = snprintf(filename, FNAMEBUFF, "%s/%s",mp->imgDir,mp->imgList);
+	assert(sLen < FNAMEBUFF);
+	iList = myfopen(filename, "r");
 	fp = myalloc(sizeof(FILEPARTS));
 	while ((str = fgets(buff, sizeof(buff), iList)) != NULL) 	/* Read next line */
 	{
@@ -1586,10 +1588,11 @@ int loadDoGoutput(const char * filename, float * array, int size)
 	for (e=0; e<size; e++)
 		array[e] = mp->current + ((2.0 * buff[e] / 255.0) - 1.0) * mp->currentSpread; // Convert uchars [0,255] to floats
 	// Scale for current injected too
-	if (!err)
+	return (err) ? 0 : 1;
+	/*if (!err)
 		return 1;
 	else
-		return 0;
+		return 0;*/
 }
 
 int loadGaborOutput(const char * filename, float * array, int size)
@@ -1609,10 +1612,7 @@ int loadGaborOutput(const char * filename, float * array, int size)
 			array[e] = 0;
 	}
 
-	if (!err)
-		return 1;
-	else
-		return 0;
+	return (err) ? 0 : 1;
 }
 
 void gen_stimuli(bool rep, STIMULI * stim, PARAMS * mp)
@@ -1624,6 +1624,8 @@ void gen_stimuli(bool rep, STIMULI * stim, PARAMS * mp)
 	int * choices = NULL;
 	int * chosen = NULL;
 	int block = 0;
+	char stimStr[BUFSIZ];
+	int slen = 0;
 
 	/* Generate the training stimuli to present to the network */
 	// Patterns could be generated in Matlab and loaded from dat files... or read in list of pairs from another array
@@ -1671,36 +1673,35 @@ void gen_stimuli(bool rep, STIMULI * stim, PARAMS * mp)
 	if (mp->K > 1) // Present multiple stimuli simultaneously
 	{
 		assert(mp->K <= mp->nTestStimuli);
+		if (mp->K == mp->nTestStimuli)
+			assert(mp->M == 1);
 		stim->trn_stimuli = get_3D_farray(mp->nStimuli, mp->nTransPS, mp->sInputs, 0.0); // rethink nStimuli for limited training...
 		choices = myalloc((mp->nTestStimuli-1) * sizeof(*choices));
-		chosen = myalloc(mp->M * sizeof(*chosen));
+		chosen = myalloc((mp->K-1) * sizeof(*chosen));
 		int c = 0;
 		int ind = 0;
 		int m = 0;
+		int q=0;
+		fprintf(stdout, "\n");
 		for (p=0; p<mp->nTestStimuli; p++)
 		{
-			ind = 0;
-			for (c=0; c<mp->nTestStimuli-1; c++)
-			{
-				if (c == p)
-					ind++;
-				choices[c] = ind++;
-			}
-			
-			// Generate all ways of choosing K from N: 
-			// http://phoxis.org/2009/10/13/allcombgen/ 
-			// http://compprog.wordpress.com/2007/10/17/generating-combinations-1/ 
-			// http://www.cs.utexas.edu/users/djimenez/utsa/cs3343/lecture25.html
-			// Select M of those ways
-			
+			for (c=0, ind=0; c<mp->nTestStimuli-1; c++, ind++)
+				choices[c] = (c==p) ? ++ind : ind;
+
 			for (m=0; m<mp->M; m++) // This method could have duplicate combinations
 			{
 				gsl_ran_choose(mSeed, chosen, mp->K-1, choices, mp->nTestStimuli-1, sizeof(*choices));
+				slen = snprintf(stimStr, BUFSIZ, "\tTraining stimulus %d (inc. %d)", p, p);
+				assert(slen < BUFSIZ);
+				printIntArray(stdout, stimStr, chosen, mp->K-1);
 				
-				for (trans=0; trans<mp->nTestTransPS; trans++) // memcpy pth test stimulus ?
-					for (n=0; n<mp->sInputs; n++)
-						for (c=0; c<mp->M; c++)
-							stim->trn_stimuli[p][trans][n] = (stim->tst_stimuli[chosen[c]][trans][n] || stim->tst_stimuli[p][trans][n]) ? mp->current : 0.0;
+				q = (p * mp->M) + m;
+				memcpy(stim->trn_stimuli[q][0], stim->tst_stimuli[p][0], mp->nTestTransPS*mp->sInputs*sizeof(stim->tst_stimuli[p][0][0]));
+				
+				for (c=0; c<mp->K-1; c++)
+					for (trans=0; trans<mp->nTestTransPS; trans++) // memcpy pth test stimulus ? - does not work for dist. stim
+						for (n=0; n<mp->sInputs; n++)
+							stim->trn_stimuli[q][trans][n] = (stim->tst_stimuli[chosen[c]][trans][n]) ? mp->current : stim->trn_stimuli[q][trans][n];
 			}
 		}
 		
@@ -1710,6 +1711,12 @@ void gen_stimuli(bool rep, STIMULI * stim, PARAMS * mp)
 	else	// Training stimuli presented individually
 		stim->trn_stimuli = stim->tst_stimuli;
 
+	
+	// Generate all ways of choosing K from N: 
+	// http://phoxis.org/2009/10/13/allcombgen/ 
+	// http://compprog.wordpress.com/2007/10/17/generating-combinations-1/ 
+	// http://www.cs.utexas.edu/users/djimenez/utsa/cs3343/lecture25.html
+	// Select M of those ways
 	
 	/*if (mp->M) // Generalise to pair with K partner stimuli
 	{
@@ -1804,15 +1811,15 @@ int genShuffles(STIMULI * stim, PARAMS * mp)
 			for (p=0; p<mp->nStimuli; p++)
 			{
 				/*i=rands1_new(0,0,&iv,1);	// Initialise RNG (clear internal array of numbers drawn)
-				for (trans=0; trans<mp->nTransPS; trans++)
-					stim->transShuffle[loop][p][trans] = rands1_new(0,mp->nTransPS-1,&iv,1);*/
+				 for (trans=0; trans<mp->nTransPS; trans++)
+				 stim->transShuffle[loop][p][trans] = rands1_new(0,mp->nTransPS-1,&iv,1);*/
 				gsl_ran_shuffle(mSeed, choices, mp->nTransPS, sizeof(int));
 				memcpy(stim->transShuffle[loop][p], choices, mp->nTransPS * sizeof(int));
 			}
 		}
 		count++;
 		myfree(choices);
-	}
+	}	
 	return count;
 }
 
@@ -1851,10 +1858,10 @@ void calc_input(int loop, int pat, int trans, STIMULI * stim, float ** input, in
 		}
 	}
 
-	// Move print statements outside function?
+	/*// Move print statements outside function?
 	if ( trans==0 || (mp->interleaveTrans && regime) )
 		printf("\t\tPresenting stimulus %d/%d...\n", (pat+1), mp->nStimuli);
-	printf("\t\t\tTransform %d/%d...\n", (trans+1), mp->nTransPS);
+	printf("\t\t\tTransform %d/%d...\n", (trans+1), mp->nTransPS);*/
 
 	return; // void;
 }
@@ -1968,10 +1975,13 @@ void simulatePhase(PHASE sPhase, STIMULI * stim)
 				if (sPhase != Training) //Testing only
 					init_network(Settle);
 				calc_input(loop, p, ((reverse) ? (nTrans-1)-tr : tr), stim, &input, regime);
+				if ( tr==0 || (mp->interleaveTrans && regime) )
+					printf("\t\tPresenting stimulus %d/%d...\n", (p+1), mp->nStimuli);
+				printf("\r\t\t\tTransform %d/%d...\n", (reverse ? nTrans-tr : tr+1), mp->nTransPS);
 				t_start = round((*i + (*o * iCount)) * transP * ceil(1/mp->DT));
 				t_end = t_start + round(transP * ceil(1/mp->DT));
 #if DEBUG > 1 // Level 2
-				fprintf(stderr, "\nUpdating network from timestep %d to %d.\n", t_start, t_end-1); //%lld
+				fprintf(stderr, "Updating network from timestep %d to %d.\n", t_start, t_end-1); //%lld
 #endif
 				
 #if DEBUG > 3
@@ -1986,31 +1996,27 @@ void simulatePhase(PHASE sPhase, STIMULI * stim)
 				{
 					// Print spikes to file (see below) ...
 					slen = snprintf(filename, FNAMEBUFF, "E%dL0ExcitSpikes.dat", loop);
-				}
-				for (n=0; n<mp->sInputs; n++)
-				{
-					n_E[0][n].spkbin = 0;
-					memset(n_E[0][n].spikeTimes, 0, mp->inpSpkBuff*sizeof(n_E[0][n].spikeTimes[0])); //[0]?
+					
+					for (n=0; n<mp->sInputs; n++)
+					{
+						n_E[0][n].spkbin = 0;
+						memset(n_E[0][n].spikeTimes, 0, mp->inpSpkBuff*sizeof(n_E[0][n].spikeTimes[0])); //[0]?
+					}
 				}*/
+				
 				if (SIM.Xgrid)
 				{
-					SIM.tally += transP * ceil(1/mp->DT);
+					SIM.tally += round(transP/mp->DT); //transP * ceil(1/mp->DT);
 					percentage = (100.0*SIM.tally)/SIM.totTS;
-					/*if (sPhase == PreTraining)
-						percentage = (double) 100*(t_end + 1)/SIM.totTS;
-					else if (sPhase == Training)
-						percentage = (double) 100*((mp->pretrain)?SIM.ptTS:0.0 + (SIM.trainTS*loop/(double)mp->loops) + t_end + 1)/SIM.totTS;
-					else if (sPhase == Testing)
-						percentage = (double) 100*((mp->pretrain)?SIM.ptTS:0.0 + (mp->train)?SIM.trainTS:0.0 + t_end + 1)/SIM.totTS;*/
-					
+					//printf("\n");
 					printf("<xgrid>{control = statusUpdate; percentDone = %.0lf; }</xgrid>\n", percentage);
 					fflush(stdout);
 				}
 			}
 		}
 		printf("\t%s complete!\n",phaseString);
-		printf("\tSaving results...");
-		// Output results to dat files
+		
+		printf("\tSaving results..."); // Output results to dat files
 		
 		for (l=0; l<mp->nLayers; l++) // Rethink l init //l=(sPhase==Training)?0:1;
 		{
@@ -2024,10 +2030,13 @@ void simulatePhase(PHASE sPhase, STIMULI * stim)
 			assert(slen < FNAMEBUFF);
 			excitOutput = myfopen(filename, "w");
 			for (n=0; n<mp->vExcit[l]; n++)
-				print_irow(excitOutput, (int*) n_E[l][n].spikeTimes, n_E[l][n].spkbin+1); // spikeTimes[0] = -BIG?
+			{
+				fprintf(excitOutput, "%d\t", n_E[l][n].spkbin); // Print number of spikes first (in case any at t=0)
+				print_irow(excitOutput, (int*) n_E[l][n].spikeTimes, n_E[l][n].spkbin); // spikeTimes[0] = -BIG?
+			}
+
 			fclose(excitOutput);
 		}
-		// fprintf(pt_output_spikes_ptr, "L%dN%d\t", NLAYERS-1, n);
 		
 		if (sPhase == Testing) // Save Inhibitory spikes for all layers
 		{
@@ -2037,7 +2046,10 @@ void simulatePhase(PHASE sPhase, STIMULI * stim)
 				assert(slen < FNAMEBUFF);
 				inhibOutput = myfopen(filename, "w"); // Make either HR "w" or Binary "wb"
 				for (n=0; n<mp->vInhib[l]; n++)
-					print_irow(inhibOutput, (int*) n_I[l][n].spikeTimes, n_I[l][n].spkbin+1);
+				{
+					fprintf(inhibOutput, "%d\t", n_I[l][n].spkbin); // Print number of spikes first (in case any at t=0)
+					print_irow(inhibOutput, (int*) n_I[l][n].spikeTimes, n_I[l][n].spkbin);
+				}
 				fclose(inhibOutput);
 			}
 		}
@@ -2063,7 +2075,7 @@ void simulatePhase(PHASE sPhase, STIMULI * stim)
 			}
 		}
 		
-		if (mp->nRecordsPL) // Should be training //sPhase==Testing && 
+		if (mp->nRecords) // Should be training //sPhase==Testing && 
 		{
 			if (sPhase == Training)
 			{
@@ -2140,38 +2152,41 @@ void simulatePhase(PHASE sPhase, STIMULI * stim)
 
 void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int loop, 
 {
-	int n, syn, l; //, wl;
-	float decay_rate, gLeak, Vrest, Thresh, Vhyper;
-	float decay_E, decay_I;
-	tstep t=0;
+	int l, n, syn; //, l; //, wl;
 	int bin = 0;
+	tstep t=0;
+	float decayRate, decay_E, decay_I;//, gLeak, Vrest, Thresh, Vhyper;
 	
-	if (mp->nRecordsPL && (t_start == 0)) // Save intials neuron states (then every ms after - see below)
+	
+#pragma omp parallel default(shared) private(t,l,n,syn,bin,decayRate,decay_E,decay_I)//,gLeak,Vrest,Thresh,Vhyper)
+	{
+		
+	if (!t_start && mp->nRecords) //(t_start==0) Save intials neuron states (then every ms after - see below)
 	{ // Dump records to file after each loop
+//#pragma omp parallel private(bin, syn, n, l)
 		for (l=0; l<mp->nLayers; l++)
 		{
-#pragma omp for private(bin, syn, n) //l, 
+#pragma omp for nowait 
 			for (n=0; n<mp->vExcit[l]; n++) //for (r=0; r<NRECORDS_PL; r++)
-				if (n_E[l][n].rec_flag)
+				if (n_E[l][n].rec_flag) // Can use tm1 variables since they are initialised equal to tm0 variables
 				{
 					bin = n_E[l][n].rec->bin++;
-					n_E[l][n].rec->cellV[bin] = n_E[l][n].V;
-					n_E[l][n].rec->cellD[bin] = n_E[l][n].D;
+					n_E[l][n].rec->cellV[bin] = n_E[l][n].V_tm1;
+					n_E[l][n].rec->cellD[bin] = n_E[l][n].D_tm1;
 					if (mp->adaptation)
-						n_E[l][n].rec->cellcCa[bin] = n_E[l][n].cCa;
+						n_E[l][n].rec->cellcCa[bin] = n_E[l][n].cCa_tm1;
 					for (syn=0; syn<n_E[l][n].nFAff_E; syn++) // nFAff_E == 0 for l=0
 					{
-						n_E[l][n].rec->SynC[syn][bin] = n_E[l][n].FAffs_E[syn]->C;
-						n_E[l][n].rec->SynG[syn][bin] = n_E[l][n].FAffs_E[syn]->g;
-						n_E[l][n].rec->SynDG[syn][bin] = n_E[l][n].FAffs_E[syn]->delta_g;
+						n_E[l][n].rec->SynC[syn][bin] = n_E[l][n].FAffs_E[syn]->C_tm1;
+						n_E[l][n].rec->SynG[syn][bin] = n_E[l][n].FAffs_E[syn]->g_tm1;
+						n_E[l][n].rec->SynDG[syn][bin] = n_E[l][n].FAffs_E[syn]->delta_g_tm1;
 					}
 				}
 		}
-		//#pragma omp barrier
+//#pragma omp barrier // Only need a barrier before solution variables are copied
 	}
 
-#pragma omp parallel default(shared) private(t,l,n,syn,bin,decay_rate,gLeak,Vrest,Thresh,Vhyper,decay_E,decay_I)
-	{
+
 	for (t=t_start; t<t_end; t++)
 	{
 	
@@ -2184,38 +2199,41 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 #endif
 
 		/* Update Excitatory cell potentials */
-		decay_rate = mp->DT/mp->capE;
-		gLeak = mp->gLeakE;
+		decayRate = mp->DT/mp->capE;
+		/*gLeak = mp->gLeakE;
 		Vrest = mp->VrestE;
 		Thresh = mp->ThreshE;
-		Vhyper = mp->VhyperE;
+		Vhyper = mp->VhyperE;*/
 		for (l=0; l<mp->nLayers; l++)
 		{
-#pragma omp for nowait // schedule(static) // Needed for thread-safe noise
+#pragma omp for nowait schedule(static) // Needed for thread-safe noise
 			for (n=0; n<mp->vExcit[l]; n++)
-				update_V(t, decay_rate, gLeak, Vrest, Thresh, Vhyper, (l==0)?input[n]:0.0, &n_E[l][n]);
+				update_V(&n_E[l][n], t, decayRate, mp->gLeakE, mp->VrestE, mp->ThreshE, mp->VhyperE, (l==0)?input[n]:0.0);
+				//update_V(&n_E[l][n], t, decayRate, gLeak, Vrest, Thresh, Vhyper, (l==0)?input[n]:0.0);
 		}
 		
 		/* Update Inhibitory cell potentials */
-		decay_rate = mp->DT/mp->capI;
-		gLeak = mp->gLeakI;
+		decayRate = mp->DT/mp->capI;
+		/*gLeak = mp->gLeakI;
 		Vrest = mp->VrestI;
 		Thresh = mp->ThreshI;
-		Vhyper = mp->VhyperI;
+		Vhyper = mp->VhyperI;*/
 		for (l=0; l<mp->nLayers; l++)
 		{
-#pragma omp for nowait // It is ok to have a nowait here with a minimum conduction delay of 1 tstep
+#pragma omp for nowait schedule(static)// It is ok to have a nowait here with a minimum conduction delay of 1 tstep
 			for (n=0; n<mp->vInhib[l]; n++) // Larger input layer separation as for Excit cells?
-				update_V(t, decay_rate, gLeak, Vrest, Thresh, Vhyper, 0.0, &n_I[l][n]);
+				update_V(&n_I[l][n], t, decayRate, mp->gLeakI, mp->VrestI, mp->ThreshI, mp->VhyperI, 0.0);
+				//update_V(&n_I[l][n], t, decayRate, gLeak, Vrest, Thresh, Vhyper, 0.0);
 		}
 
 		if (mp->adaptation)
 		{
+			decayRate = mp->DT/mp->tauCa;
 			for (l=0; l<mp->nLayers; l++)
 			{
-#pragma omp for nowait
+#pragma omp for nowait //schedule(runtime)
 				for (n=0; n<mp->vExcit[l]; n++)
-					update_cCa(&n_E[l][n], t);
+					update_cCa(&n_E[l][n], t, decayRate);
 			}
 		}
 		
@@ -2224,54 +2242,56 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 		decay_I = (mp->DT/mp->tauIE);
 		for (l=0; l<mp->nLayers; l++)
 		{
-#pragma omp for nowait //schedule(runtime) - experiment!!
+#pragma omp for nowait //schedule(guided)//schedule(runtime) //- experiment!!
 			for (n=0; n<mp->vExcit[l]; n++)
-				update_g(&n_E[l][n], decay_E, decay_I, t); // Uses same decay_E for EfE and ElE synapses
+				update_g(&n_E[l][n], t, decay_E, decay_I); // Uses same decay_E for EfE and ElE synapses
 		}
 		
 		decay_E = (mp->DT/mp->tauEI);
 		decay_I = (mp->DT/mp->tauII);
 		for (l=0; l<mp->nLayers; l++)
 		{
-#pragma omp for
+#pragma omp for nowait //schedule(guided)//schedule(runtime)
 			for (n=0; n<mp->vInhib[l]; n++)
-				update_g(&n_I[l][n], decay_E, decay_I, t);
+				update_g(&n_I[l][n], t, decay_E, decay_I);
 		}
-//#pragma omp barrier
+#pragma omp barrier
 		
 		if (regime==Learning) // Learning
 		{
 			/* Update synaptic weights */ // Move after C & D and use instantaeous values? N.B. Redo nowait clauses
 			for (l=1; l<mp->nLayers; l++) // Only nLayers-1 of weight layers
 			{
-#pragma omp for nowait
+#pragma omp for nowait //schedule(runtime)
 				for (n=0; n<mp->vExcit[l]; n++) // Make parallel and n private
 					update_weights(&n_E[l][n], t);
 			}
 			
 			// -->|| Update C for current neuron's outgoing synapses (skip last layer)
+			decayRate = mp->DT/mp->tauC;
 			for (l=1; l<mp->nLayers; l++) // Only nLayers-1 of synapses
 			{
-#pragma omp for nowait
+#pragma omp for nowait //schedule(runtime) //ok
 				for (n=0; n<mp->vExcit[l]; n++)
-					update_C(&n_E[l][n], t);
+					update_C(&n_E[l][n], t, decayRate);
 			}
 			
 			// ||--> Update D for current neuron's incoming synapses (skip first layer)
+			decayRate = mp->DT/mp->tauD; 
 			for (l=1; l<mp->nLayers; l++) // Only nLayers-1 of weight layers
 			{
-#pragma omp for
+#pragma omp for nowait //schedule(runtime) //ok
 				for (n=0; n<mp->vExcit[l]; n++)
-					update_D(&n_E[l][n], t);
-				//#pragma omp barrier
+					update_D(&n_E[l][n], t, decayRate);
 			}
-			//#pragma omp barrier
+#pragma omp barrier
 		}
+		
 		
 		/* Copy solution variables to _tm1 counterparts and reset spike flags / axons */
 		for (l=0; l<mp->nLayers; l++)
 		{
-#pragma omp for nowait// private(l, n, s)
+#pragma omp for nowait //schedule(runtime)// private(l, n, s) //ok
 			for (n=0; n<mp->vExcit[l]; n++)
 			{
 				//n_E[l][n].fired = 0;
@@ -2306,7 +2326,7 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 		
 		for (l=0; l<mp->nLayers; l++)
 		{
-#pragma omp for
+#pragma omp for nowait //schedule(runtime)
 			for (n=0; n<mp->vInhib[l]; n++)
 			{
 				n_I[l][n].V_tm1 = n_I[l][n].V;
@@ -2323,16 +2343,14 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 					n_I[l][n].LEffs_I[syn].g_tm1 = n_I[l][n].LEffs_I[syn].g;
 				}
 			}
-//#pragma omp barrier
 		}
+//#pragma omp barrier
 		
-		if (mp->nRecordsPL && ((t+1) % mp->TSperMS == 0)) // && regime // && loop==RLOOP) 		// Save neuron states
+		if (mp->nRecords && ((t+1) % mp->TSperMS == 0)) // && regime // Save neuron states (dump to file after each loop)
 		{
-			//int bin = 0;
-			// Dump records to file after each loop
 			for (l=0; l<mp->nLayers; l++)
 			{
-#pragma omp for private(bin, syn, n) //l, 
+#pragma omp for nowait //schedule(runtime)//private(bin, syn, n) //l, // Already private!
 				for (n=0; n<mp->vExcit[l]; n++) //for (r=0; r<NRECORDS_PL; r++)
 					if (n_E[l][n].rec_flag)
 					{
@@ -2349,220 +2367,26 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 						}
 					}
 			}
-//#pragma omp barrier
-		}		
-	}
-	}
+			//#pragma omp barrier
+		}
+		
+#pragma omp barrier
+	} // End of timesteps loop
+	
+	} // End of parallel section
 	return; // void;
 }
 
 
-/*void update_network(tstep t, int loop, float input[], int regime)
-{
-	int n, syn, s, l; //, wl;
-	int nNeurons;
-	float decay_rate, gLeak, Vrest, Thresh, Vhyper;
-	float decay_E, decay_I;
-
-#if DEBUG>2
-#pragma omp single nowait
-	{
-	fprintf(stderr,"\rTimestep: %d",t);
-	fflush(stderr);
-	}
-#endif
-	
-	// *** Make the update functions inline? ***
-//*	if (mp->useFilteredImages)
-//	{
-		//* Update Input neurons cell potentials 
-//*		decay_rate = DT/mp->capE;
-//		gLeak = mp->gLeakE;
-//		Vrest = mp->VrestE;
-//		Thresh = mp->ThreshE;
-//		Vhyper = mp->VhyperE;
-//#pragma omp for private(n,decay_rate,gLeak,Vrest,Thresh,Vhyper)
-//		for (n=0; n<mp->sInputs; n++) // nExcit or sInputs
-//			update_V(t, decay_rate, gLeak, Vrest, Thresh, Vhyper, input[n], &n_E[0][n]);
-//#pragma omp barrier
-//	}/
-	
-	//* Update Excitatory cell potentials 
-	decay_rate = DT/mp->capE;
-	gLeak = mp->gLeakE;
-	Vrest = mp->VrestE;
-	Thresh = mp->ThreshE;
-	Vhyper = mp->VhyperE;
-	//for (l=(mp->useFilteredImages)?1:0; l<mp->nLayers; l++)
-#pragma omp parallel default(shared) private(l,n)//,nNeurons)
-	for (l=0; l<mp->nLayers; l++)
-	{
-		//nNeurons = mp->vExcit[l];
-//#pragma omp for nowait private(n,l,nNeurons,decay_rate,gLeak,Vrest,Thresh,Vhyper)
-#pragma omp for
-		for (n=0; n<mp->vExcit[l]; n++)
-			update_V(t, decay_rate, gLeak, Vrest, Thresh, Vhyper, (l==0)?input[n]:0.0, &n_E[l][n]);
-	}
-	
-	//* Update Inhibitory cell potentials 
-	decay_rate = DT/mp->capI;
-	gLeak = mp->gLeakI;
-	Vrest = mp->VrestI;
-	Thresh = mp->ThreshI;
-	Vhyper = mp->VhyperI;
-	for (l=0; l<mp->nLayers; l++)
-	{
-		nNeurons = mp->vInhib[l];
-//#pragma omp for private(n,l,nNeurons,decay_rate,gLeak,Vrest,Thresh,Vhyper)
-		for (n=0; n<nNeurons; n++) // Larger input layer separation as for Excit cells?
-			update_V(t, decay_rate, gLeak, Vrest, Thresh, Vhyper, 0.0, &n_I[l][n]);
-	}
-//#pragma omp barrier
-
-	//* Update presynaptic conductances 
-	decay_E = (DT/mp->tauEE);
-	decay_I = (DT/mp->tauIE);
-	for (l=0; l<mp->nLayers; l++)
-	{
-		nNeurons = mp->vExcit[l];
-//#pragma omp for nowait private(n,l,nNeurons,decay_E,decay_I)
-		for (n=0; n<nNeurons; n++)
-			update_g(&n_E[l][n], decay_E, decay_I, t);
-	}
-		
-	decay_E = (DT/mp->tauEI);
-	decay_I = (DT/mp->tauII);
-	for (l=0; l<mp->nLayers; l++)
-	{
-		nNeurons = mp->vInhib[l];
-//#pragma omp for private(n,l,nNeurons,decay_E,decay_I)
-		for (n=0; n<nNeurons; n++)
-			update_g(&n_I[l][n], decay_E, decay_I, t);
-	}
-//#pragma omp barrier
-	
-	if (regime==Learning) // Learning
-	{
-		//* Update synaptic weights  // Move after C & D and use instantaeous values? N.B. Redo nowait clauses
-		for (l=1; l<mp->nLayers; l++) // Only nLayers-1 of weight layers
-		{
-			nNeurons = mp->vExcit[l];
-//#pragma omp for nowait private(n,l,nNeurons) // shared(n_E[][])
-			for (n=0; n<nNeurons; n++) // Make parallel and n private
-				update_weights(&n_E[l][n], t);
-		}
-		
-		// -->|| Update C for current neuron's outgoing synapses (skip last layer)
-		for (l=1; l<mp->nLayers; l++) // Only nLayers-1 of synapses
-		{
-			nNeurons = mp->vExcit[l];
-//#pragma omp for nowait private(n,l,nNeurons) // shared(n_E[][])
-			for (n=0; n<nNeurons; n++)
-				update_C(&n_E[l][n], t);
-		}
-			
-		// ||--> Update D for current neuron's incoming synapses (skip first layer)
-		for (l=1; l<mp->nLayers; l++) // Only nLayers-1 of weight layers
-		{
-			nNeurons = mp->vExcit[l];
-//#pragma omp for private(n,l,nNeurons) // shared(n_E[][]) // Last loop must be synchronised i.e. !(nowait)
-			for (n=0; n<nNeurons; n++)
-				update_D(&n_E[l][n], t);
-//#pragma omp barrier
-		}
-	}
-		
-	//* Copy solution variables to _tm1 counterparts and reset spike flags / axons 
-	for (l=0; l<mp->nLayers; l++)
-	{
-//#pragma omp for nowait private(l, n, s)
-		for (n=0; n<mp->vExcit[l]; n++)
-		{
-			//n_E[l][n].fired = 0;
-			n_E[l][n].V_tm1 = n_E[l][n].V;
-			n_E[l][n].D_tm1 = n_E[l][n].D;
-			for (s=0; s<n_E[l][n].nFEff_E; s++)
-			{
-				if (t == next_spike(&n_E[l][n].FEffs_E[s]))
-					dequeue(&n_E[l][n].FEffs_E[s]);
-				n_E[l][n].FEffs_E[s].g_tm1 = n_E[l][n].FEffs_E[s].g;
-				n_E[l][n].FEffs_E[s].delta_g_tm1 = n_E[l][n].FEffs_E[s].delta_g;
-				n_E[l][n].FEffs_E[s].C_tm1 = n_E[l][n].FEffs_E[s].C;
-			}
-			for (s=0; s<n_E[l][n].nLEff_E; s++)
-			{
-				if (t == next_spike(&n_E[l][n].LEffs_E[s]))
-					dequeue(&n_E[l][n].LEffs_E[s]);
-				n_E[l][n].LEffs_E[s].g_tm1 = n_E[l][n].LEffs_E[s].g;
-				//n_E[l][n].LEffs_E[s].delta_g_tm1 = n_E[l][n].LEffs_E[s].delta_g;
-				//n_E[l][n].LEffs_E[s].C_tm1 = n_E[l][n].LEffs_E[s].C;
-			}
-			for (s=0; s<n_E[l][n].nLEff_I; s++)
-			{
-				if (t == next_spike(&n_E[l][n].LEffs_I[s]))
-					dequeue(&n_E[l][n].LEffs_I[s]);
-				n_E[l][n].LEffs_I[s].g_tm1 = n_E[l][n].LEffs_I[s].g;
-			}
-		}
-	}
-	
-	for (l=0; l<mp->nLayers; l++)
-	{
-//#pragma omp for private(l, n, s)
-		for (n=0; n<mp->vInhib[l]; n++)
-		{
-			//n_I[l][n].fired = 0;
-			n_I[l][n].V_tm1 = n_I[l][n].V;
-			for (s=0; s<n_I[l][n].nLEff_E; s++)
-			{
-				if (t == next_spike(&n_I[l][n].LEffs_E[s]))
-					dequeue(&n_I[l][n].LEffs_E[s]);
-				n_I[l][n].LEffs_E[s].g_tm1 = n_I[l][n].LEffs_E[s].g;
-			}
-			for (s=0; s<n_I[l][n].nLEff_I; s++)
-			{
-				if (t == next_spike(&n_I[l][n].LEffs_I[s]))
-					dequeue(&n_I[l][n].LEffs_I[s]);
-				n_I[l][n].LEffs_I[s].g_tm1 = n_I[l][n].LEffs_I[s].g;
-			}
-		}
-	}
-//#pragma omp barrier
-	
-	if (mp->nRecordsPL && regime && (t % mp->TSperMS == 0)) // && loop==RLOOP) 		// Save neuron states
-	{
-		int bin = 0;
-		// Dump records to file after each loop?
-		for (l=0; l<mp->nLayers; l++)
-		{
-//#pragma omp for private(bin, syn, l, n)
-			for (n=0; n<mp->vExcit[l]; n++) //for (r=0; r<NRECORDS_PL; r++)
-				if (n_E[l][n].rec_flag)
-				{
-					bin = n_E[l][n].rec->bin++;
-					n_E[l][n].rec->cellV[loop][bin] = n_E[l][n].V;
-					n_E[l][n].rec->cellD[loop][bin] = n_E[l][n].D;
-					for (syn=0; syn<n_E[l][n].nFAff_E; syn++) //for (syn=0; syn<NSYN_PN; syn++)
-					{
-						n_E[l][n].rec->SynC[loop][syn][bin] = n_E[l][n].FAffs_E[syn]->C;
-						n_E[l][n].rec->SynG[loop][syn][bin] = n_E[l][n].FAffs_E[syn]->g;
-						n_E[l][n].rec->SynDG[loop][syn][bin] = n_E[l][n].FAffs_E[syn]->delta_g;
-					}
-				}
-		}
-//#pragma omp barrier
-	}
-
-	return; // void;
-}*/
-
-void update_V(tstep t, float decay_rate, float gLeak, float Vrest, float Thresh, float Vhyper, float inj, NEURON * n)
+void update_V(NEURON * n, tstep t, float decay_rate, float gLeak, float Vrest, float Thresh, float Vhyper, float inj)
 {	/* This function updates a neuron's cell potential and applies to all layers */
-	int syn;
-	float tot_g_E = 0.0;
-	float tot_g_I = 0.0;
+
 	if (t > n->nextUpdate) //if ((((t - n->lastSpike) * DT) > mp->refract) || n->spkbin==0) // Calculated at spike time
 	{
+		int syn;
+		float tot_g_E = 0.0;
+		float tot_g_I = 0.0;
+		
 		/* Feed-forward connections (n->type==EXCIT && l>0) */
 		for (syn=0; syn<n->nFAff_E; syn++)
 			tot_g_E += n->FAffs_E[syn]->g_tm1;
@@ -2603,7 +2427,7 @@ void update_V(tstep t, float decay_rate, float gLeak, float Vrest, float Thresh,
 			fprintf(stderr," L%dN%d%c: t=%d",n->l,n->n,(n->type==EXCIT)?'E':'I',t);
 #endif
 			n->V = Vhyper;
-			n->lastSpike = n->spikeTimes[++(n->spkbin)] = t;
+			n->lastSpike = n->spikeTimes[n->spkbin++] = t; //++(n->spkbin)
 			n->nextUpdate = t + ceil(mp->refract/mp->DT);
 			// Enqueue spike for all post-synaptic neurons
 			for (syn=0; syn<n->nFEff_E; syn++)
@@ -2622,14 +2446,14 @@ void update_V(tstep t, float decay_rate, float gLeak, float Vrest, float Thresh,
 	return;
 }
 
-inline void update_cCa(NEURON * n, tstep t)
+inline void update_cCa(NEURON * n, tstep t, float decayRate)
 {
 	//float impulse = ((t == n->lastSpike) ? mp->alphaCa : 0.0); // private
-	n->cCa += (((t == n->lastSpike) ? mp->alphaCa : 0.0) - (n->cCa_tm1 * mp->DT/mp->tauCa)); // Unbounded!
+	n->cCa += (((t == n->lastSpike) ? mp->alphaCa : 0.0) - (n->cCa_tm1 * decayRate)); //mp->DT/mp->tauCa)); // Unbounded!
 	return;
 }
 
-inline void update_g(NEURON * n, float decay_E, float decay_I, tstep t)
+inline void update_g(NEURON * n, tstep t, float decay_E, float decay_I)
 {
 	/* This function updates a neuron's afferent (pre-synaptic) conductances and applies to l>0 */
 	float impulse;
@@ -2657,7 +2481,7 @@ inline void update_g(NEURON * n, float decay_E, float decay_I, tstep t)
 	return;
 }
 
-void update_weights(NEURON * n, tstep t)
+inline void update_weights(NEURON * n, tstep t)
 {
 	/*** Learning at Excitatory to Excitatory synapses ***/
 	/* Adapted from Perrinet, Delorme, Samuelides & Thorpe 2001 */
@@ -2673,12 +2497,12 @@ void update_weights(NEURON * n, tstep t)
 	return;
 }
 	
-void update_C(NEURON * n, tstep t)
+inline void update_C(NEURON * n, tstep t, float decayRate)
 {
 	// -->|| Update C for current neuron's outgoing synapses (skip last layer)
 	int syn;
 	float impulse;
-	float decayRate = mp->DT/mp->tauC;
+	//float decayRate = mp->DT/mp->tauC;
 	// Loop over efferent synapses
 	/*for (syn=0; syn<n->nFEff_E; syn++)
 	{
@@ -2694,11 +2518,12 @@ void update_C(NEURON * n, tstep t)
 	return;
 }
 	
-void update_D(NEURON * n, tstep t)
+inline void update_D(NEURON * n, tstep t, float decayRate)
 {
 	// ||--> Update D for current neuron's incoming synapses (skip first layer)
-	float impulse = ((t == n->lastSpike) ? mp->alphaD : 0.0); // private
-	n->D += (impulse * (1 - n->D_tm1) - (n->D_tm1 * mp->DT/mp->tauD));
+	/*float impulse = ((t == n->lastSpike) ? mp->alphaD : 0.0); // private
+	n->D += (impulse * (1 - n->D_tm1) - (n->D_tm1 * mp->DT/mp->tauD));*/
+	n->D += ((((t == n->lastSpike) ? mp->alphaD : 0.0) * (1 - n->D_tm1)) - (n->D_tm1 * decayRate)); //mp->DT/mp->tauD));
 	return;
 }
 
@@ -2784,7 +2609,7 @@ int normalise(NEURON ** narray, PARAMS * mp)
 }
 
 
-void init_queue(AXON *a)
+inline void init_queue(AXON *a)
 {
 	int bin;
 	a->next = 0;
@@ -2804,7 +2629,7 @@ inline void enqueue(AXON *a, tstep t)
 	return;
 }
 
-int dequeue(AXON *a)
+inline int dequeue(AXON *a)
 {
 	int t;
 	assert(a->count > 0);
@@ -2819,21 +2644,20 @@ inline int next_spike(AXON * a)
 	return a->queue[a->next];
 }
 
-bool isempty(AXON *a)
+inline bool isempty(AXON *a)
 {
 	return (a->count <= 0) ? true : false;
 }
 
-void print_queue(AXON *a)
+inline int print_queue(AXON *a)
 {
-	int i;
-	i=a->next; 
-	
-	while (i != a->last) {
+	int i = a->next; 
+	while (i != a->last) 
+	{
 		printf("%d ",a->queue[i]); // Was %c
 		i = (i+1) % a->nBins;
 	}
 	printf("%d ",a->queue[i]);
 	printf("\n");
-	return;
+	return a->count;
 }

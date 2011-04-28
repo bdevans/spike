@@ -24,11 +24,13 @@ extern int spike(PARAMS * mp);
 char * RESDIR = RESULTSDIRECTORY;
 char * DPFILE = DEFAULTPFILE;
 char * MPFILE = OUTPUTPFILE;
+char * IMGDIR = IMGDIRECTORY;
 char * IPFILE = IMGPARAMFILE;
 
 //int RERUN = 0; // rng.c requires this to be global
 
 // otool -L Spike // to test which dynamic libraries are being used
+// http://discussions.apple.com/thread.jspa?threadID=1741520
 
 PARAMS * mp;
 gsl_rng * mSeed = NULL;
@@ -43,10 +45,11 @@ int main (int argc, const char * argv[])
 	int hours = 0;
 	int mins = 0;
 	char *pfile = NULL;
+	char *imageArchive = NULL;
 	//char *sfile = NULL;
 	char *cpfile = "CLIparams.m";
 	FILE * cli_FP = NULL;
-	//char syscmd[BUFSIZ]; // stdio.h : 1024
+	char syscmd[BUFSIZ]; // stdio.h : 1024
 	int th = 0;
 	int nThreads = 1;
 	float proporption = 1.0;
@@ -56,18 +59,26 @@ int main (int argc, const char * argv[])
 	bool genNewSeed = false;
 	bool p_flag = false;	// Parameter (CLI) flag
 	bool pf_flag = false;	// Parameter file flag
+	bool ia_flag = false;	// Image archive flag
 	int pINcount = 0;
 	int dcount = 0; //Default parameter count
 	int fcount = 0; // File parameter count
 	int pcount = 0; // Parameter count
 	int err = 0;
 
+	bool recFlag = false;
+	int slen = 0;
+	char * recList = NULL;
+	
 	bool skip_arg = false;
 	//double wtime, begin;
 	char timeStr[FNAMEBUFF];
     int c, result;
 	struct tm *ts;
 	char hostname[FNAMEBUFF];
+	
+	char schedule[BUFSIZ];
+	strncpy(schedule, "<default>", BUFSIZ);
 	
 	time_t now = time(NULL);
 	ts = localtime(&now);
@@ -80,8 +91,11 @@ int main (int argc, const char * argv[])
 		printf("Program started by %s@%s : %s\n", user, hostname, timeStr);
 	if (strcmp(user, "nobody")==0)
 		SIM.Xgrid = true;
-	//printf("Optimization level: %d", );
-	
+	else
+		strncpy(schedule, getenv("OMP_SCHEDULE"), BUFSIZ);
+
+	//printf("Optimization level: %d", );	
+
 	while (--argc > 0 && (*++argv)[0] == '-')
 	{
 		//skip_arg = 0;
@@ -91,7 +105,7 @@ int main (int argc, const char * argv[])
 			{
 				case 'f':	// Parameter file name
 					pf_flag = true;
-					pfile = myalloc(strlen(*++argv)+1);
+					pfile = myalloc(strlen(*++argv)+1); //sizeof(char)==1 guaranteed
 					strcpy(pfile, *argv);
 					skip_arg = true;
 					argc--;
@@ -113,9 +127,19 @@ int main (int argc, const char * argv[])
 					break;
 					
 				case 'k':	// Read in list of neurons
-					// Dynamically alloc memory for array of structures
-					//NRECORDS = *++argv[0];
-					//argc--;
+					//int * recordSet = NULL;
+					recFlag = true;
+					slen = strlen(*++argv);
+					recList = myalloc(slen+1);
+					//char * tstr = NULL;
+					//int count = 0;
+					strncpy(recList, *argv, slen);
+					recList[slen] = '\0'; // NULL terminate last byte
+					//strtok(list, ";");
+					//while (tstr && (*trim(tstr) != ('[' || ']')) && (tstr != '\0'))
+					//	count = parseIntVector(list, &recordSet);
+					skip_arg = true;
+					argc--;
 					break;
 					
 				case 'd':	// May reduce num_thd depending on system load
@@ -129,7 +153,7 @@ int main (int argc, const char * argv[])
 #endif
 					break;
 					
-				case 'm':
+				case 'm':	// Set the proportion of threads from the CLI [0.0, 1.0]
 #ifdef _OPENMP
 					proporption = atof(*++argv);
 					assert(proporption > 0.0 && proporption <= 1.0);
@@ -173,6 +197,13 @@ int main (int argc, const char * argv[])
 					
 				case 'j':	// Alternatively pass compressed tar (cjvf) of images
 					
+					ia_flag = true;
+					slen = strlen(*++argv);
+					imageArchive = myalloc(slen+1);
+					strncpy(imageArchive, *argv, slen);
+					imageArchive[slen] = '\0'; // NULL terminate last byte
+					skip_arg = true;
+					argc--;
 					break;
 					
 				case 'x':	// Xgrid simulation
@@ -199,10 +230,11 @@ int main (int argc, const char * argv[])
 		nThreads = omp_get_num_threads(); //num_thd
 #pragma omp single
 		{
-			printf("Threads: %d/%d\t{OMP_DYNAMIC=%s, OMP_NESTED=%s}\n", \
+			printf("Threads: %d/%d\t{OMP_DYNAMIC=%s, OMP_NESTED=%s, OMP_SCHEDULE=%s}\n", \
 				   nThreads, omp_get_num_procs(), \
 				   (omp_get_dynamic() ? "TRUE" : "FALSE"), \
-				   (omp_get_nested() ? "TRUE" : "FALSE"));
+				   (omp_get_nested() ? "TRUE" : "FALSE"), \
+				   (schedule));
 		}
 	}
 #else
@@ -230,19 +262,46 @@ int main (int argc, const char * argv[])
 		return 0;
 	}
 	
+	// Allocate and initialise model parameters structure
+	mp = myalloc(sizeof(*mp)); // Place in getParameters with default init?
+	mp->imgList = NULL;
+	mp->LvExcit = mp->LvInhib = mp->LpEfE = mp->LpElE = mp->LpEI = mp->LpIE = mp->LpII = 0;
+	mp->vExcit = mp->vInhib = mp->vScales = mp->vOrients = mp->vPhases = NULL;
+	mp->pCnxEfE = mp->pCnxElE = mp->pCnxIE = mp->pCnxEI = mp->pCnxII = NULL;
+	mp->layDim = NULL; 
+	mp->vSquare = mp->vRecords = NULL;
+	mp->rInhib = 0.0;
+	
+	int syserr = 0;
+	
+	if (ia_flag) //assert(mp->useFilteredImages);
+	{
+		FILEPARTS * fp = myalloc(sizeof(*fp));
+		getFileParts(imageArchive, fp);
+		slen = strlen(fp->fname);
+		mp->imgDir = myalloc(slen+1);
+		strncpy(mp->imgDir, fp->fname, slen);
+		mp->imgDir[slen] = '\0'; // NULL terminate last byte
+		assert(file_exists(imageArchive));
+		if (snprintf(syscmd, BUFSIZ, "mkdir %s", mp->imgDir) >= BUFSIZ)
+			fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
+		if((syserr = system(syscmd))==0)
+		{
+			printf("Now extracting %s...\t", imageArchive);
+			if(snprintf(syscmd, BUFSIZ, "tar -xf %s -C %s/",imageArchive, mp->imgDir) >= BUFSIZ)
+				fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
+			syserr = system(syscmd);
+			if (syserr)
+				exit_error("main.c", "Error extracting image archive");
+			else
+				printf("Images successfully extracted to %s\n", mp->imgDir);
+		}
+	}
+	
 	// Read in parameters from .m file
 	printf("Reading parameters file: \"%s\"", !pfile ? DPFILE : pfile);
 	if (p_flag)
 		fclose(cli_FP);
-	mp = myalloc(sizeof(*mp)); // Place in getParameters with default init?
-	mp->imageList = NULL;
-	mp->LvExcit = mp->LvInhib = mp->LpEfE = mp->LpElE = mp->LpEI = mp->LpIE = mp->LpII = 0;
-	mp->vExcit = mp->vInhib = mp->vScales = mp->vOrients = mp->vPhases = NULL;
-	mp->pCnxEfE = mp->pCnxElE = mp->pCnxIE = mp->pCnxEI = mp->pCnxII = NULL;
-	mp->layDim = NULL;
-	mp->vSquare = NULL;
-	mp->rInhib = 0.0;
-	
 	dcount = read_parameters(mp, DPFILE);
 	fcount = (pfile != NULL) ? read_parameters(mp, pfile) : 0;
 	pcount = (p_flag) ? read_parameters(mp, cpfile) : 0;
@@ -251,60 +310,16 @@ int main (int argc, const char * argv[])
 		assert(pcount == pINcount);
 	printf(" {%d,%d,%d}\tParsing complete!\n", dcount, fcount, pcount);
 	
-	/*////////////////////// Old parameter output //////////////////////
-	FILE * params_FP;
-	char rfpath[FNAMEBUFF]; // Results file path
-	FILE * parameters_ptr;
-	if (pfile != NULL)
-		sprintf(rfpath, "%s/%s/", RESDIR, pfile); // strtok(pfile, "."));
-	else
-		sprintf(rfpath, "%s/", RESDIR);
-	
-	parameters_ptr = myfopen("parameters.old", "w"); // Variables to read into Matlab
-	fprintf(parameters_ptr, "DT=%f;\n",DT);
-	fprintf(parameters_ptr, "TotalMS=%d;\n",mp->TotalMS);
-	fprintf(parameters_ptr, "rfpath='%s';\n\n",rfpath);
-	if (pfile != NULL)
-	{
-		params_FP = myfopen(pfile, "r");
-		filecopy(params_FP, parameters_ptr);
-		fclose(params_FP);
-	}
-	
-	printIntArray(parameters_ptr, "vExcit", mp->vExcit, mp->nLayers);
-	printIntArray(parameters_ptr, "vInhib", mp->vInhib, mp->nLayers);
-	
-	if (p_flag)
-	{
-		cli_FP = myfopen(cpfile, "r");
-		fprintf(parameters_ptr, "\n");
-		filecopy(cli_FP, parameters_ptr);
-		fclose(cli_FP);
-	}
-	fclose(parameters_ptr);
-	//////////////////////////////////////////////////////////////////*/
-	
 	pcount = printParameters(mp, MPFILE); // Variables to read into Matlab
 	printf("%d parameters written to %s\n", pcount, MPFILE);
 	
-	//printf("Now setting random seeds\n");
-	/*set_error = set_random_seeds(RERUN);
-	
-	if (set_error)
-	{
-		RERUN = 0;
-		fprintf(stderr, "WARNING: Creating new seeds...\n");
-		set_random_seeds(RERUN);
-	}*/
-	
-		
 	const gsl_rng_type * T = gsl_rng_default; // Set RNG type
 	gsl_rng_env_setup(); // http://www.gnu.org/software/gsl/manual/html_node/Random-number-environment-variables.html
 	mSeed = gsl_rng_alloc(T); // Used for serial sections with randomness
 	
 	if (!seedFlag)
 	{
-		if (rerun)
+		if (rerun) // Also rerun with parameters.m?
 		{
 			randSeedFP = myfopen(rsfile, "r");
 			if ((sString = fgets(buffer, sizeof(buffer), randSeedFP)) != NULL) //while
@@ -328,6 +343,15 @@ int main (int argc, const char * argv[])
 	
 	if (mp->noise) // Could add a state to every neuron to achieve same results with different threads
 	{
+#ifdef _OPENMP
+#pragma omp parallel
+		{
+#pragma omp single
+			{
+				omp_set_dynamic(false); // Do not adjust number of threads according to system load
+			}
+		}
+#endif
 		states = myalloc(nThreads * sizeof(**states));
 		for (th=0; th<nThreads; th++)
 		{
@@ -335,6 +359,23 @@ int main (int argc, const char * argv[])
 			gsl_rng_set(states[th], seed+th+1);
 		}
 	}
+	
+	/*if (recFlag)
+	{
+		int ** recordSet = myalloc(mp->nLayers * sizeof(*recordSet));
+		char * tstr = NULL;
+		int count = 0;
+		strtok(list, ";");
+		while (tstr && (*trim(tstr) != ']') && (tstr != '\0'))
+		for (l=0; l<mp->nLayers; l++)
+		{
+			mp->vRecords[l] = parseIntVector(list, &recordSet[l]);
+			tstr = strtok(NULL, ";");
+		}
+			
+		
+		myfree(recList);
+	}*/
 	
 #if DEBUG > 0
 	printf("*** Executing with Debug level %d ***\t", DEBUG);
@@ -345,7 +386,6 @@ int main (int argc, const char * argv[])
 	fprintf(stdout, "DT = %f ms\n", mp->DT*1000);
 	// Display dynamic libraries: otool -L ~/bin/SpikeNet/Debug/Spike
 	
-	
 #ifdef _OPENMP // Use omp function omp_get_wtime
 	double begin = omp_get_wtime();
 #else
@@ -353,7 +393,7 @@ int main (int argc, const char * argv[])
 #endif
 	
 	if (!SIM.Xgrid)	// Remove *.dat and *.tbz // Add this to arg switch (-c)?
-		system("rm *.dat *.tbz");
+		system("rm *.dat"); //system("rm *.dat *.tbz");
 	
 	result = spike(mp);
 	
@@ -361,22 +401,28 @@ int main (int argc, const char * argv[])
 	// Append files to fileList and call system(syscmd); once and keep fileList
 	//snprintf(syscmd, BUFSIZ, "tar -cjvf %s.tbz %s > fileList","connectivity","*affNeurons.dat");
 	
+
 	if (!SIM.Xgrid) // /sbin/md5
 		system("md5 *.dat > datHashs");
 	/*snprintf(syscmd, BUFSIZ, "xargs rm < fileList");*/
 	//--remove-files (remove files after adding them to the archive) : only 10.5
 	// Check that system() returned 0 (no errors) Bash: echo $?
 	
-	int syserr = 0;
-	
+	printf("\tCompressing data to .tbz archives...\t");
+#pragma omp parallel sections private(syserr) // Experimental!
+{
+#pragma omp section
+	{
 	if (!mp->useFilteredImages)
 		if ((syserr = system("tar -cjf stimuli.tbz *stimuli.dat")) == 0)
 			system("tar -tf stimuli.tbz | xargs rm");
 	
+//#pragma omp section
 	if(mp->nRecordsPL)
 		if ((syserr = system("tar -cjf records.tbz R*.dat")) == 0)
 			system("tar -tf records.tbz | xargs rm");
-		
+
+//#pragma omp section		
 	if (mp->printConnections)
 	{
 		if (mp->SOM)
@@ -385,34 +431,52 @@ int main (int argc, const char * argv[])
 			syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat"); //system("tar --remove-files -cjvf connectivity.tbz *affNeurons*.dat > fileList");
 		if (!syserr)
 			system("tar -tf connectivity.tbz | xargs rm");
-		//system(syscmd);
 	}
+		
+//#pragma omp section
 	if (mp->pretrain)
-	{
 		if ((syserr = system("tar -cjf preTraining.tbz pt*.dat")) == 0)
 			system("tar -tf preTraining.tbz | xargs rm");
-		//system(syscmd);
-	}
+		
+//#pragma omp section
 	if (mp->train)
-	{
 		if ((syserr = system("tar -cjf training.tbz E*.dat")) == 0) // 2> tar_err
 			system("tar -tf training.tbz | xargs rm");
-		//system(syscmd);
-	}
+		
+//#pragma omp section
 	if ((syserr = system("tar -cjf postTraining.tbz L*Spikes.dat L*weights*.dat")) == 0)
 		system("tar -tf postTraining.tbz | xargs rm");
 	//system(syscmd);
 	//system("rm fileList");
 	
-	// Print md5 #'s
-	if (!SIM.Xgrid) // /sbin/md5
+		printf("Data Compressed!\n");
+
+//#pragma omp section
+	if (!SIM.Xgrid) // Print md5 #'s // /sbin/md5
 	{
 		//system("md5 Spike");
 		system("md5 parameters.m");
 		system("md5 datHashs");
 		//system("md5 *.tbz"); // Contains metadata (e.g. timestamps) which will give different #s
 	}
+	}
 	
+	// Clean up
+#pragma omp section
+	if (pf_flag)
+		myfree(pfile);
+	
+#pragma omp section
+	if (ia_flag)
+	{
+		myfree(imageArchive);
+		if(snprintf(syscmd, BUFSIZ, "rm -R %s/", mp->imgDir) >= BUFSIZ)
+			fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
+		system(syscmd);	// Delete expand image files
+	}
+	
+#pragma omp section
+	{
 	gsl_rng_free(mSeed);
 	if (mp->noise)
 	{
@@ -420,28 +484,35 @@ int main (int argc, const char * argv[])
 			gsl_rng_free(states[th]); // Free all memory associated with generator
 		myfree(states);
 	}
+	}
+	
+	//if (recFlag)	// Free list of records
+} // End of parallel sections
 	
 	if (mp->useFilteredImages)
 	{
-		myfree(mp->imageList);
-		myfree(mp->vExcit);
-		myfree(mp->vInhib);
+		myfree(mp->imgDir);
+		myfree(mp->imgList);
 		myfree(mp->vScales);
 		myfree(mp->vOrients);
 		myfree(mp->vPhases);
-		myfree(mp->pCnxEfE);
-		myfree(mp->pCnxElE);
-		myfree(mp->pCnxIE);
-		myfree(mp->pCnxEI);
-		myfree(mp->pCnxII);
-		myfree(mp->layDim);
-		myfree(mp->vSquare);
 	}
-	myfree(mp->vSquare);
 	
+	myfree(mp->vRecords);
+	myfree(mp->vExcit);
+	myfree(mp->vInhib);
+	myfree(mp->pCnxEfE);
+	myfree(mp->pCnxElE);
+	myfree(mp->pCnxIE);
+	myfree(mp->pCnxEI);
+	myfree(mp->pCnxII);
+	myfree(mp->layDim);
+	myfree(mp->vSquare);
+		
 	myfree(mp);
 	
 #ifdef _OPENMP
+	//getTimeString(timeStr, FNAMEBUFF, omp_get_wtime()-begin);
 	double wtime = omp_get_wtime() - begin;
 	//double integral;
 	//double fraction = modf(wtime, &integral);
@@ -449,8 +520,7 @@ int main (int argc, const char * argv[])
 	hours = floor(wtime/3600);
 	wtime -= hours*3600;
 	mins = floor(wtime/60);
-	wtime -= mins*60;
-	//secs = wtime - (mins*60) - (hours*3600);
+	wtime -= mins*60; //secs = wtime - (mins*60) - (hours*3600);
 	snprintf(timeStr, FNAMEBUFF, "%d:%02d:%05.2lf (%d Threads)",\
 			 hours,mins,wtime,nThreads);
 #else
@@ -470,6 +540,7 @@ int main (int argc, const char * argv[])
 		printf("Simulation aborted after %s!\n",timeStr);
 		return 1;
 	}
+	printf("--------------------------------------------------------------------------------\n");
 	
     return 0;
 }

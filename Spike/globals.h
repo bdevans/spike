@@ -31,6 +31,8 @@ extern char * RESDIR;
 extern char * DPFILE;
 #define OUTPUTPFILE		"parameters.m"	/* Default output parameter file name */
 extern char * MPFILE;
+#define IMGDIRECTORY	"Images"
+extern char * IMGDIR;
 #define IMGPARAMFILE	"imageParams.m"
 extern char * IPFILE;
 #ifndef RSFILE
