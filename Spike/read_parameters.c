@@ -8,6 +8,8 @@
  */
 
 #include "read_parameters.h"
+extern unsigned long int seed;
+extern int nThreads;
 
 int read_parameters(PARAMS * params, char * paramfile)
 {
@@ -31,11 +33,11 @@ int read_parameters(PARAMS * params, char * paramfile)
 		int nCombs = gsl_sf_choose(mp->nTestStimuli-1, mp->K-1);
 		if (mp->M > nCombs)
 			mp->M = nCombs;
-		mp->M = (mp->nStimuli == 1) ? 1 : mp->M;
+		mp->M = (mp->nStimuli == 1) ? 1 : mp->M; // Just present the same stimuli again in a loop instead if M>nStimuli?
 		mp->nStimuli = mp->nTestStimuli * mp->M;
+		
 		/*nCombs = gsl_sf_choose(mp->nTestStimuli, mp->K);
 		 mp->nStimuli = (nCombs == 1) ? nCombs : mp->nStimuli;*/
-		
 		//mp->nStimuli = mp->M * gsl_sf_choose(mp->nTestStimuli, mp->K) / mp->nTestStimuli; // Check ////////
 		
 		mp->nTestTransPS = mp->nTransPS;
@@ -88,7 +90,7 @@ int read_parameters(PARAMS * params, char * paramfile)
 	// Change all myalloc to myrealloc?
 	
 	/* Parse vectors of neurons in each layer */
-	if (params->LvExcit == 0) // Initialize to 0 in defaults.m
+	if (params->LvExcit == 0) // Initialize to 0 in defaults.m // Need to consider old parameter files where nExcit is passed after initialization
 	{
 		params->vExcit = myalloc(params->nLayers*sizeof(int));
 		params->vExcit[0] = params->sInputs;
@@ -723,6 +725,8 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	
 	pFile = myfopen(paramfile, "w"); // Variables to read into Matlab
 	//fprintf(pFile, "DT=%f;\n",mp->DT); c++;
+	fprintf(pFile, "mSeed=%lu;\n", seed);
+	fprintf(pFile, "nThreads=%d;\n", nThreads);
 	FPRINT_FLOAT(pFile, MP.DT); c++;
 	fprintf(pFile, "TotalMS=%d;\n",mp->TotalMS); c++;
 	//char * rfpath = NULL;

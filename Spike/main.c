@@ -33,14 +33,16 @@ char * IPFILE = IMGPARAMFILE;
 // http://discussions.apple.com/thread.jspa?threadID=1741520
 
 PARAMS * mp;
+unsigned long int seed = 0;
 gsl_rng * mSeed = NULL;
 gsl_rng ** states = NULL;
+int nThreads = 1;
 
 int main (int argc, const char * argv[])
 {	
 	//int set_error = 0;
 	bool rerun = false;
-	unsigned long int seed = 0;
+	bool compress = true;
 	bool seedFlag = false;
 	int hours = 0;
 	int mins = 0;
@@ -51,7 +53,6 @@ int main (int argc, const char * argv[])
 	FILE * cli_FP = NULL;
 	char syscmd[BUFSIZ]; // stdio.h : 1024
 	int th = 0;
-	int nThreads = 1;
 	float proporption = 1.0;
 #ifdef _OPENMP
 	bool dynamic = false;
@@ -92,10 +93,44 @@ int main (int argc, const char * argv[])
 	if (strcmp(user, "nobody")==0)
 		SIM.Xgrid = true;
 	else
-		strncpy(schedule, getenv("OMP_SCHEDULE"), BUFSIZ);
-
+		if (getenv("OMP_SCHEDULE")) // not NULL string
+			strncpy(schedule, getenv("OMP_SCHEDULE"), BUFSIZ);
+	
+	char * rsfile = RSFILE;
+	
 	//printf("Optimization level: %d", );	
-
+	
+	if (argc==1)
+	{
+		printf("\nSpike usage:\n");
+		printf("Checking for \"%s\" in current directory... \t\t\t    [%s]\n",DPFILE,\
+			   (file_exists(DPFILE))?"OK":"NO");
+		/*if (file_exists(DPFILE))
+			printf("[OK]\n");
+		else
+		{
+			printf("[MISSING]\n");
+			printf("This may be symlinked e.g. \"ln -s ~/model/code/%s .\"\n",DPFILE);
+		}*/
+		printf("Checking for \"%s\" in current directory... \t\t    [%s]\n",rsfile,\
+			   (file_exists(rsfile))?"OK":"NO");
+		printf("-f <filename>\t: Pass parameter filename\n");
+		printf("-r[erun]\t: Rerun simulation with the random seed in %s\n",rsfile);
+		printf("-g[enerate]\t: Generate new random seed in %s and exit\n",rsfile);
+		printf("-s <seed>\t: Explicitly pass random seed [0, (2^32)-1]\n");
+		printf("-k <record list>: Pass list of neurons to be recorded\n");
+		printf("-d[ynamic]\t: Set number of threads to be dynamic\n");
+		printf("-m <proportion>\t: Set number of threads to a proportion of cores [0.0, 1.0]\n");
+		printf("-t <threads>\t: Explicitly set the number of threads to use\n");
+		printf("-p <parameter>\t: Pass a parameter string <name>=<value>\n");
+		//printf("-i[mage] <directory>\t: Pass directory of filtered images [***incomplete***]\n");
+		printf("-j <images>.tbz\t: Pass compressed image archive\n");
+		printf("-u[ncompressed]\t: Prevent data compression\n");
+		printf("-x[grid]\t: Set as an Xgrid simulation i.e. print progress information\n");
+		printf("--------------------------------------------------------------------------------\n");
+		return 0;
+	}
+	
 	while (--argc > 0 && (*++argv)[0] == '-')
 	{
 		//skip_arg = 0;
@@ -168,10 +203,14 @@ int main (int argc, const char * argv[])
 				case 't':	// Set the number of threads from the CLI
 #ifdef _OPENMP
 					nThreads = atoi(*++argv);
-					if (nThreads >= omp_get_num_procs())
+					/*if (nThreads >= omp_get_num_procs())
 						omp_set_dynamic(true);
 					else
-						omp_set_num_threads(nThreads);
+						omp_set_num_threads(nThreads);*/
+					omp_set_num_threads(nThreads);
+					if (nThreads >= omp_get_num_procs())
+						printf("Warning: nThreads (%d) >= nProcessors (%d)!\n",\
+							   nThreads, omp_get_num_procs());
 #else
 					fprintf(stderr, "OpenMP disabled\n");
 #endif				
@@ -204,6 +243,10 @@ int main (int argc, const char * argv[])
 					imageArchive[slen] = '\0'; // NULL terminate last byte
 					skip_arg = true;
 					argc--;
+					break;
+					
+				case 'u':	// Keep data uncompressed
+					compress = false;
 					break;
 					
 				case 'x':	// Xgrid simulation
@@ -242,7 +285,6 @@ int main (int argc, const char * argv[])
 	printf("Executing in serial.\n");
 #endif
 	
-	char * rsfile = RSFILE;
 	FILE * randSeedFP;
 	char * sString, buffer[BUFSIZ];
 	unsigned long long seedMod = pow(2, 32); // 32-bit unsigned seeds (max value = pow(2, 32)-1)	
@@ -407,51 +449,55 @@ int main (int argc, const char * argv[])
 	/*snprintf(syscmd, BUFSIZ, "xargs rm < fileList");*/
 	//--remove-files (remove files after adding them to the archive) : only 10.5
 	// Check that system() returned 0 (no errors) Bash: echo $?
-	
-	printf("\tCompressing data to .tbz archives...\t");
+
 #pragma omp parallel sections private(syserr) // Experimental!
-{
+	{
 #pragma omp section
 	{
-	if (!mp->useFilteredImages)
-		if ((syserr = system("tar -cjf stimuli.tbz *stimuli.dat")) == 0)
-			system("tar -tf stimuli.tbz | xargs rm");
-	
-//#pragma omp section
-	if(mp->nRecordsPL)
-		if ((syserr = system("tar -cjf records.tbz R*.dat")) == 0)
-			system("tar -tf records.tbz | xargs rm");
-
-//#pragma omp section		
-	if (mp->printConnections)
+	if (compress)
 	{
-		if (mp->SOM)
-			syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat *affDelays*.dat *dist*.dat");
-		else
-			syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat"); //system("tar --remove-files -cjvf connectivity.tbz *affNeurons*.dat > fileList");
-		if (!syserr)
-			system("tar -tf connectivity.tbz | xargs rm");
-	}
+		printf("\tCompressing data to .tbz archives...\t");
+		fflush(stdout);
 		
-//#pragma omp section
-	if (mp->pretrain)
-		if ((syserr = system("tar -cjf preTraining.tbz pt*.dat")) == 0)
-			system("tar -tf preTraining.tbz | xargs rm");
+		if (!mp->useFilteredImages)
+			if ((syserr = system("tar -cjf stimuli.tbz *stimuli.dat")) == 0)
+				system("tar -tf stimuli.tbz | xargs rm");
 		
-//#pragma omp section
-	if (mp->train)
-		if ((syserr = system("tar -cjf training.tbz E*.dat")) == 0) // 2> tar_err
-			system("tar -tf training.tbz | xargs rm");
+		//#pragma omp section
+		if(mp->nRecordsPL)
+			if ((syserr = system("tar -cjf records.tbz R*.dat")) == 0)
+				system("tar -tf records.tbz | xargs rm");
 		
-//#pragma omp section
-	if ((syserr = system("tar -cjf postTraining.tbz L*Spikes.dat L*weights*.dat")) == 0)
-		system("tar -tf postTraining.tbz | xargs rm");
-	//system(syscmd);
-	//system("rm fileList");
-	
+		//#pragma omp section		
+		if (mp->printConnections)
+		{
+			if (mp->SOM)
+				syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat *affDelays*.dat *dist*.dat");
+			else
+				syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat"); //system("tar --remove-files -cjvf connectivity.tbz *affNeurons*.dat > fileList");
+			if (!syserr)
+				system("tar -tf connectivity.tbz | xargs rm");
+		}
+		
+		//#pragma omp section
+		if (mp->pretrain)
+			if ((syserr = system("tar -cjf preTraining.tbz pt*.dat")) == 0)
+				system("tar -tf preTraining.tbz | xargs rm");
+		
+		//#pragma omp section
+		if (mp->train)
+			if ((syserr = system("tar -cjf training.tbz E*.dat")) == 0) // 2> tar_err
+				system("tar -tf training.tbz | xargs rm");
+		
+		//#pragma omp section
+		if ((syserr = system("tar -cjf postTraining.tbz L*Spikes.dat L*weights*.dat")) == 0)
+			system("tar -tf postTraining.tbz | xargs rm");
+		//system(syscmd);
+		//system("rm fileList");
+		
 		printf("Data Compressed!\n");
-
-//#pragma omp section
+	}
+	//#pragma omp section
 	if (!SIM.Xgrid) // Print md5 #'s // /sbin/md5
 	{
 		//system("md5 Spike");
@@ -459,8 +505,8 @@ int main (int argc, const char * argv[])
 		system("md5 datHashs");
 		//system("md5 *.tbz"); // Contains metadata (e.g. timestamps) which will give different #s
 	}
-	}
-	
+	} // End of section
+		
 	// Clean up
 #pragma omp section
 	if (pf_flag)

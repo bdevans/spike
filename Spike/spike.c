@@ -1673,15 +1673,37 @@ void gen_stimuli(bool rep, STIMULI * stim, PARAMS * mp)
 	if (mp->K > 1) // Present multiple stimuli simultaneously
 	{
 		assert(mp->K <= mp->nTestStimuli);
-		if (mp->K == mp->nTestStimuli)
+		if (mp->K == mp->nTestStimuli) // mp->nStimuli = 1
 			assert(mp->M == 1);
+		
+		/*if (mp->K == mp->nTestStimuli) // Try this!
+		{
+			assert(mp->M == 1);
+			mp->nStimuli = 1;
+			stim->trn_stimuli = get_3D_farray(mp->nStimuli, mp->nTransPS, mp->sInputs, 0.0);
+			memcpy(stim->trn_stimuli[0][0], stim->tst_stimuli[0][0], mp->nTestTransPS*mp->sInputs*sizeof(stim->tst_stimuli[0][0][0]));
+			
+			for (c=0; c<mp->K-1; c++)
+				for (trans=0; trans<mp->nTestTransPS; trans++) // memcpy pth test stimulus ? - does not work for dist. stim
+					for (n=0; n<mp->sInputs; n++)
+						stim->trn_stimuli[0][trans][n] = (stim->tst_stimuli[c][trans][n]) ? mp->current : stim->trn_stimuli[0][trans][n];			
+		}
+		else ...*/
+		
+		/*if (abs(mp->nStimuli - mp->K)==1) // || mp->K == 1
+		{
+			mp->nStimuli = mp->nTestStimuli
+		}
+		else
+			// Calculate nCombs and select a subset according to mp->M
+		 */
 		stim->trn_stimuli = get_3D_farray(mp->nStimuli, mp->nTransPS, mp->sInputs, 0.0); // rethink nStimuli for limited training...
 		choices = myalloc((mp->nTestStimuli-1) * sizeof(*choices));
 		chosen = myalloc((mp->K-1) * sizeof(*chosen));
-		int c = 0;
 		int ind = 0;
+		int c = 0;
 		int m = 0;
-		int q=0;
+		int q = 0;
 		fprintf(stdout, "\n");
 		for (p=0; p<mp->nTestStimuli; p++)
 		{
