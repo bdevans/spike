@@ -66,9 +66,9 @@ int main (int argc, const char * argv[])
 	int fcount = 0; // File parameter count
 	int pcount = 0; // Parameter count
 	int err = 0;
+	int slen = 0;
 
 	bool recFlag = false;
-	int slen = 0;
 	char * recList = NULL;
 	
 	bool skip_arg = false;
@@ -162,6 +162,7 @@ int main (int argc, const char * argv[])
 					break;
 					
 				case 'k':	// Read in list of neurons
+					fprintf(stderr, "-k: Specifying neurons for recording is not yet implemented\n");
 					//int * recordSet = NULL;
 					recFlag = true;
 					slen = strlen(*++argv);
@@ -184,7 +185,7 @@ int main (int argc, const char * argv[])
 					// if nCores > 4
 					// if nThreads > nCores-1 -> set nThreads = nCores - 2...
 #else
-					fprintf(stderr, "OpenMP disabled\n");
+					fprintf(stderr, "-d: OpenMP disabled\n");
 #endif
 					break;
 					
@@ -194,7 +195,7 @@ int main (int argc, const char * argv[])
 					assert(proporption > 0.0 && proporption <= 1.0);
 					omp_set_num_threads(round(omp_get_num_procs()*proporption));
 #else
-					fprintf(stderr, "OpenMP disabled\n");
+					fprintf(stderr, "-m: OpenMP disabled\n");
 #endif
 					skip_arg = true;
 					argc--;
@@ -212,7 +213,7 @@ int main (int argc, const char * argv[])
 						printf("Warning: nThreads (%d) >= nProcessors (%d)!\n",\
 							   nThreads, omp_get_num_procs());
 #else
-					fprintf(stderr, "OpenMP disabled\n");
+					fprintf(stderr, "-t: OpenMP disabled\n");
 #endif				
 					skip_arg = true;
 					argc--;
@@ -247,6 +248,7 @@ int main (int argc, const char * argv[])
 					
 				case 'u':	// Keep data uncompressed
 					compress = false;
+					//printf("Warning: tbz archives should be removed to prevent analysis of them!\n");
 					break;
 					
 				case 'x':	// Xgrid simulation
@@ -402,9 +404,9 @@ int main (int argc, const char * argv[])
 		}
 	}
 	
-	/*if (recFlag)
+	if (recFlag) // Make recordSet global, prevent random choice in init_network and free at the end
 	{
-		int ** recordSet = myalloc(mp->nLayers * sizeof(*recordSet));
+		/*int ** recordSet = myalloc(mp->nLayers * sizeof(*recordSet));
 		char * tstr = NULL;
 		int count = 0;
 		strtok(list, ";");
@@ -413,11 +415,10 @@ int main (int argc, const char * argv[])
 		{
 			mp->vRecords[l] = parseIntVector(list, &recordSet[l]);
 			tstr = strtok(NULL, ";");
-		}
-			
+		}*/
 		
 		myfree(recList);
-	}*/
+	}
 	
 #if DEBUG > 0
 	printf("*** Executing with Debug level %d ***\t", DEBUG);
@@ -434,8 +435,22 @@ int main (int argc, const char * argv[])
 	time_t start = time(NULL);
 #endif
 	
-	if (!SIM.Xgrid)	// Remove *.dat and *.tbz // Add this to arg switch (-c)?
+	if (!SIM.Xgrid) // Remove *.dat and *.tbz // Add this to arg switch (-c)?
+	{
 		system("rm *.dat"); //system("rm *.dat *.tbz");
+		if (ia_flag)
+		{
+			if(snprintf(syscmd, BUFSIZ, "find *.tbz ! -name %s -delete",imageArchive) >= BUFSIZ)
+				fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
+			if (system(syscmd)) // Delete *.tbz except image archive
+				printf("Archive files successfully cleaned!\n");
+			else
+				exit_error("main.c", "Error cleaning archive files!\n");		
+		}
+		else
+			system("rm *.tbz"); // Delete *.tbz
+	}
+
 	
 	result = spike(mp);
 	

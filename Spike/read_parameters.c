@@ -226,13 +226,27 @@ int read_parameters(PARAMS * params, char * paramfile)
 		{
 			params->pCnxElE[l] = ((float) params->nSynElE)/params->vExcit[l];
 			assert((params->pCnxElE[l] >= 0.0) && (params->pCnxElE[l] <= 1.0));
+			if (params->pCnxElE[l] > EPS) // 
+				params->SOM = true;
 		}
 		params->LpElE = l;
 		params->probConnect = true;
 	}
 	
-	if (mp->SOM && !mp->SOMinput)
-		params->pCnxElE[0] = 0.0;
+	if (mp->initElE || mp->axonDelay) //!0
+	{
+		mp->SOM = true;
+		if (!mp->SOMinput)
+			params->pCnxElE[0] = 0.0;
+	}
+		
+	
+	/*if (mp->SOM && !mp->SOMinput) //(mp->pCnxElE[0] > EPS && !mp->SOMinput)
+		params->pCnxElE[0] = 0.0;*/
+	
+	/*if (mp->SOM)
+		for (l=(mp->SOMinput)?0:1; l<mp->nLayers; l++)
+			params->pCnxElE[l] = 1.0;*/
 	
 	if (params->LpEI == 0)
 	{
@@ -605,6 +619,8 @@ int parse_string(PARAMS * params, char * string)
 		params->nSynII = atoi(value);
 	else if (strcmp(name, "pCnxII")==0)
 		params->LpII = parseFloatVector(value, &params->pCnxII);
+	else if (strcmp(name, "initEfE")==0)
+		params->initEfE = atoi(value);
 	else if (strcmp(name, "axonDelay")==0)
 		params->axonDelay = atoi(value);
 	else if (strcmp(name, "d_const")==0)
@@ -623,8 +639,8 @@ int parse_string(PARAMS * params, char * string)
 		params->condSpeed = atof(value);
 	else if (strcmp(name, "maxDelay")==0)
 		params->maxDelay = atof(value);
-	else if (strcmp(name, "SOM")==0)
-		params->SOM = atoi(value);
+	else if (strcmp(name, "SOM")==0) // Internal variable
+		printf("SOM is now an internal variable!\n");//params->SOM = atoi(value);
 	else if (strcmp(name, "SOMinput")==0)
 		params->SOMinput = atoi(value);
 	else if (strcmp(name, "SOMsigE")==0)
@@ -633,6 +649,10 @@ int parse_string(PARAMS * params, char * string)
 		params->SOMsigI = atof(value);
 	else if (strcmp(name, "SOMclip")==0)
 		params->SOMclip = atof(value);
+	else if (strcmp(name, "trainElE")==0)
+		params->trainElE = atoi(value);
+	else if (strcmp(name, "initElE")==0)
+		params->initElE = atoi(value);
 	else if (strcmp(name, "vSquare")==0)
 		parseIntVector(value, &params->vSquare);
 	
@@ -685,23 +705,24 @@ int parse_string(PARAMS * params, char * string)
 		params->tauD = atof(value);
 	else if (strcmp(name, "learnR")==0)
 		params->learnR = atof(value);
-	else if (strcmp(name, "modEf")==0)
-		params->modEf = atof(value);
-	else if (strcmp(name, "tauEE")==0)
-		params->tauEE = atof(value);
-	else if (strcmp(name, "Dg_ElE")==0)
-		params->Dg_ElE = atof(value);
-	////////////////////////////////////// tauElE ?
-	else if (strcmp(name, "Dg_IE")==0)
-		params->Dg_IE = atof(value);
+	else if (strcmp(name, "DgEfE")==0 || strcmp(name, "modEf")==0)
+		params->DgEfE = atof(value);
+	else if (strcmp(name, "tauEfE")==0 || strcmp(name, "tauEE")==0) // Set both to tauEE if used
+		params->tauEE = atof(value); // Implement tauEfE
+	else if (strcmp(name, "DgElE")==0 || strcmp(name, "Dg_ElE")==0)
+		params->DgElE = atof(value);
+	else if (strcmp(name, "tauElE")==0 || strcmp(name, "tauEE")==0) // Set both to tauEE if used
+		params->tauEE = atof(value); // Implement tauElE
+	else if (strcmp(name, "DgIE")==0 || strcmp(name, "Dg_IE")==0)
+		params->DgIE = atof(value);
 	else if (strcmp(name, "tauIE")==0)
 		params->tauIE = atof(value);
-	else if (strcmp(name, "Dg_EI")==0)
-		params->Dg_EI = atof(value);
+	else if (strcmp(name, "DgEI")==0 || strcmp(name, "Dg_EI")==0)
+		params->DgEI = atof(value);
 	else if (strcmp(name, "tauEI")==0)
 		params->tauEI = atof(value);
-	else if (strcmp(name, "Dg_II")==0)
-		params->Dg_II = atof(value);
+	else if (strcmp(name, "DgII")==0 || strcmp(name, "Dg_II")==0)
+		params->DgII = atof(value);
 	else if (strcmp(name, "tauII")==0)
 		params->tauII = atof(value);
 	else if (strcmp(name, "gMax")==0)
@@ -721,7 +742,7 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	FILE * pFile = NULL;
 	int c=0; // count
 	int l=0;
-	PARAMS MP = *mp;
+	PARAMS MP = *mp; // Needed to match Matlab syntax for reading in variables
 	
 	pFile = myfopen(paramfile, "w"); // Variables to read into Matlab
 	//fprintf(pFile, "DT=%f;\n",mp->DT); c++;
@@ -804,6 +825,7 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	printFloatArray(pFile, "MP.pCnxIE", mp->pCnxIE, mp->nLayers); c++; // nSyn?
 	printFloatArray(pFile, "MP.pCnxEI", mp->pCnxEI, mp->nLayers); c++;
 	printFloatArray(pFile, "MP.pCnxII", mp->pCnxII, mp->nLayers); c++;
+	FPRINT_INT(pFile, MP.initEfE); c++;
 	switch (mp->axonDelay)
 	{
 		case MinD:
@@ -824,7 +846,7 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 			FPRINT_FLOAT(pFile, MP.d_mean); c++;
 			FPRINT_FLOAT(pFile, MP.d_sd); c++;
 			break;
-		case SOM:
+		case SOMD:
 			fprintf(pFile, "MP.axonDelay = 'SOM';\n"); c++;
 			FPRINT_FLOAT(pFile, MP.condSpeed); c++;
 			FPRINT_FLOAT(pFile, MP.maxDelay); c++;
@@ -842,6 +864,8 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 		FPRINT_FLOAT(pFile, MP.SOMsigI); c++;
 		FPRINT_FLOAT(pFile, MP.SOMclip); c++;
 	}
+	FPRINT_INT(pFile, MP.trainElE); c++;
+	FPRINT_INT(pFile, MP.initElE); c++;
 	printIntArray(pFile, "MP.vSquare", mp->vSquare, mp->nLayers); c++;
 	for (l=0; l<MP.nLayers; l++)
 	{
@@ -882,14 +906,16 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	FPRINT_FLOAT(pFile, MP.alphaD); c++;
 	FPRINT_FLOAT(pFile, MP.tauD); c++;
 	FPRINT_FLOAT(pFile, MP.learnR); c++;
-	FPRINT_FLOAT(pFile, MP.modEf); c++;
+	FPRINT_FLOAT(pFile, MP.DgEfE); c++;
+	//FPRINT_FLOAT(pFile, MP.tauEfE); c++;
+	FPRINT_FLOAT(pFile, MP.DgElE); c++;
+	//FPRINT_FLOAT(pFile, MP.tauElE); c++;
 	FPRINT_FLOAT(pFile, MP.tauEE); c++;
-	FPRINT_FLOAT(pFile, MP.Dg_ElE); c++;
-	FPRINT_FLOAT(pFile, MP.Dg_IE); c++;
+	FPRINT_FLOAT(pFile, MP.DgIE); c++;
 	FPRINT_FLOAT(pFile, MP.tauIE); c++;
-	FPRINT_FLOAT(pFile, MP.Dg_EI); c++;
+	FPRINT_FLOAT(pFile, MP.DgEI); c++;
 	FPRINT_FLOAT(pFile, MP.tauEI); c++;
-	FPRINT_FLOAT(pFile, MP.Dg_II); c++;
+	FPRINT_FLOAT(pFile, MP.DgII); c++;
 	FPRINT_FLOAT(pFile, MP.tauII); c++;
 	FPRINT_FLOAT(pFile, MP.gMax); c++;
 

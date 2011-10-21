@@ -15,7 +15,6 @@ int spike(PARAMS * mp)
 	int p;//, l;
 	int error = 0;
 	REGIMETYPE regime;
-	
 	STIMULI * stim;
 
 	//RECORD *RECSP = RECS;
@@ -26,7 +25,8 @@ int spike(PARAMS * mp)
 	FILE * stimuli_FP;
 	
 	
-	// Calculate RAM requirements
+	/*************** Calculate RAM requirements ****************/
+	
 #if DEBUG > 1
 	fprintf(stdout, "Variable type:\tNEURON\tAXON  \t*     \tfloat \ttstep \tint\n");
 	fprintf(stdout, "Size (bytes): \t%-6lu\t%-6lu\t%-6lu\t%-6lu\t%-6lu\t%-6lu\t\n",\
@@ -72,7 +72,7 @@ int spike(PARAMS * mp)
 		case GaussD:
 			avq = mp->d_mean / mp->DT;
 			break;
-		case SOM:
+		case SOMD:
 			avq = mp->maxDelay / (2.0 * mp->DT); // Reasonable for 1D layer
 			break;
 		default:
@@ -104,10 +104,10 @@ int spike(PARAMS * mp)
 #if DEBUG > 1
 	fprintf(stdout, "\nStimuli:\tStruct.\tTrain \tTest  \tRecords\n");
 #endif
-	if (mp->SOM)
+	if (mp->SOM) // (mp->initElE == SOM || mp->initEfE == SOM || mp->axonDelay == SOMD) //mp->SOM // Triangle of Distances
 	{
 		for (l=0; l<mp->nLayers; l++)
-			memMisc += mp->vExcit[l]*(mp->vExcit[l]+1)/2;
+			memMisc += mp->vExcit[l]*(mp->vExcit[l]+1)/2; // Gauss' method 
 		memMisc *= sizeof(float)/MB;
 	}
 	
@@ -117,6 +117,8 @@ int spike(PARAMS * mp)
 		memE = (mp->vRecords[0]*(sizeof(RECORD)+((mp->adaptation)?3:2)*(mp->TotalMS+1)*sizeof(float)))/MB;
 		for (l=1; l<mp->nLayers; l++)
 			memE += mp->vRecords[l]*3*(mp->TotalMS+1)*(mp->vExcit[l-1]*mp->pCnxEfE[l])*sizeof(float)/MB;
+		for (l=0; l<mp->nLayers; l++)
+			memE += mp->vRecords[l]*3*(mp->TotalMS+1)*(mp->vExcit[l]*mp->pCnxElE[l])*sizeof(float)/MB;
 	}
 	
 	memMisc += (float)(sizeof(PARAMS) + \
@@ -132,6 +134,7 @@ int spike(PARAMS * mp)
 	fprintf(stdout, "Total memory requirements (approx.):\t%-6.3G MB\n",Tmem);
 	fprintf(stdout, "--------------------------------------------------------------------------------\n"); // Replace with horizontal line cmd?
 	
+	
 	printf("Ventral Visual Stream Spiking Neural Network Simulation starting...\n");
 	
 	/*************** Build & Initialize Network ****************/
@@ -140,7 +143,7 @@ int spike(PARAMS * mp)
 	
 	n_E = allocn(mp->nLayers, mp->vExcit, EXCIT); // Create 2D array of Excitatory neuron structures
 	n_I = allocn(mp->nLayers, mp->vInhib, INHIB); // Create 2D array of Inhibatory neuron structures
-	if (mp->SOM || mp->axonDelay == SOM)
+	if (mp->SOM) //(mp->initElE == SOM || mp->initEfE == SOM || mp->axonDelay == SOMD)
 		distE = getLowTriF(mp->nLayers, mp->vExcit, 0.0);
 	calcConnectivity(mp->probConnect);	// Calculate network connectivity
 
@@ -239,7 +242,7 @@ int spike(PARAMS * mp)
 	
 	unallocn(n_E, mp->nLayers, mp->vExcit);
 	unallocn(n_I, mp->nLayers, mp->vInhib);
-	if (mp->SOM || mp->axonDelay == SOM)
+	if (mp->SOM) // (mp->initElE == SOM || mp->initEfE == SOM || mp->axonDelay == SOMD)
 		freeTriF(distE, mp->nLayers);
 	
 	if (mp->randStimOrder)
@@ -391,9 +394,16 @@ int unallocn (NEURON ** narray, int nLays, int * vNeurons)
 				myfree(narray[l][n].rec->cellD);//, mp->loops);
 				if (l>0)  // Here the synaptic variables are stored with the post-synaptic neuron
 				{
-					free_2D_farray(narray[l][n].rec->SynC);
-					free_2D_farray(narray[l][n].rec->SynG);
-					free_2D_farray(narray[l][n].rec->SynDG);
+					free_2D_farray(narray[l][n].rec->FSynC);
+					free_2D_farray(narray[l][n].rec->FSynG);
+					free_2D_farray(narray[l][n].rec->FSynDG);
+				}
+				
+				if (mp->trainElE && mp->train)
+				{
+					free_2D_farray(narray[l][n].rec->LSynC);
+					free_2D_farray(narray[l][n].rec->LSynG);
+					free_2D_farray(narray[l][n].rec->LSynDG);
 				}
 					
 				/*if (l<mp->nWLayers)
@@ -423,7 +433,7 @@ void calcConnectivity(bool probConnect)
 	int i, j, nRows, nCols; //, d_h, d_w, h_min, w_min;
 	i = j = nRows = nCols = 0; // d_h = d_w = h_min = w_min = 0;
 	
-	if (mp->SOM || mp->axonDelay == SOM)
+	if (mp->SOM) //(mp->initElE == SOM || mp->initEfE == SOM || mp->axonDelay == SOMD)
 	{
 		/*if (mp->SOM == 2)
 			phiScale = 1/(mp->SOMsigE*sqrt(2*M_PI)); */
@@ -514,7 +524,7 @@ void calcConnectivity(bool probConnect)
 			printf("\nDrawing axonal delays from N(%f,%f)\n",mp->d_mean, mp->d_sd);
 			break;
 			
-		case SOM:
+		case SOMD:
 			printf("\nSetting axonal delays (ElE) proportional to Euclidean distances\n");
 			break;
 			
@@ -623,7 +633,7 @@ void calcConnectivity(bool probConnect)
 			fclose(connections_FP);
 		}
 		
-		if (mp->SOM || mp->axonDelay == SOM) // Print ElE distance
+		if (mp->SOM) //(mp->initElE == SOM || mp->initEfE == SOM || mp->axonDelay == SOMD) // Print ElE distance
 		{
 			for (l=0; l<mp->nLayers; l++)
 			{
@@ -763,13 +773,14 @@ void wireAfferents(NEURON * n, float pEfn, float pEln, float pIln)
 		buff = ceil(pEln * mp->vExcit[n->l]);
 		n->lm0presyn_E = myalloc(buff * sizeof(NEURON *)); // Create array of NEURON pointers
 		n->nLAff_E = 0;
+		float cutoff = mp->SOMclip * mp->SOMsigE; //int?
 		for (s=0; s<mp->vExcit[n->l]; s++)
 		{
 			if ((n->n == n_E[n->l][s].n) && n->type==EXCIT) // Do not self synapse (i != j)
 				continue;
 			
 			/* Collapse this branch!!! */
-			if (mp->SOM && n->type==EXCIT && (readLowTriF(distE, n->l, n->n, n_E[n->l][s].n) < mp->SOMclip*mp->SOMsigE)) // ElE of SOM within range
+			if (n->type==EXCIT && (readLowTriF(distE, n->l, n->n, n_E[n->l][s].n) < cutoff)) // ElE of SOM within range //mp->SOM && 
 			{
 				if(gsl_rng_uniform(mSeed) < pEln) // Connect //ran3(&idum)
 				{
@@ -1157,7 +1168,7 @@ void create_axons(NEURON * n)
 			break;
 		case GaussD:
 			break;
-		case SOM:
+		case SOMD:
 			break;
 		default:
 			exit_error("create_axons", "Unknown axonal delay model!");
@@ -1180,7 +1191,7 @@ void create_axons(NEURON * n)
 				//delay = (!delay) ? 1 : delay;
 				//nbins = ceil((delay*DT)/mp->refract);
 				break;
-			case SOM:
+			case SOMD:
 				delay = 1;
 				break;
 			default:
@@ -1203,7 +1214,7 @@ void create_axons(NEURON * n)
 				//delay = round((mp->d_mean + mp->d_sd*gasdev(&idum))/DT);
 				delay = round((mp->d_mean + gsl_ran_gaussian(mSeed,mp->d_sd))/mp->DT);
 				break;
-			case SOM: 	// Wire ElE connections with delays proportional to their Euclidean distances
+			case SOMD: 	// Wire ElE connections with delays proportional to their Euclidean distances
 				if (n->type == EXCIT)
 					delay = round(readLowTriF(distE, n->l, n->n, n->lp0postsyn_E[s]->n) / ((float) mp->condSpeed * mp->DT));
 				else
@@ -1230,7 +1241,7 @@ void create_axons(NEURON * n)
 				//delay = round((mp->d_mean + mp->d_sd*gasdev(&idum))/DT);
 				delay = round((mp->d_mean + gsl_ran_gaussian(mSeed,mp->d_sd))/mp->DT);
 				break;
-			case SOM:
+			case SOMD:
 				delay = 1;
 				break;
 			default:
@@ -1309,20 +1320,53 @@ void init_network(int regime)
 						memset(n_E[l][n].rec->cellD, 0, (mp->TotalMS+1) * sizeof(*(n_E[l][n].rec->cellD)));
 						if (l>0) // Here the synaptic variables are stored with the post-synaptic neuron
 						{
-							n_E[l][n].rec->SynC = get_2D_farray(n_E[l][n].nFAff_E, (mp->TotalMS+1), 0.0); // get_3D_farray(mp->loops, n_E[l][n].nFAff_E, mp->TotalMS, 0.0);
-							n_E[l][n].rec->SynG = get_2D_farray(n_E[l][n].nFAff_E, (mp->TotalMS+1), 0.0);
-							n_E[l][n].rec->SynDG = get_2D_farray(n_E[l][n].nFAff_E, (mp->TotalMS+1), 0.0);
+							n_E[l][n].rec->FSynC = get_2D_farray(n_E[l][n].nFAff_E, (mp->TotalMS+1), 0.0); // get_3D_farray(mp->loops, n_E[l][n].nFAff_E, mp->TotalMS, 0.0);
+							n_E[l][n].rec->FSynG = get_2D_farray(n_E[l][n].nFAff_E, (mp->TotalMS+1), 0.0);
+							n_E[l][n].rec->FSynDG = get_2D_farray(n_E[l][n].nFAff_E, (mp->TotalMS+1), 0.0);
+						}
+						if (mp->trainElE && mp->train) // Create recording structures for ElE variables
+						{
+							n_E[l][n].rec->LSynC = get_2D_farray(n_E[l][n].nLAff_E, (mp->TotalMS+1), 0.0);
+							n_E[l][n].rec->LSynG = get_2D_farray(n_E[l][n].nLAff_E, (mp->TotalMS+1), 0.0);
+							n_E[l][n].rec->LSynDG = get_2D_farray(n_E[l][n].nLAff_E, (mp->TotalMS+1), 0.0);
 						}
 					}
-		}
+		} // End of Record initialisation
 		
 		/* E_ Synaptic weights */
-		for (l=0; l<mp->nWLayers; l++)
+		/*for (l=0; l<mp->nWLayers; l++)
 			for (n=0; n<mp->vExcit[l]; n++)
 				for (s=0; s<n_E[l][n].nFEff_E; s++)
-					n_E[l][n].FEffs_E[s].delta_g = n_E[l][n].FEffs_E[s].delta_g_tm1 = gsl_rng_uniform(mSeed); //ran3(&idum);
-		
-		if (mp->SOM)
+					n_E[l][n].FEffs_E[s].delta_g = n_E[l][n].FEffs_E[s].delta_g_tm1 = gsl_rng_uniform(mSeed); //ran3(&idum);*/
+
+		switch (mp->initEfE) {
+			case Constant:
+				for (l=0; l<mp->nWLayers; l++)
+					for (n=0; n<mp->vExcit[l]; n++)
+						for (s=0; s<n_E[l][n].nFEff_E; s++)
+							n_E[l][n].FEffs_E[s].delta_g = n_E[l][n].FEffs_E[s].delta_g_tm1 = mp->DgEfE;
+				break;
+			case Uniform:
+				for (l=0; l<mp->nWLayers; l++)
+					for (n=0; n<mp->vExcit[l]; n++)
+						for (s=0; s<n_E[l][n].nFEff_E; s++)
+							n_E[l][n].FEffs_E[s].delta_g = n_E[l][n].FEffs_E[s].delta_g_tm1 = gsl_rng_uniform(mSeed);
+				break;
+			case Gaussian:
+				for (l=0; l<mp->nWLayers; l++)
+					for (n=0; n<mp->vExcit[l]; n++)
+						for (s=0; s<n_E[l][n].nFEff_E; s++)
+							n_E[l][n].FEffs_E[s].delta_g = n_E[l][n].FEffs_E[s].delta_g_tm1 = gsl_ran_gaussian(mSeed, mp->SOMsigE); // Create seperate sigma?
+				break;
+			case SOM: // Convergent feed-forward connections
+				exit_error("init_network", "Feed-forward convergent connections not yet implemented!");
+				//fprintf(stderr, "Warning: Feed-forward convergent connections not yet implemented!\n");
+				break;
+			default:
+				exit_error("init_network", "Illegal EfE weight initialisation arguement!");
+				break;
+		}
+		/*if (mp->SOM)
 		{
 			float distance = 0.0;
 			float phiScale = mp->Dg_ElE/(mp->SOMsigE*sqrt(2*M_PI)); 
@@ -1345,33 +1389,69 @@ void init_network(int regime)
 				for (n=0; n<mp->vExcit[l]; n++)
 					for (s=0; s<n_E[l][n].nLEff_E; s++)
 						n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = mp->Dg_ElE; // * gsl_rng_uniform(mSeed); //ran3(&idum);
+		}*/
+		
+		/*if (mp->SOM) // pCnxElE ??? nLEff_E == 0 if pCnxElE == 0.0
+		{*/
+		float distance = 0.0;
+		float phiScale = 0.0; 
+		switch (mp->initElE) {
+				/*case Zero:
+				 for (l=0; l<mp->nLayers; l++)
+				 for (n=0; n<mp->vExcit[l]; n++)
+				 for (s=0; s<n_E[l][n].nLEff_E; s++)
+				 n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = 0.0;
+				 break;*/
+			case Constant: // mp->DgElE
+				for (l=0; l<mp->nLayers; l++)
+					for (n=0; n<mp->vExcit[l]; n++)
+						for (s=0; s<n_E[l][n].nLEff_E; s++)
+							n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = mp->DgElE;
+				break;
+			case Uniform: // mSeed
+				for (l=0; l<mp->nLayers; l++)
+					for (n=0; n<mp->vExcit[l]; n++)
+						for (s=0; s<n_E[l][n].nLEff_E; s++)
+							n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = gsl_rng_uniform(mSeed);
+				break;
+			case Gaussian: // mSeed, mp->SOMsigE
+				for (l=0; l<mp->nLayers; l++)
+					for (n=0; n<mp->vExcit[l]; n++)
+						for (s=0; s<n_E[l][n].nLEff_E; s++)
+							n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = gsl_ran_gaussian(mSeed, mp->SOMsigE); //states[th]
+				break;
+			case SOM: // distE, mp->DgElE, mp->SOMsigE
+				phiScale = mp->DgElE/(mp->SOMsigE*sqrt(2*M_PI));
+				for (l=0; l<mp->nLayers; l++)
+					for (n=0; n<mp->vExcit[l]; n++)
+						for (s=0; s<n_E[l][n].nLEff_E; s++)
+						{
+							distance = readLowTriF(distE, l, n, n_E[l][n].lp0postsyn_E[s]->n); // distE[l][n][n_E[l][n].lp0postsyn_E[s]->n];
+							n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = phiScale * exp(-pow(distance,2)/(2*pow(mp->SOMsigE,2)));
+						}
+				break;					
+			default:
+				exit_error("init_network", "Illegal ElE weight initialisation arguement!");
+				break;
 		}
+		/*}*/
 		
 		for (l=0; l<mp->nLayers; l++)
 			for (n=0; n<mp->vExcit[l]; n++)
 				for (s=0; s<n_E[l][n].nLEff_I; s++)
-					n_E[l][n].LEffs_I[s].delta_g = n_E[l][n].LEffs_I[s].delta_g_tm1 = mp->Dg_EI;
+					n_E[l][n].LEffs_I[s].delta_g = n_E[l][n].LEffs_I[s].delta_g_tm1 = mp->DgEI;
 		
 		/* I_ Synaptic weights */
 		for (l=0; l<mp->nLayers; l++)
 			for (n=0; n<mp->vInhib[l]; n++)
 				for (s=0; s<n_I[l][n].nLEff_E; s++)
-					n_I[l][n].LEffs_E[s].delta_g = n_I[l][n].LEffs_E[s].delta_g_tm1 = mp->Dg_IE;
+					n_I[l][n].LEffs_E[s].delta_g = n_I[l][n].LEffs_E[s].delta_g_tm1 = mp->DgIE;
 		
 		for (l=0; l<mp->nLayers; l++)
 			for (n=0; n<mp->vInhib[l]; n++)
 				for (s=0; s<n_I[l][n].nLEff_I; s++)
-					n_I[l][n].LEffs_I[s].delta_g = n_I[l][n].LEffs_I[s].delta_g_tm1 = mp->Dg_II;
+					n_I[l][n].LEffs_I[s].delta_g = n_I[l][n].LEffs_I[s].delta_g_tm1 = mp->DgII;
 		
-		/*switch (mp->noise)
-		{
-			case 0: // No noise // Already initialised to 0 when declared
-				break;
-			case 1: // Uniform interval
-				break;
-			case 2: // Gaussian noise
-				break;
-		} // End of NOISE switch	*/	
 	} // End of if (regime==1) clause
 	
 
@@ -2095,6 +2175,26 @@ void simulatePhase(PHASE sPhase, STIMULI * stim)
 				}
 				fclose(weightOutput);
 			}
+			
+			if (mp->trainElE)
+			{
+				for (l=0; l<mp->nLayers; l++)
+				{
+					if (sPhase == PreTraining)
+						slen = snprintf(filename, FNAMEBUFF, "ptL%dweightsElE.dat", wl);
+					else if (sPhase == Testing)
+						slen = snprintf(filename, FNAMEBUFF, "L%dweightsElE.dat", wl);
+					assert(slen < FNAMEBUFF);
+					weightOutput = myfopen(filename, "w");
+					for (n=0; n<mp->vExcit[l]; n++)
+					{
+						for (syn=0; syn<n_E[l][n].nLAff_E; syn++)
+							fprintf(weightOutput, "%f\t", n_E[l][n].LAffs_E[syn]->delta_g);
+						fprintf(weightOutput, "\n");
+					}
+					fclose(weightOutput);
+				}
+			}
 		}
 		
 		if (mp->nRecords) // Should be training //sPhase==Testing && 
@@ -2137,29 +2237,53 @@ void simulatePhase(PHASE sPhase, STIMULI * stim)
 						
 						if (l>0) // The presynaptic cell's values are attached to each record
 						{
-							slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dAffC.dat", prefix, l, n);
+							slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dFAffC.dat", prefix, l, n);
 							assert(slen && slen < FNAMEBUFF);
 							recFile = myfopen(filename, "w"); //r_C_ptr = fopen(filename, "wb");
 							//for (loop=0; loop<mp->loops; loop++)
-							print_farray(recFile, n_E[l][n].rec->SynC, n_E[l][n].nFAff_E, n_E[l][n].rec->bin); //print_farray(recFile, n_E[l][n].rec->SynC[loop], n_E[l][n].nFAff_E, mp->TotalMS);
+							print_farray(recFile, n_E[l][n].rec->FSynC, n_E[l][n].nFAff_E, n_E[l][n].rec->bin); //print_farray(recFile, n_E[l][n].rec->SynC[loop], n_E[l][n].nFAff_E, mp->TotalMS);
 							fclose(recFile);
-							memset(n_E[l][n].rec->SynC[0], n_E[l][n].nFAff_E*(mp->TotalMS+1), sizeof(*(n_E[l][n].rec->SynC)));
+							memset(n_E[l][n].rec->FSynC[0], n_E[l][n].nFAff_E*(mp->TotalMS+1), sizeof(*(n_E[l][n].rec->FSynC)));
 							
-							slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dAffg.dat", prefix, l, n);
+							slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dFAffg.dat", prefix, l, n);
 							assert(slen && slen < FNAMEBUFF);
 							recFile = myfopen(filename, "w");
 							//for (loop=0; loop<mp->loops; loop++)
-							print_farray(recFile, n_E[l][n].rec->SynG, n_E[l][n].nFAff_E, n_E[l][n].rec->bin);
+							print_farray(recFile, n_E[l][n].rec->FSynG, n_E[l][n].nFAff_E, n_E[l][n].rec->bin);
 							fclose(recFile);
-							memset(n_E[l][n].rec->SynG[0], n_E[l][n].nFAff_E*(mp->TotalMS+1), sizeof(*(n_E[l][n].rec->SynG)));
+							memset(n_E[l][n].rec->FSynG[0], n_E[l][n].nFAff_E*(mp->TotalMS+1), sizeof(*(n_E[l][n].rec->FSynG)));
 							
-							slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dAffdg.dat", prefix, l, n);
+							slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dFAffdg.dat", prefix, l, n);
 							assert(slen && slen < FNAMEBUFF);
 							recFile = myfopen(filename, "w");
 							//for (loop=0; loop<mp->loops; loop++)
-							print_farray(recFile, n_E[l][n].rec->SynDG, n_E[l][n].nFAff_E, n_E[l][n].rec->bin);
+							print_farray(recFile, n_E[l][n].rec->FSynDG, n_E[l][n].nFAff_E, n_E[l][n].rec->bin);
 							fclose(recFile);
-							memset(n_E[l][n].rec->SynDG[0], n_E[l][n].nFAff_E*(mp->TotalMS+1), sizeof(*(n_E[l][n].rec->SynDG)));
+							memset(n_E[l][n].rec->FSynDG[0], n_E[l][n].nFAff_E*(mp->TotalMS+1), sizeof(*(n_E[l][n].rec->FSynDG)));
+						}
+						
+						if (mp->trainElE && mp->train)
+						{
+							slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dLAffC.dat", prefix, l, n);
+							assert(slen && slen < FNAMEBUFF);
+							recFile = myfopen(filename, "w"); 
+							print_farray(recFile, n_E[l][n].rec->LSynC, n_E[l][n].nLAff_E, n_E[l][n].rec->bin); 
+							fclose(recFile);
+							memset(n_E[l][n].rec->LSynC[0], n_E[l][n].nLAff_E*(mp->TotalMS+1), sizeof(*(n_E[l][n].rec->LSynC)));
+							
+							slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dLAffg.dat", prefix, l, n);
+							assert(slen && slen < FNAMEBUFF);
+							recFile = myfopen(filename, "w");
+							print_farray(recFile, n_E[l][n].rec->LSynG, n_E[l][n].nLAff_E, n_E[l][n].rec->bin);
+							fclose(recFile);
+							memset(n_E[l][n].rec->LSynG[0], n_E[l][n].nLAff_E*(mp->TotalMS+1), sizeof(*(n_E[l][n].rec->LSynG)));
+							
+							slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dLAffdg.dat", prefix, l, n);
+							assert(slen && slen < FNAMEBUFF);
+							recFile = myfopen(filename, "w");
+							print_farray(recFile, n_E[l][n].rec->LSynDG, n_E[l][n].nLAff_E, n_E[l][n].rec->bin);
+							fclose(recFile);
+							memset(n_E[l][n].rec->LSynDG[0], n_E[l][n].nLAff_E*(mp->TotalMS+1), sizeof(*(n_E[l][n].rec->LSynDG)));
 						}
 						n_E[l][n].rec->bin = 0; // Reset record counter ready for next phase/epoch
 					}
@@ -2176,11 +2300,11 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 {
 	int l, n, syn; //, l; //, wl;
 	int bin = 0;
-	tstep t=0;
+	tstep t=0; tstep lstart=0;
 	float decayRate, decay_E, decay_I;//, gLeak, Vrest, Thresh, Vhyper;
 	
 	
-#pragma omp parallel default(shared) private(t,l,n,syn,bin,decayRate,decay_E,decay_I)//,gLeak,Vrest,Thresh,Vhyper)
+#pragma omp parallel default(shared) private(t,l,n,syn,bin,decayRate,decay_E,decay_I,lstart)//,gLeak,Vrest,Thresh,Vhyper)
 	{
 		
 	if (!t_start && mp->nRecords) //(t_start==0) Save intials neuron states (then every ms after - see below)
@@ -2199,9 +2323,18 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 						n_E[l][n].rec->cellcCa[bin] = n_E[l][n].cCa_tm1;
 					for (syn=0; syn<n_E[l][n].nFAff_E; syn++) // nFAff_E == 0 for l=0
 					{
-						n_E[l][n].rec->SynC[syn][bin] = n_E[l][n].FAffs_E[syn]->C_tm1;
-						n_E[l][n].rec->SynG[syn][bin] = n_E[l][n].FAffs_E[syn]->g_tm1;
-						n_E[l][n].rec->SynDG[syn][bin] = n_E[l][n].FAffs_E[syn]->delta_g_tm1;
+						n_E[l][n].rec->FSynC[syn][bin] = n_E[l][n].FAffs_E[syn]->C_tm1;
+						n_E[l][n].rec->FSynG[syn][bin] = n_E[l][n].FAffs_E[syn]->g_tm1;
+						n_E[l][n].rec->FSynDG[syn][bin] = n_E[l][n].FAffs_E[syn]->delta_g_tm1;
+					}
+					if (mp->trainElE && mp->train)
+					{
+						for (syn=0; syn<n_E[l][n].nLAff_E; syn++) // nFAff_E == 0 for l=0
+						{
+							n_E[l][n].rec->LSynC[syn][bin] = n_E[l][n].LAffs_E[syn]->C_tm1;
+							n_E[l][n].rec->LSynG[syn][bin] = n_E[l][n].LAffs_E[syn]->g_tm1;
+							n_E[l][n].rec->LSynDG[syn][bin] = n_E[l][n].LAffs_E[syn]->delta_g_tm1;
+						}
 					}
 				}
 		}
@@ -2281,8 +2414,9 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 		
 		if (regime==Learning) // Learning
 		{
+			lstart = (mp->trainElE) ? 0 : 1;
 			/* Update synaptic weights */ // Move after C & D and use instantaeous values? N.B. Redo nowait clauses
-			for (l=1; l<mp->nLayers; l++) // Only nLayers-1 of weight layers
+			for (l=lstart; l<mp->nLayers; l++) // Skip 1st layer of afferent processing only for FF plasticity
 			{
 #pragma omp for nowait //schedule(runtime)
 				for (n=0; n<mp->vExcit[l]; n++) // Make parallel and n private
@@ -2291,7 +2425,7 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 			
 			// -->|| Update C for current neuron's outgoing synapses (skip last layer)
 			decayRate = mp->DT/mp->tauC;
-			for (l=1; l<mp->nLayers; l++) // Only nLayers-1 of synapses
+			for (l=lstart; l<mp->nLayers; l++) // Only nLayers-1 of synapses
 			{
 #pragma omp for nowait //schedule(runtime) //ok
 				for (n=0; n<mp->vExcit[l]; n++)
@@ -2300,7 +2434,7 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 			
 			// ||--> Update D for current neuron's incoming synapses (skip first layer)
 			decayRate = mp->DT/mp->tauD; 
-			for (l=1; l<mp->nLayers; l++) // Only nLayers-1 of weight layers
+			for (l=lstart; l<mp->nLayers; l++) // Only nLayers-1 of weight layers
 			{
 #pragma omp for nowait //schedule(runtime) //ok
 				for (n=0; n<mp->vExcit[l]; n++)
@@ -2334,8 +2468,11 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 					if (t == next_spike(&n_E[l][n].LEffs_E[syn]))
 						dequeue(&n_E[l][n].LEffs_E[syn]);
 					n_E[l][n].LEffs_E[syn].g_tm1 = n_E[l][n].LEffs_E[syn].g;
-					//n_E[l][n].LEffs_E[s].delta_g_tm1 = n_E[l][n].LEffs_E[s].delta_g;
-					//n_E[l][n].LEffs_E[s].C_tm1 = n_E[l][n].LEffs_E[s].C;
+					if (mp->trainElE)
+					{
+						n_E[l][n].LEffs_E[syn].delta_g_tm1 = n_E[l][n].LEffs_E[syn].delta_g;
+						n_E[l][n].LEffs_E[syn].C_tm1 = n_E[l][n].LEffs_E[syn].C;
+					}
 				}
 				for (syn=0; syn<n_E[l][n].nLEff_I; syn++)
 				{
@@ -2383,9 +2520,18 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 							n_E[l][n].rec->cellcCa[bin] = n_E[l][n].cCa;
 						for (syn=0; syn<n_E[l][n].nFAff_E; syn++) // nFAff_E == 0 for l=0
 						{
-							n_E[l][n].rec->SynC[syn][bin] = n_E[l][n].FAffs_E[syn]->C;
-							n_E[l][n].rec->SynG[syn][bin] = n_E[l][n].FAffs_E[syn]->g;
-							n_E[l][n].rec->SynDG[syn][bin] = n_E[l][n].FAffs_E[syn]->delta_g;
+							n_E[l][n].rec->FSynC[syn][bin] = n_E[l][n].FAffs_E[syn]->C;
+							n_E[l][n].rec->FSynG[syn][bin] = n_E[l][n].FAffs_E[syn]->g;
+							n_E[l][n].rec->FSynDG[syn][bin] = n_E[l][n].FAffs_E[syn]->delta_g;
+						}
+						if (mp->trainElE && mp->train)
+						{
+							for (syn=0; syn<n_E[l][n].nLAff_E; syn++) // nFAff_E == 0 for l=0
+							{
+								n_E[l][n].rec->LSynC[syn][bin] = n_E[l][n].LAffs_E[syn]->C;
+								n_E[l][n].rec->LSynG[syn][bin] = n_E[l][n].LAffs_E[syn]->g;
+								n_E[l][n].rec->LSynDG[syn][bin] = n_E[l][n].LAffs_E[syn]->delta_g;
+							}
 						}
 					}
 			}
@@ -2432,8 +2578,8 @@ void update_V(NEURON * n, tstep t, float decay_rate, float gLeak, float Vrest, f
 		
 		if (mp->noise)
 		{
-			int th = 0;
 			float sigma = 0.0;
+			int th = 0;
 #ifdef _OPENMP
 			th = omp_get_thread_num();
 #endif
@@ -2480,16 +2626,19 @@ inline void update_g(NEURON * n, tstep t, float decay_E, float decay_I)
 	/* This function updates a neuron's afferent (pre-synaptic) conductances and applies to l>0 */
 	float impulse;
 	int syn;
+	float scale = 0.0;
 	/* Update E synapses */
+	scale = mp->DgEfE * mp->gMax;
 	for (syn=0; syn<n->nFAff_E; syn++) // Make private
 	{
-		impulse = (next_spike(n->FAffs_E[syn]) == t) ? n->FAffs_E[syn]->delta_g_tm1 * mp->modEf * mp->gMax : 0.0;
+		impulse = (next_spike(n->FAffs_E[syn]) == t) ? n->FAffs_E[syn]->delta_g_tm1 * scale : 0.0;
 		n->FAffs_E[syn]->g += (impulse - (decay_E * n->FAffs_E[syn]->g_tm1));
 	}
 	
+	scale = (mp->trainElE) ? mp->DgElE * mp->gMax : mp->gMax;
 	for (syn=0; syn<n->nLAff_E; syn++)
 	{
-		impulse = (next_spike(n->LAffs_E[syn]) == t) ? n->LAffs_E[syn]->delta_g_tm1 * mp->gMax : 0.0;
+		impulse = (next_spike(n->LAffs_E[syn]) == t) ? n->LAffs_E[syn]->delta_g_tm1 * scale : 0.0;
 		n->LAffs_E[syn]->g += (impulse - (decay_E * n->LAffs_E[syn]->g_tm1));
 	}
 	
@@ -2500,6 +2649,8 @@ inline void update_g(NEURON * n, tstep t, float decay_E, float decay_I)
 		n->LAffs_I[syn]->g += (impulse - (decay_I * n->LAffs_I[syn]->g_tm1));
 		// Shunting inhibition ?
 	}
+	
+	// Check to make sure conductances have not become -ve through a coarse decay rate???
 	return;
 }
 
@@ -2516,6 +2667,16 @@ inline void update_weights(NEURON * n, tstep t)
 		LTP = (t == n->lastSpike) ? (1 - n->FAffs_E[syn]->delta_g_tm1) * n->FAffs_E[syn]->C_tm1 : 0.0; //tm0?
 		n->FAffs_E[syn]->delta_g += (LTP - LTD) * mp->learnR; //*DT/TAU_DG;
 	}
+	
+	if (mp->trainElE) // 
+	{
+		for (syn=0; syn<n->nLAff_E; syn++)
+		{
+			LTD = (t == next_spike(n->LAffs_E[syn])) ? n->LAffs_E[syn]->delta_g_tm1 * n->D_tm1 : 0.0; //tm0?
+			LTP = (t == n->lastSpike) ? (1 - n->LAffs_E[syn]->delta_g_tm1) * n->LAffs_E[syn]->C_tm1 : 0.0; //tm0?
+			n->LAffs_E[syn]->delta_g += (LTP - LTD) * mp->learnR; //*DT/TAU_DG;
+		}
+	}
 	return;
 }
 	
@@ -2524,6 +2685,7 @@ inline void update_C(NEURON * n, tstep t, float decayRate)
 	// -->|| Update C for current neuron's outgoing synapses (skip last layer)
 	int syn;
 	float impulse;
+	//float C_tm1 = 0.0;
 	//float decayRate = mp->DT/mp->tauC;
 	// Loop over efferent synapses
 	/*for (syn=0; syn<n->nFEff_E; syn++)
@@ -2534,8 +2696,27 @@ inline void update_C(NEURON * n, tstep t, float decayRate)
 	// Loop over afferent synapses (skip first layer)
 	for (syn=0; syn<n->nFAff_E; syn++)
 	{
-		impulse = (t == next_spike(n->FAffs_E[syn])) ? mp->alphaC : 0.0;
-		n->FAffs_E[syn]->C += (impulse * (1 - n->FAffs_E[syn]->C_tm1) - (n->FAffs_E[syn]->C_tm1 * decayRate));
+		impulse = (t == next_spike(n->FAffs_E[syn])) ? mp->alphaC * (1 - n->FAffs_E[syn]->C_tm1) : 0.0;
+		n->FAffs_E[syn]->C += (impulse - (n->FAffs_E[syn]->C_tm1 * decayRate));
+	}
+	
+	if (mp->trainElE) // Update Excitatory lateral Afferent synapses
+	{
+		for (syn=0; syn<n->nLAff_E; syn++)
+		{
+			//C_tm1 = n->LAffs_E[syn]->C_tm1;
+			//n->LAffs_E[syn]->C += ((t==next_spike(n->LAffs_E[syn])) ? (mp->alphaC*(1-C_tm1)) : 0.0) - (C_tm1*decayRate);
+			impulse = (t == next_spike(n->LAffs_E[syn])) ? (mp->alphaC * (1 - n->LAffs_E[syn]->C_tm1)) : 0.0;
+			n->LAffs_E[syn]->C += (impulse - (n->LAffs_E[syn]->C_tm1 * decayRate));
+			/*if (n->LAffs_E[syn]->C>1.0)
+			{
+				printf("n=%d; syn=%d; C_tm1=%f; C=%f; ",n->n,syn,n->LAffs_E[syn]->C_tm1,n->LAffs_E[syn]->C);
+				printf("t=%d",t);
+				fflush(stdout);
+				printf("alpha=%f; ",mp->alphaC);
+			}*/
+			//assert(n->LAffs_E[syn]->C <= 1.0 && n->LAffs_E[syn]->C >= 0.0);
+		}
 	}
 	return;
 }
@@ -2545,7 +2726,8 @@ inline void update_D(NEURON * n, tstep t, float decayRate)
 	// ||--> Update D for current neuron's incoming synapses (skip first layer)
 	/*float impulse = ((t == n->lastSpike) ? mp->alphaD : 0.0); // private
 	n->D += (impulse * (1 - n->D_tm1) - (n->D_tm1 * mp->DT/mp->tauD));*/
-	n->D += ((((t == n->lastSpike) ? mp->alphaD : 0.0) * (1 - n->D_tm1)) - (n->D_tm1 * decayRate)); //mp->DT/mp->tauD));
+	//n->D += ((((t == n->lastSpike) ? mp->alphaD : 0.0) * (1 - n->D_tm1)) - (n->D_tm1 * decayRate)); //mp->DT/mp->tauD));
+	n->D += ((t == n->lastSpike) ? (mp->alphaD * (1 - n->D_tm1)) : 0.0) - (n->D_tm1 * decayRate);
 	return;
 }
 
@@ -2668,7 +2850,7 @@ inline int next_spike(AXON * a)
 
 inline bool isempty(AXON *a)
 {
-	return (a->count <= 0) ? true : false;
+	return (a->count == 0) ? true : false; // Originally <=
 }
 
 inline int print_queue(AXON *a)

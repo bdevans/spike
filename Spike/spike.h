@@ -64,9 +64,12 @@ typedef struct {
 	float * cellV;
 	float * cellcCa;
 	float * cellD;
-	float ** SynC;
-	float ** SynG;
-	float ** SynDG;
+	float ** FSynC; // Feed-forward Afferents
+	float ** FSynG;
+	float ** FSynDG;
+	float ** LSynC; // Lateral Afferents
+	float ** LSynG;
+	float ** LSynDG;
 } RECORD;
 
 //RECORD *RECSP[NLAYERS][NRECORDS_PL];

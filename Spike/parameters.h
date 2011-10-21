@@ -35,19 +35,26 @@ typedef struct DIMENSIONS {
 
 //extern SIMULATION SIM;
 
-typedef enum {
+/*typedef enum {
 	Off,
-	Uniform,
+	//Uniform,
 	Gaussian
-} NOISE;
+} NOISE;*/
 
 typedef enum {
 	MinD,
 	ConstD,
 	UniformD,
 	GaussD,
-	SOM
+	SOMD
 } DELAY;
+
+typedef enum {
+	Constant, // Zero set using appropriate Dg modifier
+	Uniform,
+	Gaussian,
+	SOM
+} INITIALISATION;
 
 typedef enum {
 	None,
@@ -64,7 +71,7 @@ typedef struct {
 	bool train;// = true;
 	bool pretrain;// = true;
 	bool trainPause;
-	int noise;
+	bool noise; // int
 	float noiseScale;
 	float SigmaE;
 	float SigmaI;
@@ -142,6 +149,7 @@ typedef struct {
 	int nSynII;
 	float * pCnxII;
 	int LpII;
+	INITIALISATION initEfE;
 	DELAY axonDelay;
 	float d_const;
 	float d_min;
@@ -158,6 +166,8 @@ typedef struct {
 	float SOMclip;
 	//float SOMstrE;
 	//float SOMstrI;
+	bool trainElE;
+	INITIALISATION initElE;
 	DIM * layDim; 
 	int * vSquare;
 	
@@ -187,15 +197,16 @@ typedef struct {
 	float alphaD;// = 0.5;
 	float tauD;// = 0.009;
 	float learnR;// = 0.1;
-	float modEf; // alter the strength of Excit f-f synapses
-	float tauEE;// = 0.01;
-	float Dg_ElE;
-	float tauElE;
-	float Dg_IE;// = 0.5;
+	float DgEfE; //modEf; // alter the strength of Excit f-f synapses
+	//float tauEfE;// tauEE = 0.01;
+	float DgElE;//Dg_ElE
+	//float tauElE;
+	float tauEE;
+	float DgIE;//Dg_IE = 0.5;
 	float tauIE;// = 0.001
-	float Dg_EI;// = 0.5;
+	float DgEI;//Dg_EI = 0.5;
 	float tauEI;// = 0.001;
-	float Dg_II;// = 0.5;
+	float DgII;//Dg_II = 0.5;
 	float tauII;// = 0.001;
 	float gMax;// = 48.0e-10;
 } PARAMS;
