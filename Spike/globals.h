@@ -20,6 +20,9 @@
 #ifndef DEBUG
 #define DEBUG	1	/* Debug output level (defined as 3 in the Xcode Debug TARGETS build settings)		*/
 #endif
+#ifndef __OPTIMIZE__
+#define __OPTIMIZE__ -1
+#endif
 #if DEBUG == 0
 #define NDEBUG		/* Define to turn off assert statements	- must come before #include <assert.h>		*/
 #endif
@@ -35,10 +38,15 @@ extern char * MPFILE;
 extern char * IMGDIR;
 #define IMGPARAMFILE	"imageParams.m"
 extern char * IPFILE;
+//#define STIMULIFILE		"groups.stm"
+extern char STFILE[BUFSIZ];
+//#define PPSTIMULIFILE	"ElE_groups.stm"
+extern char PPSTFILE[BUFSIZ];
 #ifndef RSFILE
 #define RSFILE	"random_seeds.rsd"	/* Default random seed file name */
 #endif
 extern char * rsfile; // = RSFILE;
+//extern char * pFile;
 /* Define a diagnostic parameter file to run for debugging */
 
 #define DIRBUFF		128

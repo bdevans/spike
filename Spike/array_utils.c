@@ -149,6 +149,26 @@ void print_darray(FILE *file_ptr, double **data, int nrows, int ncols)
 }
 
 
+void ** array2d(size_t rows, size_t cols, size_t value_size)
+{
+	if (rows < 1 || cols < 1) // Catch errors where one or more dimensions is 0 or -ve
+		return NULL;
+	
+    size_t index_size = sizeof(void *) * rows;
+    size_t store_size = value_size * rows * cols;
+	
+    char * a = myalloc(index_size + store_size);
+    //if(!a) return NULL;
+	
+    memset(a + index_size, 0, store_size); // Be careful with memsets rezeroing the array
+	size_t i=0;
+    for(i = 0; i < rows; ++i)
+        ((void **)a)[i] = a + index_size + i * cols * value_size;
+	
+    return (void **)a;
+}
+
+
 int ** get_2D_iarray(int nrows, int ncols, int init)
 {
 	int i, j;
@@ -242,6 +262,9 @@ float ** get_2D_farray(int nrows, int ncols, float init)
 	// sizeof(*array) = sizeof(int *)
 	// sizeof(**array) = sizeof(int)
 	
+	if (nrows == 0 || ncols == 0)
+		return NULL;
+	
 	float **array2D = myalloc(nrows * sizeof(float *));
 	array2D[0] = myalloc(nrows * ncols * sizeof(float));
 	if (!array2D[0])
@@ -318,6 +341,138 @@ void free_3D_farray(float *** array3D, int nlays)//, int nrows)
 		free(array3D[z]);
 	}
 	free(array3D);
+	return;
+}
+
+
+float **** get4Dfarray(int D1, int D2, int D3, int D4, float init)
+{
+	int w, x, y, z;
+	float *space = myalloc(D1 * D2 * D3 * D4 * sizeof(*space));
+	float ****array4D = myalloc(D1 * sizeof(*array4D));
+	for (w=0; w<D1; w++)
+	{
+		array4D[w] = myalloc(D2 * sizeof(**array4D));
+		for (x=0; x<D2; x++)
+		{
+			array4D[w][x] = myalloc(D3 * sizeof(***array4D));
+			for (y=0; y<D3; y++)
+				array4D[w][x][y] = space + (w*D2*D3*D4) + (x*D3*D4) + (y*D4);
+		}
+	}
+	
+	//Initialise
+	if (fabs(init) < EPS)
+		memset(array4D[0][0][0], 0, D1*D2*D3*sizeof(****array4D));
+	else
+		for (w=0; w<D1; w++)
+			for (x=0; x<D2; x++)
+				for (y=0; y<D3; y++)
+					for (z=0; z<D4; z++)
+						array4D[w][x][y][z] = init;
+	return array4D;
+}
+
+
+void free4Dfarray(float **** array4D, int D1, int D2) // Can the free functions be type independent? i.e. (void **** 4Darray, int D1, int D2)
+{
+	int w, x;
+	if (!array4D)
+		return;
+	myfree(***array4D); // Free storage
+	for (w=0; w<D1; w++)
+	{
+		for (x=0; x<D2; x++)
+			myfree(array4D[w][x]);
+		myfree(array4D[w]);
+	}
+	myfree(array4D);
+	return;
+}
+
+
+float ******* get_7D_farray(int D1, int D2, int D3, int D4, int D5, int D6, int D7, float init)
+{
+	int t, u, v, w, x, y, z;
+	
+	// sizeof(*array) = sizeof(int **)
+	// sizeof(**array) = sizeof(int *)
+	// sizeof(***array) = sizeof(int)
+	
+	float *space = myalloc(D1 * D2 * D3 * D4 * D5 * D6 * D7 * sizeof(*space)); // sizeof(int)
+	if (!space)
+		return NULL;
+	float *******array7D = myalloc(D1 * sizeof(*array7D)); // sizeof(int ******)
+	
+	for (t=0; t<D1; t++)
+	{
+		array7D[t] = myalloc(D2 * sizeof(**array7D)); // sizeof(int *****)
+		for (u=0; u<D2; u++)
+		{
+			array7D[t][u] = myalloc(D3 * sizeof(***array7D));
+			for (v=0; v<D3; v++)
+			{
+				array7D[t][u][v] = myalloc(D4 * sizeof(****array7D));
+				for (w=0; w<D4; w++)
+				{
+					array7D[t][u][v][w] = myalloc(D5 * sizeof(*****array7D));
+					for (x=0; x<D5; x++)
+					{
+						array7D[t][u][v][w][x] = myalloc(D6 * sizeof(******array7D));
+						for (y=0; y<D6; y++)
+						{
+							array7D[t][u][v][w][x][y] = space + (t*D2*D3*D4*D5*D6*D7) \
+							+ (u*D3*D4*D5*D6*D7) + (v*D4*D5*D6*D7) + (w*D5*D6*D7) + (x*D6*D7) + (y*D7);
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	/* Assign values to 3D array */
+	if (fabs(init) <= EPS)
+		memset(array7D[0][0][0][0][0][0], 0, D1*D2*D3*D4*D5*D6*D7*sizeof(*******array7D));
+	else
+		for (t=0; t<D1; t++)
+			for (u=0; u<D2; u++)
+				for (v=0; v<D3; v++)
+					for (w=0; w<D4; w++)
+						for (x=0; x<D5; x++)
+							for (y=0; y<D6; y++)
+								for (z=0; z<D7; z++)
+									array7D[t][u][v][w][x][y][z] = init; 
+	
+	return array7D;
+}
+
+
+void free_7D_farray(float ******* array7D, int D1, int D2, int D3, int D4, int D5)
+{
+	int t, u, v, w, x;//, y;
+	if (!array7D)
+		return;
+	
+	free(******array7D); //free space
+	for (t=0; t<D1; t++)
+	{
+		for (u=0; u<D2; u++)
+		{
+			for (v=0; v<D3; v++)
+			{
+				for (w=0; w<D4; w++)
+				{
+					for (x=0; x<D5; x++)
+						free(array7D[t][u][v][w][x]);
+					free(array7D[t][u][v][w]);
+				}
+				free(array7D[t][u][v]);
+			}
+			free(array7D[t][u]);
+		}
+		free(array7D[t]);
+	}
+	free(array7D);
 	return;
 }
 
@@ -541,91 +696,5 @@ void free_3D_darray(double *** array3D, int nlays)//, int nrows)
 		free(array3D[z]);
 	}
 	free(array3D);
-	return;
-}
-
-
-float ******* get_7D_farray(int D1, int D2, int D3, int D4, int D5, int D6, int D7, float init)
-{
-	int t, u, v, w, x, y, z;
-	
-	// sizeof(*array) = sizeof(int **)
-	// sizeof(**array) = sizeof(int *)
-	// sizeof(***array) = sizeof(int)
-	
-	float *space = myalloc(D1 * D2 * D3 * D4 * D5 * D6 * D7 * sizeof(*space)); // sizeof(int)
-	if (!space)
-		return NULL;
-	float *******array7D = myalloc(D1 * sizeof(*array7D)); // sizeof(int ******)
-	
-	for (t=0; t<D1; t++)
-	{
-		array7D[t] = myalloc(D2 * sizeof(**array7D)); // sizeof(int *****)
-		for (u=0; u<D2; u++)
-		{
-			array7D[t][u] = myalloc(D3 * sizeof(***array7D));
-			for (v=0; v<D3; v++)
-			{
-				array7D[t][u][v] = myalloc(D4 * sizeof(****array7D));
-				for (w=0; w<D4; w++)
-				{
-					array7D[t][u][v][w] = myalloc(D5 * sizeof(*****array7D));
-					for (x=0; x<D5; x++)
-					{
-						array7D[t][u][v][w][x] = myalloc(D6 * sizeof(******array7D));
-						for (y=0; y<D6; y++)
-						{
-							array7D[t][u][v][w][x][y] = space + (t*D2*D3*D4*D5*D6*D7) \
-							+ (u*D3*D4*D5*D6*D7) + (v*D4*D5*D6*D7) + (w*D5*D6*D7) + (x*D6*D7) + (y*D7);
-						}
-					}
-				}
-			}
-		}
-	}
-	
-	/* Assign values to 3D array */
-	if (fabs(init) <= EPS)
-		memset(array7D[0][0][0][0][0][0], 0, D1*D2*D3*D4*D5*D6*D7*sizeof(*******array7D));
-	else
-		for (t=0; t<D1; t++)
-			for (u=0; u<D2; u++)
-				for (v=0; v<D3; v++)
-					for (w=0; w<D4; w++)
-						for (x=0; x<D5; x++)
-							for (y=0; y<D6; y++)
-								for (z=0; z<D7; z++)
-									array7D[t][u][v][w][x][y][z] = init; 
-	
-	return array7D;
-}
-
-
-void free_7D_farray(float ******* array7D, int D1, int D2, int D3, int D4, int D5)
-{
-	int t, u, v, w, x;//, y;
-	if (!array7D)
-		return;
-	
-	free(******array7D); //free space
-	for (t=0; t<D1; t++)
-	{
-		for (u=0; u<D2; u++)
-		{
-			for (v=0; v<D3; v++)
-			{
-				for (w=0; w<D4; w++)
-				{
-					for (x=0; x<D5; x++)
-						free(array7D[t][u][v][w][x]);
-					free(array7D[t][u][v][w]);
-				}
-				free(array7D[t][u][v]);
-			}
-			free(array7D[t][u]);
-		}
-		free(array7D[t]);
-	}
-	free(array7D);
 	return;
 }

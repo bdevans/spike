@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_version.h>
 
 typedef int tstep; // Signed to allow spikeTimes[0] = -BIG //long long
 
@@ -25,6 +26,10 @@ struct SIMULATION{
 	tstep trainTS;
 	tstep testTS;
 	tstep totTS;
+	float minTau; 
+	double start;
+	double elapsed;
+	double realSecPerSimSec;
 } SIM;
 
 typedef struct DIMENSIONS {
@@ -50,6 +55,7 @@ typedef enum {
 } DELAY;
 
 typedef enum {
+	//Zero,
 	Constant, // Zero set using appropriate Dg modifier
 	Uniform,
 	Gaussian,
@@ -68,8 +74,10 @@ typedef struct {
 	// Simulation
 	float DT;
 	int loops;
-	bool train;// = true;
 	bool pretrain;// = true;
+	bool train;// = true;
+	bool priorPhases;
+	bool isolateEfE;
 	bool trainPause;
 	bool noise; // int
 	float noiseScale;
@@ -79,15 +87,22 @@ typedef struct {
 	int nRecordsPL;// = 0;
 	int nRecords;
 	int * vRecords;
-	float TotalTime;
+	//float TotalTime;
+	float MaxTime;
+	float EpochTime;
+	float TestTime;
+	int EpochMS;
+	int TestMS;
 	int TotalMS;
-	int TotalTS;
+	int RecordMS;
+	//tstep TotalTS;
 	int TSperMS;
 	int spkBuffer;
 	//int inpSpkBuff;
 	bool printConnections;
 	bool saveInputSpikes;
 	bool probConnect;
+	bool loadWeights;
 	
 	// Stimuli
 	char * imgDir;
@@ -99,11 +114,17 @@ typedef struct {
 	bool localRep;// = true;
 	float current;// = 1.25e-9;
 	float currentSpread;
+	//bool loadStimuli;
+	bool stimGroups;
+	//int nBG;
+	//int nWG;
+	int nGroups;
 	int nStimuli;
 	int nTransPS;
 	bool newTestSet;
 	int M; // Degree of training i.e. train with M of the NCK
 	int K; // Number of stimuli presented simultaneously
+	//int nTestGroups;
 	int nTestStimuli;
 	int nTestTransPS;
 	float transP_Train;
@@ -150,6 +171,7 @@ typedef struct {
 	float * pCnxII;
 	int LpII;
 	INITIALISATION initEfE;
+	float iEfE;
 	DELAY axonDelay;
 	float d_const;
 	float d_min;
@@ -166,8 +188,10 @@ typedef struct {
 	float SOMclip;
 	//float SOMstrE;
 	//float SOMstrI;
+	bool trainEfE; // Internal var modified through isolateEfE
 	bool trainElE;
 	INITIALISATION initElE;
+	float iElE;
 	DIM * layDim; 
 	int * vSquare;
 	

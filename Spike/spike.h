@@ -29,7 +29,6 @@
 #include "parameters.h"
 #include "globals.h"
 #include "read_parameters.h" // One use of printIntArray()
-//#include "rng.h"
 
 /*********************/
 
@@ -43,16 +42,26 @@ typedef enum {
 } NTYPE;
 
 typedef enum {
-	NoLearning,
-	Learning,
-	Settle
-} REGIMETYPE;
+	Testing,
+	Training
+	//NoLearning, 	//Testing,
+	//Learning		//Training
+	//Continuous,
+	//Settle
+} LEARNREGIME;
 
 typedef enum {
+	Soft,	// Reset solution variables only
+	Hard	// Reset Spike buffers too
+} SETSV;
+
+/*typedef enum {
 	PreTraining,
 	Training,
-	Testing
-} PHASE;
+	Testing,
+	EfETraining,
+	EfETesting
+} PHASE; */
 
 //int output_spikes[TBINS][NEXCIT]={0};
 
@@ -171,9 +180,17 @@ typedef struct NEURON {
 NEURON ** n_E;
 NEURON ** n_I;
 
-typedef struct {
+typedef struct { //STIMULI {
+	int nStim;
+	int nTrans;
+	int nTestStim;
+	int nTestTrans;
+	bool newTestSet;
+	int ** groups; //bool
 	float *** trn_stimuli;
 	float *** tst_stimuli;
+	//float **** trnGrpStim;
+	//float **** tstGrpStim;
 	int ** stimShuffle;
 	int *** transShuffle;
 	float ******* trnImages; // Arrays for filtered images
@@ -190,6 +207,7 @@ extern char * trim(char * string);
 /* Prototypes from spike.c */
 
 extern int spike(PARAMS * mp);
+extern void calcMemory(PARAMS * mp);
 extern NEURON ** allocn(int nlays, int * vNeurons, NTYPE type);
 extern int unallocn(NEURON ** narray, int nlays, int * vNeurons);
 extern void calcConnectivity(bool probConnect);
@@ -200,14 +218,22 @@ extern float calcDistance(NEURON * n1, NEURON * n2, float scale); // DIM * D);
 extern void alloc_efferents(NEURON * n);
 extern void wire_efferents(NEURON * n);
 extern void create_axons(NEURON * n);
-extern void init_network(int regime);
+extern void initNetwork(SETSV resetBuffers);
+extern void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed);
+extern void setWeights(PARAMS * mp, NEURON ** n_E, NEURON ** n_I, const char * suffix);
 extern int loadImages(STIMULI * stim, PARAMS * mp);
 extern int loadDoGoutput(const char * filename, float * array, int size);
 extern int loadGaborOutput(const char * filename, float * array, int size);
+extern int loadGroups(STIMULI * stim, PARAMS * mp, char * filename);
+//extern void genGroups(STIMULI * stim, PARAMS * mp);
+//extern void printGroups(STIMULI * stim, PARAMS * mp, const char * filename);
 extern void gen_stimuli(bool rep, STIMULI * stim, PARAMS * mp);
+extern void printStimuli(STIMULI * stim, PARAMS * mp);
 extern int genShuffles(STIMULI * stim, PARAMS * mp);
-extern void calc_input(int loop, int pat, int trans, STIMULI * stim, float ** input, int regime);
-extern void simulatePhase(PHASE sPhase, STIMULI * stim);
+extern void printSchedule(STIMULI * stim, const char * filename);
+extern void calcInput(PARAMS * mp, int loop, int pat, int trans, STIMULI * stim, float ** input, int regime);
+extern void loadAfferents(const char * suffix);
+extern void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim);
 extern void updateNetwork(tstep t_start, tstep t_end, float input[], int regime); //int loop, 
 //extern void update_network(tstep t, int loop, float input[], int regime);
 extern void update_V(NEURON * n, tstep t, float decay_rate, float gLeak, float Vrest, float Thresh, float Vhyper, float inj);

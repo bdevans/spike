@@ -10,9 +10,11 @@
 #include "utils.h"
 
 // -> #include <errno.h> for errno and perror(), and <string.h> for strerror(). 
+// TSF: int strerror_r(int errnum, char *strerrbuf, size_t buflen);
 void exit_error(const char * process, const char * statement)
 {
-	fprintf(stderr, "%s: %s. Exiting!\n%s\n", process, statement, strerror(errno));
+	fprintf(stderr, "%s: %s. Exiting!\n%s (%u)\n", process, statement, strerror(-errno), -errno); // System generated error codes are usually negative??
+	perror(statement);
 	fflush(stderr);
 	exit(EXIT_FAILURE);
 }
@@ -64,20 +66,10 @@ void * myfree(void * mem)
 
 FILE * myfopen(const char * filename, const char * args)
 {
-	FILE * fp;
-	fp = fopen(filename, args);
-	if (fp == NULL) // exit_error("MYFOPEN", "NULL pointer from fopen");
-	{
-		//char errStr[PATHBUFF];
-		//int slen = snprintf(errStr, PATHBUFF, "NULL pointer returned opening file %s", filename);
-		//assert(slen < PATHBUFF);
-		exit_error("MYFOPEN", filename);
-		return NULL;
-		//fprintf(stderr, "MYFOPEN ERROR: Could not open file %s.\n", filename);
-		//exit (EXIT_FAILURE);
-	}
-	else
-		return fp;
+	FILE * fp = NULL;
+	if ((fp = fopen(filename, args)) == NULL)
+		exit_error("MYFOPEN", filename); //return NULL; else
+	return fp;
 }
 
 void filecopy(FILE * ifp, FILE * ofp)
@@ -102,9 +94,24 @@ bool file_exists(const char * filename)
 	return false;
 }
 
-void dprint(const char * debug_str)
+/*sprint(char * filename, const char * format);
 {
-	fprintf(stderr, debug_str);
+	int slen = 0;
+	if (snprintf(filename, FNAMEBUFF, format) >= FNAMEBUFF)
+		exit_error("sprintf", "String too long for FNAMEBUFF");
+	
+	assert(slen < FNAMEBUFF);
+	
+	if (snprintf(syscmd, BUFSIZ, "mkdir %s", mp->imgDir) >= BUFSIZ)
+		fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
+ if (snprintf(dst, sizeof(dst) - 1, "%s", src) > sizeof(dst) - 1) { 
+ // Overflow
+}
+}*/
+
+void dprint(const char * debug_str, const char * args)
+{
+	fprintf(stderr, debug_str, args);
 	fflush(stderr);
 	return;
 }
@@ -166,12 +173,20 @@ void getFileParts(char * fullname, FILEPARTS * fp)
 	return;
 }
 
-void getTimeString(char * timeStr, size_t buffer, double secs)
+void getTimeString(char * timeStr, size_t buffer, double secs, const char * format)
 {
 	int hours = (int)(secs/3600); //floor
 	secs -= hours*3600;
 	int mins = (int)(secs/60);
 	secs -= mins*60; //secs = elapsed - (mins*60) - (hours*3600);
-	snprintf(timeStr, buffer, "%d:%02d:%05.2lf",hours,mins,secs);
+	if (!format || strcmp(format, "ms")==0) // Millisecond precision by default
+		snprintf(timeStr, buffer, "%d:%02d:%06.3lf",hours,mins,secs);
+	else if (strcmp(format, "s")==0) // Seconds
+		snprintf(timeStr, buffer, "%d:%02d:%02.0lf",hours,mins,secs);
+	else if (strcmp(format, "m")==0) // Minutes
+		snprintf(timeStr, buffer, "%d:%02d",hours,mins);
+	else
+		exit_error("getTimeString", "Unknown format argument");
+	
 	return;
 }

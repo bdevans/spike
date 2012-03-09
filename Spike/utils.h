@@ -30,7 +30,7 @@ extern void * myfree(void * mem);
 extern FILE * myfopen(const char * filename, const char * args);
 extern void filecopy(FILE * ifp, FILE * ofp);
 extern bool file_exists(const char * filename);
-extern void dprint(const char * debug_str);
+extern void dprint(const char * debug_str, const char * args);
 
 typedef struct {
 	char path[PATHBUFF];
@@ -39,7 +39,7 @@ typedef struct {
 }FILEPARTS;
 
 extern void getFileParts(char * fullname, FILEPARTS * fp);
-extern void getTimeString(char * timeStr, size_t buffer, double secs);
+extern void getTimeString(char * timeStr, size_t buffer, double secs, const char * format);
 
 #define PRINT_INT(token) printf(#token " = %d;\n", token);
 #define PRINT_FLOAT(token) printf(#token " = %G;\n", token);
