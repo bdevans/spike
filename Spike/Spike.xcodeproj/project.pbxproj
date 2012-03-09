@@ -10,7 +10,6 @@
 		010D9BF70EE047F400F13FC5 /* read_parameters.c in Sources */ = {isa = PBXBuildFile; fileRef = 010D9BF60EE047F400F13FC5 /* read_parameters.c */; };
 		0118F1EF0F3A13D80043C7E9 /* array_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 0118F1EE0F3A13D80043C7E9 /* array_utils.c */; };
 		013A2BB60E0AD6D7007F4286 /* spike.c in Sources */ = {isa = PBXBuildFile; fileRef = 013A2BB50E0AD6D7007F4286 /* spike.c */; };
-		01A355580E59C39E00BE1EA9 /* rng.c in Sources */ = {isa = PBXBuildFile; fileRef = 01A355570E59C39E00BE1EA9 /* rng.c */; };
 		01BAD21D0F4D8C2900007DF6 /* utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 01BAD21C0F4D8C2900007DF6 /* utils.c */; };
 		8DD76FAC0486AB0100D96B5E /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 08FB7796FE84155DC02AAC07 /* main.c */; settings = {ATTRIBUTES = (); }; };
 		8DD76FB00486AB0100D96B5E /* Spike.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6A0FF2C0290799A04C91782 /* Spike.1 */; };
@@ -49,8 +48,6 @@
 		013A2BB00E0A94F7007F4286 /* spike.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = spike.h; sourceTree = "<group>"; };
 		013A2BB50E0AD6D7007F4286 /* spike.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = spike.c; sourceTree = "<group>"; };
 		01A355550E598FD600BE1EA9 /* parameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parameters.h; sourceTree = "<group>"; };
-		01A355560E59C39E00BE1EA9 /* rng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rng.h; sourceTree = "<group>"; };
-		01A355570E59C39E00BE1EA9 /* rng.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = rng.c; sourceTree = "<group>"; };
 		01BAD21B0F4D8C2900007DF6 /* utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils.h; sourceTree = "<group>"; };
 		01BAD21C0F4D8C2900007DF6 /* utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = utils.c; sourceTree = "<group>"; };
 		08FB7796FE84155DC02AAC07 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
@@ -90,8 +87,6 @@
 				01A355550E598FD600BE1EA9 /* parameters.h */,
 				010D9BF50EE047F400F13FC5 /* read_parameters.h */,
 				010D9BF60EE047F400F13FC5 /* read_parameters.c */,
-				01A355560E59C39E00BE1EA9 /* rng.h */,
-				01A355570E59C39E00BE1EA9 /* rng.c */,
 				013A2BB50E0AD6D7007F4286 /* spike.c */,
 				013A2BB00E0A94F7007F4286 /* spike.h */,
 				08FB7796FE84155DC02AAC07 /* main.c */,
@@ -144,10 +139,18 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 0410;
 			};
 			buildConfigurationList = 1DEB928908733DD80010E9CD /* Build configuration list for PBXProject "Spike" */;
 			compatibilityVersion = "Xcode 3.1";
+			developmentRegion = English;
 			hasScannedForEncodings = 1;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
 			mainGroup = 08FB7794FE84155DC02AAC07 /* Spike */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -164,7 +167,6 @@
 			files = (
 				8DD76FAC0486AB0100D96B5E /* main.c in Sources */,
 				013A2BB60E0AD6D7007F4286 /* spike.c in Sources */,
-				01A355580E59C39E00BE1EA9 /* rng.c in Sources */,
 				010D9BF70EE047F400F13FC5 /* read_parameters.c in Sources */,
 				0118F1EF0F3A13D80043C7E9 /* array_utils.c in Sources */,
 				01BAD21D0F4D8C2900007DF6 /* utils.c in Sources */,
@@ -211,13 +213,13 @@
 				GCC_WARN_UNUSED_PARAMETER = YES;
 				GCC_WARN_UNUSED_VALUE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = /usr/local/include/;
+				HEADER_SEARCH_PATHS = /opt/local/include/;
 				LD_OPENMP_FLAGS = "";
-				LIBRARY_SEARCH_PATHS = /usr/local/lib/;
+				LIBRARY_SEARCH_PATHS = /opt/local/lib/;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-lgsl";
 				PREBINDING = NO;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx10.6;
 				VALID_ARCHS = "i386 x86_64";
 			};
 			name = DebugSerial;
@@ -282,6 +284,7 @@
 		1DEB928A08733DD80010E9CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				ENABLE_OPENMP_SUPPORT = YES;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
@@ -316,13 +319,13 @@
 				GCC_WARN_UNUSED_PARAMETER = YES;
 				GCC_WARN_UNUSED_VALUE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = /usr/local/include/;
+				HEADER_SEARCH_PATHS = /opt/local/include/;
 				LD_OPENMP_FLAGS = "-fopenmp";
-				LIBRARY_SEARCH_PATHS = /usr/local/lib/;
+				LIBRARY_SEARCH_PATHS = /opt/local/lib/;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-lgsl";
 				PREBINDING = NO;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx10.6;
 				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Debug;
@@ -345,12 +348,12 @@
 				GCC_VERSION = 4.2;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = /usr/local/include/;
-				LIBRARY_SEARCH_PATHS = /usr/local/lib/;
+				HEADER_SEARCH_PATHS = /opt/local/include/;
+				LIBRARY_SEARCH_PATHS = /opt/local/lib/;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "-lgsl";
 				PREBINDING = NO;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx10.6;
 				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Release;
