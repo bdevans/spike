@@ -180,6 +180,12 @@ typedef struct NEURON {
 NEURON ** n_E;
 NEURON ** n_I;
 
+/*typedef struct {
+//	int gr;
+	int st;
+	int tr;
+} SCHEDULE;*/
+
 typedef struct { //STIMULI {
 	int nStim;
 	int nTrans;
@@ -193,6 +199,7 @@ typedef struct { //STIMULI {
 	//float **** tstGrpStim;
 	int ** stimShuffle;
 	int *** transShuffle;
+	//SCHEDULE *** sched;
 	float ******* trnImages; // Arrays for filtered images
 	float ******* tstImages; // Arrays for filtered images
 } STIMULI;
@@ -225,8 +232,8 @@ extern int loadImages(STIMULI * stim, PARAMS * mp);
 extern int loadDoGoutput(const char * filename, float * array, int size);
 extern int loadGaborOutput(const char * filename, float * array, int size);
 extern int loadGroups(STIMULI * stim, PARAMS * mp, char * filename);
-//extern void genGroups(STIMULI * stim, PARAMS * mp);
-//extern void printGroups(STIMULI * stim, PARAMS * mp, const char * filename);
+extern void genGroups(STIMULI * stim, PARAMS * mp);
+extern void printGroups(STIMULI * stim, PARAMS * mp, const char * filename);
 extern void gen_stimuli(bool rep, STIMULI * stim, PARAMS * mp);
 extern void printStimuli(STIMULI * stim, PARAMS * mp);
 extern int genShuffles(STIMULI * stim, PARAMS * mp);

@@ -20,6 +20,7 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+//#include <stdarg.h> // For passing variable number or arguments
 
 #define PATHBUFF	1024
 
@@ -29,6 +30,7 @@ extern void * myrealloc(void * mem, int n);
 extern void * myfree(void * mem);
 extern FILE * myfopen(const char * filename, const char * args);
 extern void filecopy(FILE * ifp, FILE * ofp);
+extern void append(const char * fname, const char * str);
 extern bool file_exists(const char * filename);
 extern void dprint(const char * debug_str, const char * args);
 

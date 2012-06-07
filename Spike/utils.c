@@ -81,6 +81,15 @@ void filecopy(FILE * ifp, FILE * ofp)
 	return;
 }
 
+
+void append(const char * fname, const char * str)
+{
+	FILE * fp = myfopen(fname, "a+");
+	fprintf(fp, "%s", str);
+	fclose(fp);
+	return;
+}
+
 bool file_exists(const char * filename)
 {
 	FILE * file;

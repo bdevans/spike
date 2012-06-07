@@ -75,6 +75,9 @@ int read_parameters(PARAMS * params, char * paramfile)
 	params->SigmaI = params->noiseScale * (params->ThreshI - params->VhyperI);
 	//params->inpSpkBuff = ceil(transP / params->refract);
 	
+    if (params->interleaveTrans) // Stop resetting between stimuli (redundant?)
+        params->trainPause = false;
+    
 	if (params->useFilteredImages && !(strcmp(paramfile, MPFILE)==0)) // Do not parse IPFILE if rerunning with parameters.m
 	{
 		int slen = strlen(mp->imgDir)+1+strlen(IPFILE)+1; // '/' & '\0'
@@ -367,6 +370,9 @@ int read_parameters(PARAMS * params, char * paramfile)
 	if (mp->gLeakI && (mp->capI/mp->gLeakI < SIM.minTau))
 		SIM.minTau = mp->capI/mp->gLeakI;
 	
+	if (mp->train)
+		mp->trainEfE = true; // By default
+	
 	return count;
 }
 
@@ -628,6 +634,10 @@ int parse_string(PARAMS * params, char * string)
 		params->currentSpread = atof(value);
 	else if (strcmp(name, "stimGroups")==0)
 		params->stimGroups = atoi(value);
+	else if (strcmp(name, "nBG")==0)
+		params->nBG = atoi(value);
+	else if (strcmp(name, "nWG")==0)
+		params->nWG = atoi(value);
 	else if (strcmp(name, "nGroups")==0) //Internal
 		params->nGroups = (atoi(value) < 1) ? 1 : atoi(value);
 	else if (strcmp(name, "nStimuli")==0)
@@ -684,6 +694,8 @@ int parse_string(PARAMS * params, char * string)
 		params->inputInhib = atoi(value);
 	else if (strcmp(name, "nExcit")==0)
 		params->nExcit = atoi(value);
+	else if (strcmp(name, "sInputs")==0)
+		params->vExcit[0] = atoi(value);
 	else if (strcmp(name, "vExcit")==0)
 		params->LvExcit = parseIntVector(value, &params->vExcit);
 	else if (strcmp(name, "nSynEfE")==0)
@@ -881,7 +893,8 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	//fprintf(pFile, "DT=%f;\n",mp->DT); c++;
 	fprintf(pFP, "mSeed = %lu;\n", seed);
 	fprintf(pFP, "nThreads = %d;\n", nThreads);
-	FPRINT_FLOAT(pFP, MP.DT); c++;
+	FPRINT_FLOAT(pFP, MP.DT); c++; 
+	fprintf(pFP, "%% %f ms\n",MP.DT*1000);
 	fprintf(pFP, "RecordMS = %d;\n",mp->RecordMS); c++;
 	fprintf(pFP, "EpochMS = %d;\n",mp->EpochMS); c++;
 	fprintf(pFP, "TestMS = %d;\n",mp->TestMS); c++;
@@ -894,11 +907,10 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 
 	fprintf(pFP, "\n%%%% Simulation Parameters %%%%\n");
 	FPRINT_INT(pFP, MP.loops); c++; //fprintf(pFile, "MP.loops = %d;\n", mp->loops);
-	FPRINT_INT(pFP, MP.priorPhases); c++;
-	FPRINT_INT(pFP, MP.isolateEfE); c++;
 	FPRINT_INT(pFP, MP.pretrain); c++;
 	FPRINT_INT(pFP, MP.train); c++;
 	FPRINT_INT(pFP, MP.priorPhases); c++;
+	FPRINT_INT(pFP, MP.isolateEfE); c++;
 	FPRINT_INT(pFP, MP.trainPause); c++;
 	FPRINT_INT(pFP, MP.noise); c++;
 	FPRINT_FLOAT(pFP, MP.noiseScale); c++;
@@ -921,6 +933,8 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	FPRINT_INT(pFP, MP.stimGroups); c++;
 	if (MP.stimGroups)
 	{
+		FPRINT_INT(pFP, MP.nBG); c++;
+		FPRINT_INT(pFP, MP.nWG); c++;
 		FPRINT_INT(pFP, MP.nGroups); c++;
 	}
 	FPRINT_INT(pFP, MP.nStimuli); c++;
@@ -962,6 +976,7 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	FPRINT_INT(pFP, MP.nLayers); c++;
 	FPRINT_INT(pFP, MP.nWLayers); c++;
 	FPRINT_INT(pFP, MP.inputInhib); c++;
+	FPRINT_INT(pFP, MP.sInputs); c++;
 	printIntArray(pFP, "MP.vExcit", mp->vExcit, mp->nLayers); c++;
 	printIntArray(pFP, "MP.vInhib", mp->vInhib, mp->nLayers); c++;
 	FPRINT_FLOAT(pFP, MP.rInhib); c++;
@@ -970,8 +985,7 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	printFloatArray(pFP, "MP.pCnxIE", mp->pCnxIE, mp->nLayers); c++; // nSyn?
 	printFloatArray(pFP, "MP.pCnxEI", mp->pCnxEI, mp->nLayers); c++;
 	printFloatArray(pFP, "MP.pCnxII", mp->pCnxII, mp->nLayers); c++;
-	FPRINT_INT(pFP, MP.initEfE); c++;
-	FPRINT_FLOAT(pFP, MP.iEfE); c++;
+
 	switch (mp->axonDelay)
 	{
 		case MinD:
@@ -993,7 +1007,7 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 			FPRINT_FLOAT(pFP, MP.d_sd); c++;
 			break;
 		case SOMD:
-			fprintf(pFP, "MP.axonDelay = 'SOM';\n"); c++;
+			fprintf(pFP, "MP.axonDelay = 'SOM';\n"); c++; // SOMD would break Matlab code
 			FPRINT_FLOAT(pFP, MP.condSpeed); c++;
 			FPRINT_FLOAT(pFP, MP.maxDelay); c++;
 		default:
@@ -1011,8 +1025,51 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 		FPRINT_FLOAT(pFP, MP.SOMclip); c++;
 	}
 	FPRINT_INT(pFP, MP.trainElE); c++;
-	FPRINT_INT(pFP, MP.initElE); c++;
-	FPRINT_FLOAT(pFP, MP.iElE); c++;
+	//FPRINT_INT(pFP, MP.initElE); c++;
+	switch (mp->initElE)
+	{
+		case Constant:
+			fprintf(pFP, "MP.initElE = 'Constant';\n"); c++;
+			FPRINT_FLOAT(pFP, MP.iElE); c++;
+			break;
+		case Uniform:
+			fprintf(pFP, "MP.initElE = 'Uniform';\n"); c++;
+			break;
+		case Gaussian:
+			fprintf(pFP, "MP.initElE = 'Gaussian';\n"); c++;
+			FPRINT_FLOAT(pFP, MP.SOMsigE); c++;
+			break;
+		case SOM:
+			fprintf(pFP, "MP.initElE = 'SOM';\n"); c++;
+			FPRINT_FLOAT(pFP, MP.SOMsigE); c++;
+			break;
+		default:
+			break;
+	}
+	
+	//FPRINT_INT(pFP, MP.initEfE); c++;
+	//FPRINT_FLOAT(pFP, MP.iEfE); c++;
+	switch (mp->initEfE)
+	{
+		case Constant:
+			fprintf(pFP, "MP.initEfE = 'Constant';\n"); c++;
+			FPRINT_FLOAT(pFP, MP.iEfE); c++;
+			break;
+		case Uniform:
+			fprintf(pFP, "MP.initEfE = 'Uniform';\n"); c++;
+			break;
+		case Gaussian:
+			fprintf(pFP, "MP.initEfE = 'Gaussian';\n"); c++;
+			FPRINT_FLOAT(pFP, MP.SOMsigE); c++;
+			break;
+		case SOM:
+			fprintf(pFP, "MP.initEfE = 'SOM';\n"); c++;
+			FPRINT_FLOAT(pFP, MP.SOMsigE); c++;
+			break;
+		default:
+			break;
+	}
+	
 	printIntArray(pFP, "MP.vSquare", mp->vSquare, mp->nLayers); c++;
 	for (l=0; l<MP.nLayers; l++)
 	{

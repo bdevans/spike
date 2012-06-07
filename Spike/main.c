@@ -51,7 +51,10 @@ int main (int argc, const char * argv[])
 	//char *sfile = NULL;
 	char *cpfile = "CLIparams.m";
 	FILE * cli_FP = NULL;
+	FILE * pipeFP = NULL;
 	char syscmd[BUFSIZ]; // stdio.h : 1024
+	char dlver[BUFSIZ];
+	char *bptr = NULL;
 	int th = 0;
 	float proportion = 1.0;
 #ifdef _OPENMP
@@ -106,18 +109,15 @@ int main (int argc, const char * argv[])
 	
 	//printf("Optimization level: %d", );	
 	
+	char exec[BUFSIZ];
+	strncpy(exec, argv[0], sizeof(exec)-1);
+	
 	if (argc==1)
 	{
-		printf("\nSpike usage:\n");
+		printf("\n%s usage:\n",argv[0]);
 		printf("Checking for \"%s\" in current directory... \t\t\t    [%s]\n",DPFILE,\
 			   (file_exists(DPFILE))?"OK":"NO");
-		/*if (file_exists(DPFILE))
-			printf("[OK]\n");
-		else
-		{
-			printf("[MISSING]\n");
-			printf("This may be symlinked e.g. \"ln -s ~/model/code/%s .\"\n",DPFILE);
-		}*/
+		// Check for GSL
 		printf("Checking for \"%s\" in current directory... \t\t    [%s]\n",rsfile,\
 			   (file_exists(rsfile))?"OK":"NO");
 		printf("-c[lean]\t: Clean all dat and tbz files (including image archives!)\n");
@@ -130,6 +130,7 @@ int main (int argc, const char * argv[])
 		printf("-m <proportion>\t: Set number of threads to a proportion of cores [0.0, 1.0]\n");
 		printf("-t <threads>\t: Explicitly set the number of threads to use\n");
 		printf("-p <parameter>\t: Pass a parameter string <name>=<value>\n");
+		printf("--<parameter>\t: Pass a parameter string <name>=<value>\n");
 		//printf("-i[mage] <directory>\t: Pass directory of filtered images [***incomplete***]\n");
 		printf("-j <images>.tbz\t: Pass compressed image archive\n");
 		printf("-u[ncompressed]\t: Prevent data compression\n");
@@ -203,7 +204,9 @@ int main (int argc, const char * argv[])
 				case 'm':	// Set the proportion of threads from the CLI [0.0, 1.0]
 #ifdef _OPENMP
 					proportion = atof(*++argv);
+#ifndef __llvm__
 					assert(proportion > 0.0 && proportion <= 1.0);
+#endif
 					omp_set_num_threads(round(omp_get_num_procs()*proportion));
 #else
 					fprintf(stderr, "-m %f: OpenMP disabled\n",proportion);
@@ -239,6 +242,18 @@ int main (int argc, const char * argv[])
 					fprintf(cli_FP, "%s;\n", *++argv);
 					skip_arg = true;
 					argc--;
+					pINcount++;
+					break;
+					
+				case '-':	// Equivalent to '-p ' but combines the arguments
+					if (!p_flag)
+					{
+						cli_FP = myfopen(cpfile, "w");
+						p_flag = true;
+					}
+					fprintf(cli_FP, "%s;\n", ++argv[0]); // Advance to next char address
+					skip_arg = true;
+					//argc--;
 					pINcount++;
 					break;
 					
@@ -279,11 +294,37 @@ int main (int argc, const char * argv[])
 	}
 	
 #if DEBUG > 0
-	printf("Compiler: %s | Optimization: %d | Debug: %d\n", \
+     // Move this section to a seperate header e.g. compiler.h 
+#ifdef __GNUC__ // N.B. __GNUC__ is for any compiler implementing GNU compiler extensions, hence is defined for clang and llvm-gcc
+#ifndef __has_feature 
+#define __has_feature(x) 0 
+#endif 
+    #ifdef __llvm__ // Using LLVM backend
+    // http://clang.llvm.org/docs/LanguageExtensions.html
+    printf("Compiler: %s | Optimization: %d | Debug: %d\n", \
 		   __VERSION__, __OPTIMIZE__, DEBUG);
-	//printf("Optimization level: %d\n", __OPTIMIZE__);
-	//printf("*** Executing with Debug level %d ***\t", DEBUG);
+    printf("Compiled on: %s\n",__TIMESTAMP__);
+    printf("Warning: assert() disabled in parallel regions!\n");
+        #ifdef __clang__ // Using Clang-LLVM
+        // For a list of builtin defines type: clang -x c /dev/null -dM -E
+        printf("Compiler: %s | Optimization: %d | Debug: %d\n", \
+               __clang_version__, __OPTIMIZE__, DEBUG);
+        #else // Using GCC-LLVM
+        
+        #endif
+    #if __has_feature(c_static_assert) // Working?
+    printf("Includes support for compile-time assertions\n");
+    #endif
+    
+    #else // Using GCC
+    printf("Compiler: %s | Optimization: %d | Debug: %d\n", \
+		   __VERSION__, __OPTIMIZE__, DEBUG);
+    printf("Source modified on: %s\n",__TIMESTAMP__);
+    printf("Compiled on: %s at %s\n", __DATE__, __TIME__);
+    #endif
 #endif
+#endif
+    
 #ifdef NDEBUG
 	printf("Warning: Executing without error checking!\n");
 #endif
@@ -311,10 +352,22 @@ int main (int argc, const char * argv[])
 	char * sString, buffer[BUFSIZ];
 	unsigned long long seedMod = pow(2, 32); // 32-bit unsigned seeds (max value = pow(2, 32)-1)	
 	
-	printf("This program is compiled with GSL version %s.\n", GSL_VERSION);
-#if DEBUG > 1	// Print GSL verison and location
-	system("gsl-config --prefix --version");
-#endif
+//	printf("This program is compiled with GSL version %s.\n", GSL_VERSION);
+//#if DEBUG > 1	// Print GSL verison and location
+//	system("gsl-config --prefix --version");
+//#endif
+
+	// Print GSL verison and location
+	if ((pipeFP = popen("gsl-config --prefix --version", "r")))
+	{
+		fgets(syscmd, sizeof(syscmd)-1, pipeFP);
+		fgets(dlver, sizeof(dlver)-1, pipeFP);
+	}
+	pclose(pipeFP);
+	if ((bptr = strpbrk(syscmd, "\r\n"))) //strstr(syscmd, '\n')
+		*bptr = '\0';
+	printf("Compiled with GSL v%s, found dynamic libraries v%4.2f at: %s\n",GSL_VERSION,atof(dlver),syscmd);
+	// if atof(dlver) < GSL_MIN
 	
 	if (genNewSeed) // Generate a new random seed file and exit
 	{
@@ -486,8 +539,8 @@ int main (int argc, const char * argv[])
 		// Pass an archive with all relevant dat files with CLI flag e.g. network.tbz
 		const char * suffix = "";
 		char fname[FNAMEBUFF];
-		int sLen = snprintf(fname, FNAMEBUFF, "L0affNeuronsElE%s.dat", suffix);
-		assert(sLen < FNAMEBUFF);
+		slen = snprintf(fname, FNAMEBUFF, "L0affNeuronsElE%s.dat", suffix);
+		assert(slen < FNAMEBUFF);
 		if (!file_exists(fname))
 		{
 			if (file_exists("connectivity.tbz"))
@@ -497,8 +550,8 @@ int main (int argc, const char * argv[])
 		}
 		if (mp->nLayers > 1)
 		{
-			sLen = snprintf(fname, FNAMEBUFF, "L1affNeuronsEfE%s.dat", suffix);
-			assert(sLen < FNAMEBUFF);
+			slen = snprintf(fname, FNAMEBUFF, "L1affNeuronsEfE%s.dat", suffix);
+			assert(slen < FNAMEBUFF);
 			if (!file_exists(fname))
 			{
 				if (file_exists("postTraining.tbz"))
@@ -536,7 +589,7 @@ int main (int argc, const char * argv[])
 		fflush(stdout);
 		
 		if (!(mp->useFilteredImages || mp->stimGroups))
-			if ((syserr = system("tar -cjf stimuli.tbz *stimuli.dat")) == 0)
+			if ((syserr = system("tar -cjf stimuli.tbz *stimuli.dat stimuli.m")) == 0)
 				system("tar -tf stimuli.tbz | xargs rm");
 		
 		if(mp->nRecordsPL)
@@ -598,7 +651,13 @@ int main (int argc, const char * argv[])
 		system("md5 parameters.m"); // shasum
 		system("md5 datHashs.txt");
 		//system("md5 *.tbz"); // Contains metadata (e.g. timestamps) which will give different #s
-	}*/
+	 }*/
+		
+	slen = snprintf(syscmd, sizeof(syscmd)-1, "shasum %s", exec);
+#ifndef __llvm__
+	assert(slen < (signed) sizeof(syscmd));
+#endif
+	system(syscmd);
 	system("shasum parameters.m");
 	system("shasum datHashs.txt");
 	} // End of section

@@ -51,6 +51,7 @@ extern char * rsfile; // = RSFILE;
 
 #define DIRBUFF		128
 #define FNAMEBUFF	256
+//#define ARRBUFF		4096
 
 #endif // _FILE_H
 

@@ -114,10 +114,10 @@ typedef struct {
 	bool localRep;// = true;
 	float current;// = 1.25e-9;
 	float currentSpread;
-	//bool loadStimuli;
+	bool loadStimuli;
 	bool stimGroups;
-	//int nBG;
-	//int nWG;
+	int nBG; // # shared between groups
+	int nWG; // # specific within each group
 	int nGroups;
 	int nStimuli;
 	int nTransPS;
