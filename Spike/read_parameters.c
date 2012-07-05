@@ -18,12 +18,44 @@ int read_parameters(PARAMS * params, char * paramfile)
 	int l = 0;
 	//int square = 0;
 	char * string, buff[BUFFER];
-	FILE * fp;
 	
-	fp = myfopen(paramfile, "r");
-	while ((string = fgets(buff, sizeof(buff), fp)) != NULL) 	/* Read next line */
+	int prevNLayers = (mp->initialised) ? mp->nLayers : 0;
+	
+	FILE * fp = myfopen(paramfile, "r");
+	while ((string = fgets(buff, sizeof(buff), fp)) != NULL) // Read each line
 		count += parse_string(params, buff);
 	fclose(fp);
+	
+	if (params->useFilteredImages && !(strcmp(paramfile, MPFILE)==0)) // Do not parse IPFILE if rerunning with parameters.m
+	{
+		int slen = strlen(mp->imgDir)+1+strlen(IPFILE)+1; // '/' & '\0'
+		char * imgParams = myalloc(slen);
+		if (snprintf(imgParams, slen, "%s/%s", mp->imgDir, IPFILE) >= slen)
+			fprintf(stderr, "*** Warning! Undersized buffer: %s ***", imgParams);
+		/*strncpy(imgParams, mp->imgDir, strlen(mp->imgDir)+1);
+		 strncat(imgParams, "/", 1);
+		 strncat(imgParams, IPFILE, strlen(IPFILE)+1);
+		 imgParams[slen-1]='\0';*/
+		fp = myfopen(imgParams, "r");	/* Read imgParams file */
+		while ((string = fgets(buff, sizeof(buff), fp)) != NULL) 	/* Read next line */
+			count += parse_string(params, buff);
+		fclose(fp); 
+		params->sInputs = params->nPhases*params->nScales*params->nOrients*params->nRows*params->nCols;
+	}
+	else // *** RETHINK this. Replace all with transSize?
+	{
+		params->sInputs = (params->LvExcit) ? params->vExcit[0] : params->nExcit;
+		if (floor(params->a * params->sInputs) < 1) // Change to use and output nFiringNeurons instead
+		{
+			params->nFiringNeurons = floor(params->sInputs/(params->nStimuli * params->nTransPS));
+			params->a = params->nFiringNeurons / params->sInputs;
+		}
+		else
+			params->nFiringNeurons = floor(params->sInputs * params->a);	
+	}
+	
+	assert(mp->nLayers > 0); // nLayers must be set in (default) paramfile
+	int deltaLayers = (mp->initialised) ? (mp->nLayers - prevNLayers) : 0;
 	
 	/* Additional calculations */
 	
@@ -78,35 +110,53 @@ int read_parameters(PARAMS * params, char * paramfile)
     if (params->interleaveTrans) // Stop resetting between stimuli (redundant?)
         params->trainPause = false;
     
-	if (params->useFilteredImages && !(strcmp(paramfile, MPFILE)==0)) // Do not parse IPFILE if rerunning with parameters.m
-	{
-		int slen = strlen(mp->imgDir)+1+strlen(IPFILE)+1; // '/' & '\0'
-		char * imgParams = myalloc(slen);
-		if (snprintf(imgParams, slen, "%s/%s", mp->imgDir, IPFILE) >= slen)
-			fprintf(stderr, "Warning! Undersized buffer: %s", imgParams);
-		/*strncpy(imgParams, mp->imgDir, strlen(mp->imgDir)+1);
-		strncat(imgParams, "/", 1);
-		strncat(imgParams, IPFILE, strlen(IPFILE)+1);
-		imgParams[slen-1]='\0';*/
-		fp = myfopen(imgParams, "r");	/* Read imgParams file */
-		while ((string = fgets(buff, sizeof(buff), fp)) != NULL) 	/* Read next line */
-			count += parse_string(params, buff);
-		fclose(fp); 
-		params->sInputs = params->nPhases*params->nScales*params->nOrients*params->nRows*params->nCols;
-	}
-	else
-	{
-		params->sInputs = (params->LvExcit) ? params->vExcit[0] : params->nExcit;
-		if (floor(params->a * params->sInputs) < 1) // Change to use and output nFiringNeurons instead
-		{
-			params->nFiringNeurons = floor(params->sInputs/(params->nStimuli * params->nTransPS));
-			params->a = params->nFiringNeurons / params->sInputs;
-		}
-		else
-			params->nFiringNeurons = floor(params->sInputs * params->a);	
-	}
+
 	
 	// Change all myalloc to myrealloc?
+    
+    // mp->initialised may make Lv<>'s redundant... collapse into if (mp->initialised) {} else {} and move up
+    // Hard code nLayers = 2 to start to avoid changes when initialising with defaults.m?
+
+    if (deltaLayers != 0) //(deltaLayers < 0 || deltaLayers > 0) only if mp->initialised
+    {
+        assert(mp->nLayers > 0);
+        mp->vRecords = myrealloc(mp->vRecords, mp->nLayers * sizeof(mp->vRecords[0]));
+        mp->vExcit = myrealloc(mp->vExcit, mp->nLayers * sizeof(mp->vExcit[0]));
+        mp->vInhib = myrealloc(mp->vInhib, mp->nLayers * sizeof(mp->vInhib[0]));
+        mp->pCnxEfE = myrealloc(mp->pCnxEfE, mp->nLayers * sizeof(mp->pCnxEfE[0]));
+        mp->pCnxElE = myrealloc(mp->pCnxElE, mp->nLayers * sizeof(mp->pCnxElE[0]));
+        mp->pCnxIE = myrealloc(mp->pCnxIE, mp->nLayers * sizeof(mp->pCnxIE[0]));
+        mp->pCnxEI = myrealloc(mp->pCnxEI, mp->nLayers * sizeof(mp->pCnxEI[0]));
+        mp->pCnxII = myrealloc(mp->pCnxII, mp->nLayers * sizeof(mp->pCnxII[0]));
+        mp->layDim = myrealloc(mp->layDim, mp->nLayers * sizeof(mp->layDim[0]));
+        mp->vSquare = myrealloc(mp->vSquare, mp->nLayers * sizeof(mp->vSquare[0]));
+		mp->LvExcit = mp->LvInhib = mp->LpEfE = mp->LpElE = mp->LpIE = mp->LpEI = mp->LpII = mp->nLayers;
+        
+        if (deltaLayers > 0) // Layers added 
+        {
+            int prevN = prevNLayers; //mp->nLayers - deltaLayers; // Or pass this instead...
+            for (l=prevN; l<mp->nLayers; l++)
+            {
+                mp->vRecords[l] = mp->vRecords[prevN-1];
+                mp->vExcit[l] = mp->vExcit[prevN-1];
+                mp->vInhib[l] = mp->vInhib[prevN-1];
+                mp->pCnxEfE[l] = mp->pCnxEfE[prevN-1];
+                mp->pCnxElE[l] = mp->pCnxElE[prevN-1];
+                mp->pCnxIE[l] = mp->pCnxIE[prevN-1];
+                mp->pCnxEI[l] = mp->pCnxEI[prevN-1];
+                mp->pCnxII[l] = mp->pCnxII[prevN-1];
+                mp->layDim[l].nCols = mp->layDim[prevN-1].nCols;
+                mp->layDim[l].nRows = mp->layDim[prevN-1].nRows;
+                mp->layDim[l].nFilt = (prevN>1) ? mp->layDim[prevN-1].nFilt : 1;
+                mp->vSquare[l] = mp->vSquare[prevN-1];
+            }
+        }
+        deltaLayers = 0;//prevN = mp->nLayers;
+    }
+    else // No change - perform consistency checks
+    {
+        //mp->nWLayers = mp->nLayers;
+    }
 	
 	/* Parse vectors of neurons in each layer */
 	if (params->LvExcit == 0) // Initialize to 0 in defaults.m // Need to consider old parameter files where nExcit is passed after initialization
@@ -231,7 +281,7 @@ int read_parameters(PARAMS * params, char * paramfile)
 		for (l=1; l<params->nLayers; l++)
 		{
 			params->pCnxEfE[l] = ((float) params->nSynEfE)/params->vExcit[l-1];
-			assert((params->pCnxEfE[l] >= 0.0) && (params->pCnxEfE[l] <= 1.0));
+			assert((0.0 <= params->pCnxEfE[l]) && (params->pCnxEfE[l] <= 1.0));
 		}
 		params->LpEfE = l;
 		params->probConnect = true;
@@ -244,7 +294,7 @@ int read_parameters(PARAMS * params, char * paramfile)
 		for (l=0; l<params->nLayers; l++)
 		{
 			params->pCnxElE[l] = ((float) params->nSynElE)/params->vExcit[l];
-			assert((params->pCnxElE[l] >= 0.0) && (params->pCnxElE[l] <= 1.0));
+			assert((0.0 <= params->pCnxElE[l]) && (params->pCnxElE[l] <= 1.0));
 			if (params->pCnxElE[l] > EPS) // 
 				params->SOM = true;
 		}
@@ -257,7 +307,7 @@ int read_parameters(PARAMS * params, char * paramfile)
 		latprob += params->pCnxElE[l];
 	mp->SOM = (latprob>EPS) ? true : false;
 	
-	if (mp->initElE || mp->axonDelay) //!0
+	if (mp->initElE || mp->axonDelay) // Include delayEfE, delayElE, delayEI
 	{
 		mp->SOM = true;
 		if (!mp->SOMinput)
@@ -279,7 +329,7 @@ int read_parameters(PARAMS * params, char * paramfile)
 		for (l=0; l<params->nLayers; l++)
 		{
 			params->pCnxEI[l] = (params->vInhib[l]>0) ? ((float) params->nSynEI)/params->vExcit[l] : 0.0;
-			assert((params->pCnxEI[l] >= 0.0) && (params->pCnxEI[l] <= 1.0));
+			assert((0.0 <= params->pCnxEI[l]) && (params->pCnxEI[l] <= 1.0));
 		}
 		params->LpEI = l;
 		params->probConnect = true;
@@ -292,7 +342,7 @@ int read_parameters(PARAMS * params, char * paramfile)
 		for (l=0; l<params->nLayers; l++)
 		{
 			params->pCnxIE[l] = (params->vInhib[l]>0) ? ((float) params->nSynIE)/params->vInhib[l] : 0.0;
-			assert((params->pCnxIE[l] >= 0.0) && (params->pCnxIE[l] <= 1.0));
+			assert((0.0 <= params->pCnxIE[l]) && (params->pCnxIE[l] <= 1.0));
 		}
 		params->LpIE = l;
 		params->probConnect = true;
@@ -305,7 +355,7 @@ int read_parameters(PARAMS * params, char * paramfile)
 		for (l=0; l<params->nLayers; l++)
 		{
 			params->pCnxII[l] = (params->vInhib[l]>0) ? ((float) params->nSynII)/params->vInhib[l] : 0.0;
-			assert((params->pCnxII[l] >= 0.0) && (params->pCnxII[l] <= 1.0));
+			assert((0.0 <= params->pCnxII[l]) && (params->pCnxII[l] <= 1.0));
 		}
 		params->LpII = l;
 		params->probConnect = true;
@@ -320,11 +370,11 @@ int read_parameters(PARAMS * params, char * paramfile)
 	if (params->nRecordsPL && params->vRecords==NULL)
 	{
 		params->nRecords = 0;
-		params->vRecords = myalloc(params->nLayers * params->nRecordsPL * sizeof(int));
+		params->vRecords = myalloc(params->nLayers * sizeof(int)); // * params->nRecordsPL
 		for (l=0; l<params->nLayers; l++)
 		{
 			params->vRecords[l] = params->nRecordsPL;
-			assert((params->vRecords[l] >= 0) && (params->vRecords[l] <= params->vExcit[l]));
+			assert((0 <= params->vRecords[l]) && (params->vRecords[l] <= params->vExcit[l]));
 			params->nRecords += params->vRecords[l];
 		}
 	}
@@ -372,6 +422,9 @@ int read_parameters(PARAMS * params, char * paramfile)
 	
 	if (mp->train)
 		mp->trainEfE = true; // By default
+	
+	if (count > 0)
+		mp->initialised = true;
 	
 	return count;
 }
@@ -545,8 +598,14 @@ int parse_string(PARAMS * params, char * string)
 	/* Copy into correct entry in parameters struct */ // Use strcmpi() for case insensitive comparisons
 //#define Match(arg)	(strcmp(argv[cur_arg], (arg)) == 0)
 //retval = (input) ? assign(param, value) : writeout(param, fp) ; 
-	/* Simulation */		
-	if (strcmp(name, "DT")==0)
+	/* Simulation */
+	if (strcmp(name, "mSeed")==0)
+        printf("\n<Original mSeed: %ld>\n",atol(value));
+    else if (strcmp(name, "nThreads")==0)
+        printf("<Original nThreads: %d>\n",atoi(value));
+    else if (strcmp(name, "RecordMS")==0 || strcmp(name, "EpochMS")==0 || strcmp(name, "TestMS")==0)
+        ; // Skip - Matlab variables
+	else if (strcmp(name, "DT")==0)
 		params->DT = atof(value);
 	else if (strcmp(name, "loops")==0 || strcmp(name, "nEpochs")==0)
 		params->loops = atoi(value);
@@ -568,6 +627,8 @@ int parse_string(PARAMS * params, char * string)
 		params->normalise = atoi(value);
 	else if (strcmp(name, "nRecordsPL")==0)
 		params->nRecordsPL = atoi(value);
+    else if (strcmp(name, "nRecords")==0)
+        ; // Skip - Matlab variable
 	else if (strcmp(name, "vRecords")==0)
 		parseIntVector(value, &params->vRecords);
 	else if (strcmp(name, "printConnections")==0)
@@ -662,6 +723,11 @@ int parse_string(PARAMS * params, char * string)
 		params->transP_Test = atof(value);
 	else if (strcmp(name, "shift")==0)
 		params->shift = atoi(value);
+    else if (strcmp(name, "nFiringNeurons")==0)
+    {
+        params->nFiringNeurons = atoi(value);
+        params->a = (float) params->nFiringNeurons / params->sInputs;
+    }
 	else if (strcmp(name, "a")==0)
 	{
 		params->a = atof(value);
@@ -690,6 +756,8 @@ int parse_string(PARAMS * params, char * string)
 		params->nLayers = atoi(value);
 		params->nWLayers = params->nLayers - 1;
 	}
+    else if (strcmp(name, "nWLayers")==0)
+        assert(params->nWLayers == params->nLayers-1);
 	else if (strcmp(name, "inputInhib")==0)
 		params->inputInhib = atoi(value);
 	else if (strcmp(name, "nExcit")==0)
@@ -730,6 +798,21 @@ int parse_string(PARAMS * params, char * string)
 		params->iEfE = atof(value);
 	else if (strcmp(name, "axonDelay")==0)
 		params->axonDelay = atoi(value);
+    else if (strcmp(name, "delayEfE")==0)
+    {
+        params->delayEfE = atoi(value);
+        params->axonDelay = true;
+    }
+    else if (strcmp(name, "delayElE")==0)
+    {
+        params->delayElE = atoi(value);
+        params->axonDelay = true;
+    }
+    else if (strcmp(name, "delayEI")==0)
+    {
+        params->delayEI = atoi(value);
+        params->axonDelay = true;
+    }
 	else if (strcmp(name, "d_const")==0)
 		params->d_const = atof(value);
 	else if (strcmp(name, "d_min")==0)
@@ -875,7 +958,7 @@ int parse_string(PARAMS * params, char * string)
 	
 	else
 	{
-		fprintf(stderr, "WARNING: %s/%s: Unknown name/value pair!\n", name, value);
+		fprintf(stderr, "*** WARNING: %s/%s: Unknown name/value pair! ***\n", name, value);
 		exit (-1); //return -1;
 	}
 	
@@ -893,8 +976,7 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	//fprintf(pFile, "DT=%f;\n",mp->DT); c++;
 	fprintf(pFP, "mSeed = %lu;\n", seed);
 	fprintf(pFP, "nThreads = %d;\n", nThreads);
-	FPRINT_FLOAT(pFP, MP.DT); c++; 
-	fprintf(pFP, "%% %f ms\n",MP.DT*1000);
+	FPRINT_FLOAT(pFP, MP.DT); c++; fprintf(pFP, "%% %f ms\n",MP.DT*1000);
 	fprintf(pFP, "RecordMS = %d;\n",mp->RecordMS); c++;
 	fprintf(pFP, "EpochMS = %d;\n",mp->EpochMS); c++;
 	fprintf(pFP, "TestMS = %d;\n",mp->TestMS); c++;
@@ -986,34 +1068,97 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	printFloatArray(pFP, "MP.pCnxEI", mp->pCnxEI, mp->nLayers); c++;
 	printFloatArray(pFP, "MP.pCnxII", mp->pCnxII, mp->nLayers); c++;
 
-	switch (mp->axonDelay)
-	{
-		case MinD:
-			fprintf(pFP, "MP.axonDelay = 'MinD';\n"); c++;
-			//FPRINT_FLOAT(pFile, MP.d_const); c++;
-			break;
-		case ConstD:
-			fprintf(pFP, "MP.axonDelay = 'ConstD';\n"); c++;
-			FPRINT_FLOAT(pFP, MP.d_const); c++;
-			break;
-		case UniformD:
-			fprintf(pFP, "MP.axonDelay = 'UniformD';\n"); c++;
-			FPRINT_FLOAT(pFP, MP.d_min); c++;
-			FPRINT_FLOAT(pFP, MP.d_max); c++;
-			break;
-		case GaussD:
-			fprintf(pFP, "MP.axonDelay = 'GaussD';\n"); c++;
-			FPRINT_FLOAT(pFP, MP.d_mean); c++;
-			FPRINT_FLOAT(pFP, MP.d_sd); c++;
-			break;
-		case SOMD:
-			fprintf(pFP, "MP.axonDelay = 'SOM';\n"); c++; // SOMD would break Matlab code
-			FPRINT_FLOAT(pFP, MP.condSpeed); c++;
-			FPRINT_FLOAT(pFP, MP.maxDelay); c++;
-		default:
-			break;
-	}
-	
+    FPRINT_INT(pFP, MP.axonDelay); c++;
+    
+    if (mp->axonDelay)
+    {
+        switch (mp->delayEfE) //(mp->axonDelay)
+        {
+            case MinD:
+                fprintf(pFP, "MP.delayEfE = 'MinD';\n"); c++;
+                //FPRINT_FLOAT(pFile, MP.d_const); c++;
+                break;
+            case ConstD:
+                fprintf(pFP, "MP.delayEfE = 'ConstD';\n"); c++;
+                FPRINT_FLOAT(pFP, MP.d_const); c++;
+                break;
+            case UniformD:
+                fprintf(pFP, "MP.delayEfE = 'UniformD';\n"); c++;
+                FPRINT_FLOAT(pFP, MP.d_min); c++;
+                FPRINT_FLOAT(pFP, MP.d_max); c++;
+                break;
+            case GaussD:
+                fprintf(pFP, "MP.delayEfE = 'GaussD';\n"); c++;
+                FPRINT_FLOAT(pFP, MP.d_mean); c++;
+                FPRINT_FLOAT(pFP, MP.d_sd); c++;
+                break;
+            case SOMD:
+                fprintf(pFP, "MP.delayEfE = 'SOM';\n"); c++; // SOMD would break Matlab code
+                FPRINT_FLOAT(pFP, MP.condSpeed); c++;
+                FPRINT_FLOAT(pFP, MP.maxDelay); c++;
+            default:
+                break;
+        }
+        
+        switch (mp->delayElE) //(mp->axonDelay)
+        {
+            case MinD:
+                fprintf(pFP, "MP.delayElE = 'MinD';\n"); c++;
+                //FPRINT_FLOAT(pFile, MP.d_const); c++;
+                break;
+            case ConstD:
+                fprintf(pFP, "MP.delayElE = 'ConstD';\n"); c++;
+                FPRINT_FLOAT(pFP, MP.d_const); c++;
+                break;
+            case UniformD:
+                fprintf(pFP, "MP.delayElE = 'UniformD';\n"); c++;
+                FPRINT_FLOAT(pFP, MP.d_min); c++;
+                FPRINT_FLOAT(pFP, MP.d_max); c++;
+                break;
+            case GaussD:
+                fprintf(pFP, "MP.delayElE = 'GaussD';\n"); c++;
+                FPRINT_FLOAT(pFP, MP.d_mean); c++;
+                FPRINT_FLOAT(pFP, MP.d_sd); c++;
+                break;
+            case SOMD:
+                fprintf(pFP, "MP.delayElE = 'SOM';\n"); c++; // SOMD would break Matlab code
+                FPRINT_FLOAT(pFP, MP.condSpeed); c++;
+                FPRINT_FLOAT(pFP, MP.maxDelay); c++;
+            default:
+                break;
+        }
+        
+        switch (mp->delayEI) //(mp->axonDelay)
+        {
+            case MinD:
+                fprintf(pFP, "MP.delayEI = 'MinD';\n"); c++;
+                //FPRINT_FLOAT(pFile, MP.d_const); c++;
+                break;
+            case ConstD:
+                fprintf(pFP, "MP.delayEI = 'ConstD';\n"); c++;
+                FPRINT_FLOAT(pFP, MP.d_const); c++;
+                break;
+            case UniformD:
+                fprintf(pFP, "MP.delayEI = 'UniformD';\n"); c++;
+                FPRINT_FLOAT(pFP, MP.d_min); c++;
+                FPRINT_FLOAT(pFP, MP.d_max); c++;
+                break;
+            case GaussD:
+                fprintf(pFP, "MP.delayEI = 'GaussD';\n"); c++;
+                FPRINT_FLOAT(pFP, MP.d_mean); c++;
+                FPRINT_FLOAT(pFP, MP.d_sd); c++;
+                break;
+            case SOMD:
+                fprintf(pFP, "MP.delayEI = 'SOM';\n"); c++; // SOMD would break Matlab code
+                FPRINT_FLOAT(pFP, MP.condSpeed); c++;
+                FPRINT_FLOAT(pFP, MP.maxDelay); c++;
+            default:
+                break;
+        }
+    }
+    else
+        fprintf(pFP, "%% Axon delays set to minimum (1 tstep)\n");
+        
 	FPRINT_FLOAT(pFP, MP.spatialScale); c++; // Needed for plotting connectivity
 	
 	FPRINT_INT(pFP, MP.SOM); c++;

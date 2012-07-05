@@ -43,6 +43,13 @@ typedef struct {
 extern void getFileParts(char * fullname, FILEPARTS * fp);
 extern void getTimeString(char * timeStr, size_t buffer, double secs, const char * format);
 
+extern char errloc[PATHBUFF]; 
+#define EE(errmsg)   { \
+                    snprintf(errloc, PATHBUFF, "\n[%s (%d) : %s] --> ", \
+                        strrchr(__FILE__, '/')+1, __LINE__, __FUNCTION__); \
+                    exit_error(errloc,errmsg); } 
+//const char *buildString = "Compiled at "__DATE__", "__TIME__".";
+
 #define PRINT_INT(token) printf(#token " = %d;\n", token);
 #define PRINT_FLOAT(token) printf(#token " = %G;\n", token);
 #define FPRINT_INT(fptr, token) fprintf(fptr, #token " = %d;\n", token);

@@ -73,6 +73,7 @@ typedef struct {
 	float * cellV;
 	float * cellcCa;
 	float * cellD;
+    float * LsigGI; // Sum of Inhibitory conductances
 	float ** FSynC; // Feed-forward Afferents
 	float ** FSynG;
 	float ** FSynDG;
@@ -215,6 +216,7 @@ extern char * trim(char * string);
 
 extern int spike(PARAMS * mp);
 extern void calcMemory(PARAMS * mp);
+extern float meanQueue(PARAMS * mp, DELAY synClass);
 extern NEURON ** allocn(int nlays, int * vNeurons, NTYPE type);
 extern int unallocn(NEURON ** narray, int nlays, int * vNeurons);
 extern void calcConnectivity(bool probConnect);
@@ -224,7 +226,7 @@ extern float calcDistance(NEURON * n1, NEURON * n2, float scale); // DIM * D);
 //extern void wire_afferents(NEURON * n, int l, int * affNcnx_fE, int * affNcnx_lE, int * affNcnx_I);
 extern void alloc_efferents(NEURON * n);
 extern void wire_efferents(NEURON * n);
-extern void create_axons(NEURON * n);
+extern void create_axons(NEURON * n, PARAMS * mp);
 extern void initNetwork(SETSV resetBuffers);
 extern void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed);
 extern void setWeights(PARAMS * mp, NEURON ** n_E, NEURON ** n_I, const char * suffix);

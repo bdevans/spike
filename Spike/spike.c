@@ -26,7 +26,7 @@ int spike(PARAMS * mp)
 	
 	/*************** Calculate RAM requirements ****************/
 	
-	void calcMemory(PARAMS * mp);
+	calcMemory(mp);
 	
 	printf("Ventral Visual Stream Spiking Neural Network Simulation starting...\n");
 	
@@ -112,66 +112,65 @@ int spike(PARAMS * mp)
 	{
 		if (mp->loadStimuli)
 		{
-			
-		if (mp->priorPhases)
-		{
-			printf("\tLoading PP grouped stimuli...");
-			
-			// Load training & testing stimuli for prior phases
-			/*if (!PPSTFILE) // Use STIMULIFILE as the default file name if one has not been passed
-			{
-				printf("\t\"%s\" (default)",STIMULIFILE);
-				int slen = strlen(STIMULIFILE);
-				PPSTFILE = myalloc((slen+1)*sizeof(char));
-				strncpy(PPSTFILE, STIMULIFILE, slen);
-				PPSTFILE[slen] = '\0';
-			}
-			else
-				printf("\t\"%s\"",ELESTFILE);*/
-			
-			printf("\t\"%s\"",PPSTFILE);
-			gStim->nStim = gStim->nTestStim = 0;
-			gStim->nTrans = gStim->nTestTrans = 0;
-			loadGroups(gStim, mp, PPSTFILE); // Pass filename here *****************************
-			printf("\tPP stimuli loaded!\n");
-		}
-		
-		printf("\tLoading grouped stimuli..."); 
-		/*if (!STFILE) // Use STIMULIFILE as the default file name if one has not been passed
-		{
-			printf("\t\"%s\" (default)",STIMULIFILE);
-			int slen = strlen(STIMULIFILE);
-			STFILE = myalloc((slen+1)*sizeof(char));
-			strncpy(STFILE, STIMULIFILE, slen);
-			STFILE[slen] = '\0';
-		}
-		else
-			printf("\t\"%s\"",STFILE);*/
-		
-		printf("\t\"%s\"",STFILE); 
-		loadGroups(stim, mp, STFILE);
-		assert(stim->nStim == mp->nStimuli);
-		assert(stim->nTrans == mp->nTransPS);
-		printf("\tGroups loaded!\n"); 
-		
-		// Print prototypes for neuron labelling
-		stimuli_FP = myfopen("prototypes.stm", "w");
-		print_iarray(stimuli_FP, stim->groups, mp->nGroups, mp->sInputs);
-		fclose(stimuli_FP);
-		
-		if (stim->newTestSet)
-		{
-			assert(stim->nTestStim == mp->nTestStimuli);
-			assert(stim->nTestTrans == mp->nTestTransPS);
-		}
-		else
-		{
-			mp->nTestStimuli = mp->nStimuli;
-			mp->nTestTransPS = mp->nTransPS;
-			stim->tst_stimuli = stim->trn_stimuli;
-			stim->nTestStim = mp->nTestStimuli;
-			stim->nTestTrans = mp->nTestTransPS;
-		}
+            if (mp->priorPhases) // Load training & testing stimuli for prior phases
+            {
+                printf("\tLoading PP grouped stimuli...");
+                
+                
+                /*if (!PPSTFILE) // Use STIMULIFILE as the default file name if one has not been passed
+                 {
+                 printf("\t\"%s\" (default)",STIMULIFILE);
+                 int slen = strlen(STIMULIFILE);
+                 PPSTFILE = myalloc((slen+1)*sizeof(char));
+                 strncpy(PPSTFILE, STIMULIFILE, slen);
+                 PPSTFILE[slen] = '\0';
+                 }
+                 else
+                 printf("\t\"%s\"",ELESTFILE);*/
+                
+                printf("\t\"%s\"",PPSTFILE);
+                gStim->nStim = gStim->nTestStim = 0;
+                gStim->nTrans = gStim->nTestTrans = 0;
+                loadGroups(gStim, mp, PPSTFILE); // Pass filename here *****************************
+                printf("\tPP stimuli loaded!\n");
+            }
+            
+            printf("\tLoading grouped stimuli..."); 
+            /*if (!STFILE) // Use STIMULIFILE as the default file name if one has not been passed
+             {
+             printf("\t\"%s\" (default)",STIMULIFILE);
+             int slen = strlen(STIMULIFILE);
+             STFILE = myalloc((slen+1)*sizeof(char));
+             strncpy(STFILE, STIMULIFILE, slen);
+             STFILE[slen] = '\0';
+             }
+             else
+             printf("\t\"%s\"",STFILE);*/
+            
+            printf("\t\"%s\"",STFILE); 
+            loadGroups(stim, mp, STFILE);
+            assert(stim->nStim == mp->nStimuli);
+            assert(stim->nTrans == mp->nTransPS);
+            printf("\tGroups loaded!\n"); 
+            
+            // Print prototypes for neuron labelling
+            stimuli_FP = myfopen("prototypes.stm", "w");
+            print_iarray(stimuli_FP, stim->groups, mp->nGroups, mp->sInputs);
+            fclose(stimuli_FP);
+            
+            if (stim->newTestSet)
+            {
+                assert(stim->nTestStim == mp->nTestStimuli);
+                assert(stim->nTestTrans == mp->nTestTransPS);
+            }
+            else
+            {
+                mp->nTestStimuli = mp->nStimuli;
+                mp->nTestTransPS = mp->nTransPS;
+                stim->tst_stimuli = stim->trn_stimuli;
+                stim->nTestStim = mp->nTestStimuli;
+                stim->nTestTrans = mp->nTestTransPS;
+            }
 		}
 		else // Generate groups of stimuli
 		{
@@ -222,29 +221,6 @@ int spike(PARAMS * mp)
 		printf("\tCreating the stimuli...");
 		gen_stimuli(mp->localRep, stim, mp);			// Generate Patterns
 		printStimuli(stim, mp);
-		
-		/*int p = 0;
-		stimuli_FP = myfopen("trn_stimuli.dat", "w");
-		for (p=0; p<mp->nStimuli; p++)
-		{
-			fprintf(stimuli_FP, "*** Stimulus #%d (%d/%d) ***\n", p, p+1, mp->nStimuli);
-			print_farray(stimuli_FP, (stim->trn_stimuli)[p], mp->nTransPS, mp->sInputs);
-			fprintf(stimuli_FP, "\n");
-		}
-		fclose(stimuli_FP);
-		
-		if (mp->newTestSet)
-		{
-			stimuli_FP = myfopen("tst_stimuli.dat", "w");
-			for (p=0; p<mp->nTestStimuli; p++)
-			{
-				fprintf(stimuli_FP, "*** Stimulus #%d (%d/%d) ***\n", p, p+1, mp->nTestStimuli);
-				print_farray(stimuli_FP, (stim->tst_stimuli)[p], mp->nTestTransPS, mp->sInputs);
-				fprintf(stimuli_FP, "\n");
-			}
-			fclose(stimuli_FP);
-		}*/
-		
 		printf("\tStimuli saved!\n");
 	}
 	
@@ -381,29 +357,36 @@ int spike(PARAMS * mp)
 
 void calcMemory(PARAMS * mp)
 {
+    fprintf(stdout, "--------------------------------------------------------------------------------\n");
 #if DEBUG > 1
 	fprintf(stdout, "Variable type:\tNEURON\tAXON  \t*     \tfloat \ttstep \tint\n");
 	fprintf(stdout, "Size (bytes): \t%-6lu\t%-6lu\t%-6lu\t%-6lu\t%-6lu\t%-6lu\t\n",\
 			sizeof(NEURON),sizeof(AXON),sizeof(int*),sizeof(float),sizeof(tstep),sizeof(int));
 #endif
 	//size_t size = sizeof();
-	int EsynE = 0;
-	int EsynI = 0;
+	float EsynE = 0;
+    float EsynEfE = 0;
+  	float EsynElE = 0;
+    float EsynIE = 0;
+	float EsynI = 0;
+    float EsynEI = 0;
+    float EsynII = 0;
 	float memE = 0.0;
 	float memI = 0.0;
 	float memMisc = 0.0;
 	float memTrain = 0.0;
 	float memTest = 0.0;
 	float Tmem = 0.0;
-	float avq = 0;
-	int EsynElE = 0;
+    float avqEfE = 1;
+    float avqElE = 1;
+    float avqEI = 1;
     int mult = 0;
     float base = 0.0;
 	
 	int MB = 1024*1024;
 	int l=0;
 #if DEBUG > 1
-	fprintf(stdout, "\nLayer\tExcit \tInhib \tSize (MB)\n");
+	fprintf(stdout, "\nLayer\tExcit \tInhib \tMem (MB)\n");
 #endif
 	for (l=0; l<mp->nLayers; l++)
 	{
@@ -414,44 +397,36 @@ void calcMemory(PARAMS * mp)
 #endif
 	}
 	
-	switch (mp->axonDelay) 
-	{
-		case MinD:
-			avq = 1;
-			break;
-		case ConstD:
-			avq = round(mp->d_const/mp->DT);
-			break;
-		case UniformD:
-			avq = (mp->d_min + ((mp->d_max - mp->d_min) / 2))/mp->DT;
-			break;
-		case GaussD:
-			avq = mp->d_mean / mp->DT;
-			break;
-		case SOMD:
-			avq = mp->maxDelay / (2.0 * mp->DT); // Reasonable for 1D layer
-			break;
-		default:
-			exit_error("create_axons", "Unknown axonal delay model!");
-			break;
-	}
-	avq = (!avq) ? 1 : avq;
+    if (mp->axonDelay)
+    {
+        avqEfE = (mp->delayEfE) ? meanQueue(mp, mp->delayEfE) : 1;
+        avqElE = (mp->delayElE) ? meanQueue(mp, mp->delayElE) : 1;
+        avqEI = (mp->delayEI) ? meanQueue(mp, mp->delayEI) : 1;
+    }
+
 	
 #if DEBUG > 1
 	//fprintf(stderr,"\nPresynaptic connection probabilites for Excitatory postsynaptic cells\n");
-	fprintf(stdout,"\n\tp(EfE)\tp(ElE)\tp(IE) \tE[syn] \tp(EI) \tp(II) \tE[syn]\tSize (MB)\n");
+	fprintf(stdout,"\n\tp(EfE)\tp(ElE)\tp(IE) \tE[syn] \tp(EI) \tp(II) \tE[syn]\tMem (MB)\n");
 #endif
-	// Assumes minimum delay model i.e. 1 spike bin per axon for all except ElE
+	// Assumes minimum delay model i.e. 1 spike bin per axon for all except EfE, ElE & EI
 	for (l=0; l<mp->nLayers; l++)
 	{
-		EsynE = (((l>0)?(mp->vExcit[l-1]*mp->pCnxEfE[l]):0)+(mp->vInhib[l]*mp->pCnxIE[l]))*mp->vExcit[l];
-		EsynElE = (pow(mp->vExcit[l],2)*mp->pCnxElE[l]);
-		memE = ((EsynE + EsynElE)*(sizeof(AXON) + (sizeof(NEURON*)*3)) + (sizeof(tstep)*(EsynE + avq*EsynElE)))/MB;
-		EsynI = ((mp->vExcit[l]*mp->pCnxEI[l])+(mp->vInhib[l]*mp->pCnxII[l]))*mp->vInhib[l];
-		memI = (sizeof(AXON) + (sizeof(NEURON*)*3) + sizeof(tstep))*(float)EsynI/MB;
+        EsynEfE = ((l>0) ? (mp->vExcit[l-1]*mp->pCnxEfE[l]) : 0) * mp->vExcit[l];
+        EsynElE = pow(mp->vExcit[l],2) * mp->pCnxElE[l];
+        EsynIE = mp->vInhib[l] * mp->pCnxIE[l] * mp->vExcit[l];
+		EsynE = EsynEfE + EsynElE + EsynIE; 
+        memE = EsynE * (sizeof(AXON) + (sizeof(NEURON*) * 3))/MB;
+        memE += ((avqEfE*EsynEfE) + (avqElE*EsynElE) + EsynIE) * sizeof(tstep)/MB;
+
+		EsynEI = mp->vExcit[l] * mp->pCnxEI[l] * mp->vInhib[l];
+        EsynII = pow(mp->vInhib[l], 2) * mp->pCnxII[l];
+        EsynI = EsynEI + EsynII;
+        memI = EsynI * (sizeof(AXON) + (sizeof(NEURON*) * 3))/MB;
+        memI += (avqEI*EsynEI + EsynII) * sizeof(tstep)/MB;
 #if DEBUG > 1
 		fprintf(stdout,"L%d:\t%-6.3f\t%-6.3f\t%-6.3f\t%-6.2G\t%-6.3f\t%-6.3f\t%-6.2G\t%-6.2f\n", \
-				l,mp->pCnxEfE[l],mp->pCnxElE[l],mp->pCnxIE[l],(float)EsynE+EsynElE, \
+				l,mp->pCnxEfE[l],mp->pCnxElE[l],mp->pCnxIE[l],(float)EsynE, \
 				mp->pCnxEI[l],mp->pCnxII[l],(float)EsynI,memE+memI);
 #endif
 		Tmem += (memE + memI);
@@ -460,7 +435,7 @@ void calcMemory(PARAMS * mp)
 #if DEBUG > 1
 	fprintf(stdout, "\nStimuli:\tStruct.\tTrain \tTest  \tRecords\n");
 #endif
-	if (mp->SOM) // (mp->initElE == SOM || mp->initEfE == SOM || mp->axonDelay == SOMD) //mp->SOM // Triangle of Distances
+	if (mp->SOM) // Triangle of Distances // (mp->initElE == SOM || mp->initEfE == SOM || mp->axonDelay == SOMD)
 	{
 		for (l=0; l<mp->nLayers; l++)
 			memMisc += mp->vExcit[l]*(mp->vExcit[l]+1)/2; // Gauss' method 
@@ -478,22 +453,13 @@ void calcMemory(PARAMS * mp)
         mult = (mp->train && mp->trainElE) ? 3 : 1; // Lateral g (& Dg, C)
         for (l=0; l<mp->nLayers; l++)
             memE += mp->vRecords[l] * mp->vExcit[l] * mp->pCnxElE[l] * mult * base;
+        for (l=(mp->inputInhib ? 0 : 1); l<mp->nLayers; l++) // Sigma g_I
+            memE += mp->vRecords[l] * base;
         for (l=1; l<mp->nLayers; l++)
 			memE += mp->vRecords[l]*((mp->train)?3:1)*(mp->vExcit[l-1]*mp->pCnxEfE[l])*base; // g (& Dg, C)
 		for (l=0; l<mp->nLayers; l++)
             memE += mp->vRecords[l] * sizeof(RECORD); // Record structures
         memE /= MB;
-        
-		/*memE = (mp->vRecords[0]*(sizeof(RECORD)+(mp->RecordMS+1)*sizeof(float)))/MB; // V
-        if (mp->adaptation)
-            for (l=0; l<mp->nLayers; l++)
-                memE += mp->vRecords[l]*(mp->RecordMS+1)*sizeof(float)/MB; // cCa
-        if (mp->train)
-            memE += mp->vRecords[0]*(mp->RecordMS+1)*sizeof(float)/MB; // D
-		for (l=1; l<mp->nLayers; l++)
-			memE += mp->vRecords[l]*((mp->train)?3:1)*(mp->RecordMS+1)*(mp->vExcit[l-1]*mp->pCnxEfE[l])*sizeof(float)/MB;
-		for (l=0; l<mp->nLayers; l++)
-			memE += mp->vRecords[l]*((mp->train)?3:1)*(mp->RecordMS+1)*(mp->vExcit[l]*mp->pCnxElE[l])*sizeof(float)/MB;*/
 	}
 	
 	memMisc += (float)(sizeof(PARAMS) + \
@@ -510,6 +476,38 @@ void calcMemory(PARAMS * mp)
 	fprintf(stdout, "--------------------------------------------------------------------------------\n"); // Replace with horizontal line cmd?
 }
 
+
+float meanQueue(PARAMS * mp, DELAY synClass)
+{
+    float avq = 1;
+    if (mp->axonDelay)
+    {
+        switch (synClass) 
+        {
+            case MinD:
+                avq = 1;
+                break;
+            case ConstD:
+                avq = round(mp->d_const/mp->refract);
+                break;
+            case UniformD:
+                avq = (mp->d_min + ((mp->d_max - mp->d_min) / 2))/mp->refract;
+                break;
+            case GaussD:
+                avq = mp->d_mean / mp->refract;
+                break;
+            case SOMD:
+                avq = mp->maxDelay / (2.0 * mp->refract); // Reasonable for 1D layer
+                break;
+            default:
+                exit_error("create_axons", "Unknown axonal delay model!");
+                break;
+        }
+        //avq = (avq < 1) ? 1 : avq;
+    }
+
+    return avq; //(avq < 1) ? 1 : ceil(avq);
+}
 
 NEURON ** allocn (int nLays, int * vNeurons, NTYPE type)
 {
@@ -633,6 +631,8 @@ int unallocn (NEURON ** narray, int nLays, int * vNeurons)
 				myfree(narray[l][n].rec->cellV);//, mp->loops);
 				if (mp->adaptation)
 					myfree(narray[l][n].rec->cellcCa);
+                if (narray[l][n].nLAff_I)
+                    myfree(narray[l][n].rec->LsigGI);
                 if (narray[l][n].nFAff_E) //(l>0)
                     free_2D_farray(narray[l][n].rec->FSynG);
                 if (narray[l][n].nLAff_E) // Synaptic variables are stored with the post-synaptic neuron
@@ -699,16 +699,10 @@ void calcConnectivity(bool probConnect)
 #endif
 				for (j=0; j<=i; j++)
 				{
-					/*d_h = n_E[l][i].row - n_E[l][j].row;
-					d_w = n_E[l][i].col - n_E[l][j].col;
-					h_min = MIN(abs(d_h), abs(d_h + mp->layDim[l].nRows)); // Periodic boundary conditions
-					w_min = MIN(abs(d_w), abs(d_w + mp->layDim[l].nCols)); // Periodic boundary conditions
-					distE[l][i][j] = sqrt(pow(h_min,2) + pow(w_min,2)); // j is always > i*/
-					
 					distE[l][i][j] = calcDistance(&n_E[l][i], &n_E[l][j], mp->spatialScale);//mp->layDim);
 #if DEBUG > 3
 					printf("Dist: N%d[%d,%d] --> N%d[%d,%d] = %f\n", i, n_E[l][i].row, n_E[l][i].col, \
-						   j, n_E[l][j].row, n_E[l][j].col, readLowTriF(distE, l, i, j));//distE[l][i][j]);
+						   j, n_E[l][j].row, n_E[l][j].col, readLowTriF(distE, l, i, j));
 #endif
 					/*if (mp->SOM == 2) // Probabilistically connect
 						probE[l][i][j] = probE[l][j][i] = phiScale * exp(-pow(distance,2)/(2*pow(mp->SOMsigE,2))); // mu = 0*/
@@ -763,7 +757,7 @@ void calcConnectivity(bool probConnect)
 			wire_efferents(&n_I[l][n]);
 	
 	/*** Axonal delays ***/
-#if DEBUG >	1
+/*#if DEBUG >	1
 	switch (mp->axonDelay) 
 	{
 		case MinD:
@@ -790,15 +784,15 @@ void calcConnectivity(bool probConnect)
 			printf("\nError: Unknown axonal delay model!\n");
 			break;
 	}
-#endif
+#endif*/
 	
 	for (l=0; l<mp->nLayers; l++)
 		for (n=0; n<mp->vExcit[l]; n++)
-			create_axons(&n_E[l][n]);
+			create_axons(&n_E[l][n], mp);
 	
 	for (l=0; l<mp->nLayers; l++)
 		for (n=0; n<mp->vInhib[l]; n++)
-			create_axons(&n_I[l][n]);
+			create_axons(&n_I[l][n], mp);
 	
 	/* Given a particular postsynaptic neuron <E|I>, n, and its synapse, s, the presynaptic 
 	 cell forming the synapse <E|I> is given by presyncnx_<E|I><E|I>[l][n][s]. */
@@ -815,7 +809,7 @@ void calcConnectivity(bool probConnect)
 	int tot = 0;
 	for (l=0; l<mp->nWLayers; l++)
 		for (n=0; n<mp->vExcit[l+1]; n++)
-			tot = tot + n_E[l+1][n].nFAff_E;
+			tot += n_E[l+1][n].nFAff_E;
 	int *space = myalloc(tot*sizeof(*space));
 	tot = 0;
 	affNeurons_EfE = myalloc(mp->nWLayers*sizeof(*affNeurons_EfE));
@@ -876,6 +870,24 @@ void calcConnectivity(bool probConnect)
 			fclose(connections_FP);
 		}
 		
+        if (mp->delayEfE) // Print EfE delays (anything other than minimum)
+        {
+            for (l=0; l<mp->nWLayers; l++) // Loop up to nWLayers
+            {
+                slen = snprintf(filename, FNAMEBUFF, "L%daffDelaysEfE.dat", l+1);
+                assert(slen < FNAMEBUFF);
+                connections_FP = myfopen(filename, "w");
+                for (n=0; n<mp->vExcit[l+1]; n++)
+                {
+                    fprintf(connections_FP, "%d\t", n_E[l+1][n].nFAff_E); // Print number of EfE synapses first
+                    for (s=0; s<n_E[l+1][n].nFAff_E; s++)
+                        fprintf(connections_FP, "%d ", n_E[l+1][n].FAffs_E[s]->delay);
+                    fprintf(connections_FP, "\n");
+                }
+                fclose(connections_FP);
+            }
+        }
+        
 		for (l=0; l<mp->nLayers; l++)
 		{
 			slen = snprintf(filename, FNAMEBUFF, "L%daffNeuronsElE.dat", l);
@@ -906,22 +918,24 @@ void calcConnectivity(bool probConnect)
 				}
 				fclose(connections_FP);
 			}
-			
-			// Print delays
-			for (l=0; l<mp->nLayers; l++)
-			{
-				slen = snprintf(filename, FNAMEBUFF, "L%daffDelaysElE.dat", l); 
-				assert(slen < FNAMEBUFF);
-				connections_FP = myfopen(filename, "w");
-				for (n=0; n<mp->vExcit[l]; n++)
-				{
-					fprintf(connections_FP, "%d\t", n_E[l][n].nLAff_E); // Print number of ElE synapses first (in case any have 0)
-					for (s=0; s<n_E[l][n].nLAff_E; s++)
-						fprintf(connections_FP, "%d ", n_E[l][n].LAffs_E[s]->delay);
-					fprintf(connections_FP, "\n");
-				}
-				fclose(connections_FP);
-			}
+						
+            if (mp->delayElE) // Print ElE delays
+            {
+                for (l=0; l<mp->nLayers; l++)
+                {
+                    slen = snprintf(filename, FNAMEBUFF, "L%daffDelaysElE.dat", l); 
+                    assert(slen < FNAMEBUFF);
+                    connections_FP = myfopen(filename, "w");
+                    for (n=0; n<mp->vExcit[l]; n++)
+                    {
+                        fprintf(connections_FP, "%d\t", n_E[l][n].nLAff_E); // Print number of ElE synapses first (in case any have 0)
+                        for (s=0; s<n_E[l][n].nLAff_E; s++)
+                            fprintf(connections_FP, "%d ", n_E[l][n].LAffs_E[s]->delay);
+                        fprintf(connections_FP, "\n");
+                    }
+                    fclose(connections_FP);
+                }
+            }
 		}
 		
 		for (l=0; l<mp->nLayers; l++)
@@ -938,6 +952,24 @@ void calcConnectivity(bool probConnect)
 			}
 			fclose(connections_FP);
 		}
+        
+        if (mp->delayEI) // Print EI delays
+        {
+            for (l=0; l<mp->nLayers; l++)
+			{
+				slen = snprintf(filename, FNAMEBUFF, "L%daffDelaysEI.dat", l); 
+				assert(slen < FNAMEBUFF);
+				connections_FP = myfopen(filename, "w");
+				for (n=0; n<mp->vInhib[l]; n++)
+				{
+					fprintf(connections_FP, "%d\t", n_I[l][n].nLAff_E); // Print number of EI synapses first (in case any have 0)
+					for (s=0; s<n_I[l][n].nLAff_E; s++)
+						fprintf(connections_FP, "%d ", n_I[l][n].LAffs_E[s]->delay);
+					fprintf(connections_FP, "\n");
+				}
+				fclose(connections_FP);
+			}
+        }
 		
 		for (l=0; l<mp->nLayers; l++)
 		{
@@ -1227,224 +1259,6 @@ void wireAfferents(NEURON * n, float pEfn, float pEln, float pIln)
 	return;
 }
 
-/*void calc_connectivity() //* This function randomly connects the neurons together *
-{
-	int n, l;
-	int slen = 0;	
-	char filename[FNAMEBUFF];
-	FILE * connections_FP;
-	
-	//* Given a particular postsynaptic neuron <E|I>, n, and its synapse, s, the presynaptic cell forming the synapse <E|I> is given by presyncnx_<E|I><E|I>[l][n][s]. *
-	//* NB If connections from the previous and the same layer are required, can label each neuron from 0 to (NEXCIT*NLAYERS)-1 (the neuron ID) with l=floor(NID/NEXCIT) and n=((NID+1)%NEXCIT)-1.	*
-	
-	//*	For affNeurons_EfE[0][n][s] : layer 0 cells --> layer 1 cells (NWLAYERS)
-	//	For affNeurons_ElE[0][n][s] : layer 0 cells --> layer 0 cells (NLAYERS)
-	//	For affNeurons_IE[0][n][s] : layer 0 cells --> layer 0 cells (NLAYERS)
-	//	For affNeurons_EI[0][n][s] : layer 0 cells --> layer 0 cells (NLAYERS)
-	//	For affNeurons_II[0][n][s] : layer 0 cells --> layer 0 cells (NLAYERS) *
-	
-	affNeurons_EfE = get_3D_iarray(mp->nWLayers, mp->nExcit, mp->nSynEfE, 0);
-	affNeurons_ElE = get_3D_iarray(mp->nLayers, mp->nExcit, mp->nSynElE, 0);
-	affNeurons_IE = get_3D_iarray(mp->nLayers, mp->nExcit, mp->nSynIE, 0);
-	affNeurons_EI = get_3D_iarray(mp->nLayers, mp->nInhib, mp->nSynEI, 0);
-	affNeurons_II = get_3D_iarray(mp->nLayers, mp->nInhib, mp->nSynII, 0);
-	
-#pragma omp for nowait private(n, l)
-	for (n=0; n<mp->nExcit; n++)
-	{
-		for (l=0; l<mp->nLayers; l++)
-		{
-			n_E[l][n].nFEff_E = 0;
-			n_E[l][n].nLEff_E = 0;
-			n_E[l][n].nLEff_I = 0;
-			n_E[l][n].n = n;
-			n_E[l][n].l = l;
-			n_E[l][n].nFAff_E = (l!=0) ? mp->nSynEfE : 0;
-			n_E[l][n].nLAff_E = mp->nSynElE;
-			n_E[l][n].nLAff_I = (l==0 && !mp->inputInhib) ? 0 : mp->nSynIE;
-		}
-	}
-	
-#pragma omp for private(n, l)
-	for (n=0; n<mp->nInhib; n++)
-	{
-		for (l=0; l<mp->nLayers; l++)
-		{
-			n_I[l][n].nFEff_E = 0;
-			n_I[l][n].nLEff_E = 0;
-			n_I[l][n].nLEff_I = 0;
-			n_I[l][n].n = n;
-			n_I[l][n].l = l;
-			n_I[l][n].nFAff_E = 0;
-			n_I[l][n].nLAff_E = (l==0 && !mp->inputInhib) ? 0 : mp->nSynEI;
-			n_I[l][n].nLAff_I = (l==0 && !mp->inputInhib) ? 0 : mp->nSynII;
-		}
-	}
-	
-	//***** Can rands1_new be used in parallel? *****
-	
-	for (n=0; n<mp->nExcit; n++)
-		for (l=0; l<mp->nLayers; l++) // int * EfE_ptr = (l>0) ? affNeurons_EfE[l-1][n] : NULL;
-			wire_afferents(&n_E[l][n], l, (l>0)?affNeurons_EfE[l-1][n]:NULL, (affNeurons_ElE)?affNeurons_ElE[l][n]:NULL, affNeurons_IE[l][n]);
-		//((l>0)?affNeurons_EfE[l-1][n]:NULL)
-			
-	for (n=0; n<mp->nInhib; n++)
-		for (l=0; l<mp->nLayers; l++)
-			wire_afferents(&n_I[l][n], l, NULL, affNeurons_EI[l][n], affNeurons_II[l][n]);
-	
-#pragma omp for nowait private(n, l)
-	for (n=0; n<mp->nExcit; n++)
-		for (l=0; l<mp->nLayers; l++)
-			alloc_efferents(&n_E[l][n]);
-	
-#pragma omp for private(n, l)
-	for (n=0; n<mp->nInhib; n++)
-		for (l=0; l<mp->nLayers; l++)
-			alloc_efferents(&n_I[l][n]);
-	
-	for (n=0; n<mp->nExcit; n++)
-		for (l=0; l<mp->nLayers; l++)
-			wire_efferents(&n_E[l][n]);
-	
-	for (n=0; n<mp->nInhib; n++)
-		for (l=0; l<mp->nLayers; l++)
-			wire_efferents(&n_I[l][n]);
-	
-	//*** Axonal delays ***
-#if DEBUG >	1
-	switch (mp->axonDelay) 
-	{
-		case MinD:
-			printf("\nSetting axonal delays to minimum\n");
-			break;
-			
-		case ConstD:
-			printf("\nSetting axonal delays to %f seconds\n",mp->d_const);
-			break;
-			
-		case UniformD:
-			printf("\nDrawing axonal delays from [%f, %f]\n",mp->d_min, mp->d_max);
-			break;
-			
-		case GaussD:
-			printf("\nDrawing axonal delays from N(%f,%f)\n",mp->d_mean, mp->d_sd);
-			break;
-			
-		default:
-			printf("\nError: Unknown axonal delay model!\n");
-			break;
-	}
-#endif
-	
-	for (n=0; n<mp->nExcit; n++)
-		for (l=0; l<mp->nLayers; l++)
-			create_axons(&n_E[l][n]);
-	
-	for (n=0; n<mp->nInhib; n++)
-		for (l=0; l<mp->nLayers; l++)
-			create_axons(&n_I[l][n]);
-		
-	//************** FILE OUTPUT **************
-	
-	for (l=0; l<mp->nWLayers; l++) // Loop up to nWLayers
-	{
-		slen = snprintf(filename, FNAMEBUFF, "L%daffNeuronsEfE.dat", l+1);
-		assert(slen < FNAMEBUFF);
-		connections_FP = fopen(filename, "w");
-		print_iarray(connections_FP, affNeurons_EfE[l], mp->nExcit, mp->nSynEfE);
-		fclose(connections_FP);
-	}
-	
-	for (l=0; l<mp->nLayers; l++)
-	{
-		slen = snprintf(filename, FNAMEBUFF, "L%daffNeuronsElE.dat", l);
-		assert(slen < FNAMEBUFF);
-		connections_FP = fopen(filename, "w");
-		print_iarray(connections_FP, (affNeurons_ElE)?affNeurons_ElE[l]:NULL, mp->nExcit, mp->nSynElE);
-		fclose(connections_FP);
-	}
-	
-	for (l=0; l<mp->nLayers; l++)
-	{
-		slen = snprintf(filename, FNAMEBUFF, "L%daffNeuronsEI.dat", l);
-		assert(slen < FNAMEBUFF);
-		connections_FP = fopen(filename, "w");
-		print_iarray(connections_FP, affNeurons_EI[l], mp->nInhib, mp->nSynEI);
-		fclose(connections_FP);
-	}
-	
-	for (l=0; l<mp->nLayers; l++)
-	{
-		slen = snprintf(filename, FNAMEBUFF, "L%daffNeuronsIE.dat", l);
-		assert(slen < FNAMEBUFF);
-		connections_FP = fopen(filename, "w");
-		print_iarray(connections_FP, affNeurons_IE[l], mp->nExcit, mp->nSynIE);
-		fclose(connections_FP);
-	}
-	
-	for (l=0; l<mp->nLayers; l++)
-	{
-		slen = snprintf(filename, FNAMEBUFF, "L%daffNeuronsII.dat", l);
-		assert(slen < FNAMEBUFF);
-		connections_FP = fopen(filename, "w");
-		print_iarray(connections_FP, affNeurons_II[l], mp->nInhib, mp->nSynII);
-		fclose(connections_FP);
-	}
-	
-	//************** END OF FILE OUTPUT **************
-	
-	return; //void?
-}*/
-
-
-/*void wire_afferents(NEURON * n, int l, int * affNcnx_fE, int * affNcnx_lE, int * affNcnx_I)
-{ // n_E, n_I, 
-	int s, choice;
-	
-	//*** Ef synapses ***
-	rands1_new(0,0,&iv,1);	// Initialise RNG (clear internal array of numbers drawn)
-	n->lm1presyn_E = myalloc(n->nFAff_E * sizeof(NEURON *));
-	n->FAffs_E = myalloc(n->nFAff_E * sizeof(AXON *));
-	for (s=0; s<n->nFAff_E; s++) //if (n->nFAff_E > 0)
-	{
-		choice=rands1_new(0,mp->nExcit-1,&iv,1); // Sample from presyn neurons without replacement
-		affNcnx_fE[s] = choice;
-		n->lm1presyn_E[s] = &n_E[l-1][choice];
-		n_E[l-1][choice].nFEff_E++;
-	}
-	
-	//*** Lateral El synapses ***
-	rands1_new(0,0,&iv,1);	// Initialise RNG (clear internal array of numbers drawn)
-	n->lm0presyn_E = myalloc(n->nLAff_E * sizeof(NEURON *)); // Create array of NEURON pointers
-	n->LAffs_E = myalloc(n->nLAff_E * sizeof(AXON *)); // Create array of AXON pointers
-	for (s=0; s<n->nLAff_E; s++)
-	{
-		choice=rands1_new(0,mp->nExcit-1,&iv,1); // Sample from pre-synaptic neurons without replacement
-		affNcnx_lE[s] = choice; //*** NEW ARRAY!
-		n->lm0presyn_E[s] = &n_E[l][choice]; // Point to presynaptic neuron
-		if (n->type == EXCIT)
-			n_E[l][choice].nLEff_E++;
-		else if (n->type == INHIB)
-			n_E[l][choice].nLEff_I++;
-	}
-	
-	//*** Lateral I Synapses ***
-	rands1_new(0,0,&iv,1);	// Initialise RNG (clear internal array of numbers drawn)
-	n->lm0presyn_I = myalloc(n->nLAff_I * sizeof(NEURON *)); // Create array of NEURON pointers
-	n->LAffs_I = myalloc(n->nLAff_I * sizeof(AXON *)); // Create array of AXON pointers
-	for (s=0; s<n->nLAff_I; s++)
-	{
-		choice=rands1_new(0,mp->nInhib-1,&iv,1); // Sample from pre-synaptic neurons without replacement
-		affNcnx_I[s] = choice;
-		n->lm0presyn_I[s] = &n_I[l][choice]; // Point to presynaptic neuron
-		if (n->type == EXCIT)
-			n_I[l][choice].nLEff_E++;
-		else if (n->type == INHIB)
-			n_I[l][choice].nLEff_I++;
-	}
-	return;
-}*/
-
 
 void alloc_efferents(NEURON * n)
 {
@@ -1525,384 +1339,175 @@ void wire_efferents(NEURON * n)
 	}
 }
 
-void create_axons(NEURON * n)
+void create_axons(NEURON * n, PARAMS * mp)
 {
 	/*** Axonal delays specified in seconds must be converted to timesteps ***/
 	tstep delay = 0;
 	//int nBins = 0;
 	int span = 0;
 	int s = 0;
-	switch (mp->axonDelay) 
-	{
-		case MinD:
-			delay = 1;
-			//nBins = 1;
-			break;
-		case ConstD:
-			delay = round(mp->d_const/mp->DT);
-			delay = (!delay) ? 1 : delay;
-			//nBins = ceil(mp->d_const/mp->refract);
-			//nBins = (!nBins) ? 1 : nBins;
-			break;
-		case UniformD:
-			span = mp->d_max - mp->d_min;
-			break;
-		case GaussD:
-			break;
-		case SOMD:
-			break;
-		default:
-			exit_error("create_axons", "Unknown axonal delay model!");
-			break;
-	}
+
 	
-	for (s=0; s<n->nFEff_E; s++) // nFEff_E = 0 for l = nLayers and n->type == INHIB
-	{
-		switch (mp->axonDelay) 
-		{
-			case UniformD:
-				//delay = round(((ran3(&idum)*span)+mp->d_min)/DT);
-				delay = round(((gsl_rng_uniform(mSeed)*span)+mp->d_min)/mp->DT);
-				//delay = (!delay) ? 1 : delay;
-				//nbins = ceil((delay*DT)/mp->refract);
-				break;
-			case GaussD:
-				//delay = round((mp->d_mean + mp->d_sd*gasdev(&idum))/DT);
-				delay = round((mp->d_mean + gsl_ran_gaussian(mSeed,mp->d_sd))/mp->DT);
-				//delay = (!delay) ? 1 : delay;
-				//nbins = ceil((delay*DT)/mp->refract);
-				break;
-			case SOMD:
-				delay = 1;
-				break;
-			default:
-				break;
-		}
-		n->FEffs_E[s].delay = (!delay) ? 1 : delay;
-		n->FEffs_E[s].nBins = ceil((n->FEffs_E[s].delay*mp->DT)/mp->refract);
-		n->FEffs_E[s].queue = myalloc(n->FEffs_E[s].nBins * sizeof(tstep));
-		init_queue(&(n->FEffs_E[s]));
-	}
-	for (s=0; s<n->nLEff_E; s++)
-	{
-		switch (mp->axonDelay) 
-		{
-			case UniformD:
-				//delay = round(((ran3(&idum)*span)+mp->d_min)/DT);
-				delay = round(((gsl_rng_uniform(mSeed)*span)+mp->d_min)/mp->DT);
-				break;
-			case GaussD:
-				//delay = round((mp->d_mean + mp->d_sd*gasdev(&idum))/DT);
-				delay = round((mp->d_mean + gsl_ran_gaussian(mSeed,mp->d_sd))/mp->DT);
-				break;
-			case SOMD: 	// Wire ElE connections with delays proportional to their Euclidean distances
-				if (n->type == EXCIT)
-					delay = round(readLowTriF(distE, n->l, n->n, n->lp0postsyn_E[s]->n) / ((float) mp->condSpeed * mp->DT));
-				else
-					delay = 1; // *** Need to add topology to Inhibitory neurons ***
+    if (n->type == EXCIT) // Excitatory neuron -> {E,I} delays
+    {
+        // EfE Delays
+        switch (mp->delayEfE) //(mp->axonDelay) 
+        {
+            case MinD:
+                delay = 1;
+                break;
+            case ConstD:
+                delay = round(mp->d_const/mp->DT);
+                delay = (!delay) ? 1 : delay;
+                break;
+            case UniformD:
+                span = mp->d_max - mp->d_min;
+                break;
+            case GaussD:
+                break;
+            case SOMD:
+                break;
+            default:
+                exit_error("create_axons", "Unknown axonal delay model!");
+                break;
+        }
+        for (s=0; s<n->nFEff_E; s++) // nFEff_E = 0 for l = nLayers and n->type == INHIB
+        {
+            switch (mp->delayEfE)//(mp->axonDelay) 
+            {
+                case UniformD:
+                    delay = round(((gsl_rng_uniform(mSeed)*span)+mp->d_min)/mp->DT);
+                    break;
+                case GaussD:
+                    delay = round((mp->d_mean + gsl_ran_gaussian(mSeed,mp->d_sd))/mp->DT);
+                    break;
+                case SOMD:
+                    delay = 1;
+                    break;
+                default:
+                    break;
+            }
+            n->FEffs_E[s].delay = (delay<1) ? 1 : delay; //(!delay) ? 1 : delay;
+            n->FEffs_E[s].nBins = ceil((n->FEffs_E[s].delay*mp->DT)/mp->refract);
+            n->FEffs_E[s].queue = myalloc(n->FEffs_E[s].nBins * sizeof(tstep));
+            init_queue(&(n->FEffs_E[s]));
+        }
+        
+        // ElE Delays
+        switch (mp->delayElE) //(mp->axonDelay) 
+        {
+            case MinD:
+                delay = 1;
+                break;
+            case ConstD:
+                delay = round(mp->d_const/mp->DT);
+                delay = (!delay) ? 1 : delay;
+                break;
+            case UniformD:
+                span = mp->d_max - mp->d_min;
+                break;
+            case GaussD:
+                break;
+            case SOMD:
+                break;
+            default:
+                exit_error("create_axons", "Unknown axonal delay model!");
+                break;
+        }
+        for (s=0; s<n->nLEff_E; s++)
+        {
+            switch (mp->delayElE) //(mp->axonDelay) 
+            {
+                case UniformD:
+                    delay = round(((gsl_rng_uniform(mSeed)*span)+mp->d_min)/mp->DT);
+                    break;
+                case GaussD:
+                    delay = round((mp->d_mean + gsl_ran_gaussian(mSeed,mp->d_sd))/mp->DT);
+                    break;
+                case SOMD: 	// Wire ElE connections with delays proportional to their Euclidean distances
+                    if (n->type == EXCIT)
+                        delay = round(readLowTriF(distE, n->l, n->n, n->lp0postsyn_E[s]->n) / ((float) mp->condSpeed * mp->DT));
+                    else
+                        delay = 1; // *** Need to add topology to Inhibitory neurons ***
 					//delay = round(distE[n->l][n->n][n->lp0postsyn_E[s]->n] / mp->condSpeed);
-				break;
-			default:
-				break;
-		}
-		n->LEffs_E[s].delay = (!delay) ? 1 : delay;
-		n->LEffs_E[s].nBins = ceil((n->LEffs_E[s].delay*mp->DT)/mp->refract);
-		n->LEffs_E[s].queue = myalloc(n->LEffs_E[s].nBins * sizeof(tstep));
-		init_queue(&(n->LEffs_E[s]));
-	}
-	for (s=0; s<n->nLEff_I; s++)
-	{
-		switch (mp->axonDelay) 
-		{
-			case UniformD:
-				//delay = round(((ran3(&idum)*span)+mp->d_min)/DT);
-				delay = round(((gsl_rng_uniform(mSeed)*span)+mp->d_min)/mp->DT);
-				break;
-			case GaussD:
-				//delay = round((mp->d_mean + mp->d_sd*gasdev(&idum))/DT);
-				delay = round((mp->d_mean + gsl_ran_gaussian(mSeed,mp->d_sd))/mp->DT);
-				break;
-			case SOMD:
-				delay = 1;
-				break;
-			default:
-				break;
-		}
-		n->LEffs_I[s].delay = (!delay) ? 1 : delay;
-		n->LEffs_I[s].nBins = ceil((n->LEffs_I[s].delay*mp->DT)/mp->refract);
-		n->LEffs_I[s].queue = myalloc(n->LEffs_I[s].nBins * sizeof(tstep));
-		init_queue(&(n->LEffs_I[s]));
-	}
+                    break;
+                default:
+                    break;
+            }
+            n->LEffs_E[s].delay = (delay<1) ? 1 : delay;
+            n->LEffs_E[s].nBins = ceil((n->LEffs_E[s].delay*mp->DT)/mp->refract);
+            n->LEffs_E[s].queue = myalloc(n->LEffs_E[s].nBins * sizeof(tstep));
+            init_queue(&(n->LEffs_E[s]));
+        }
+        
+        // EI Delays
+        switch (mp->delayEI) //(mp->axonDelay) 
+        {
+            case MinD:
+                delay = 1;
+                break;
+            case ConstD:
+                delay = round(mp->d_const/mp->DT);
+                delay = (!delay) ? 1 : delay;
+                break;
+            case UniformD:
+                span = mp->d_max - mp->d_min;
+                break;
+            case GaussD:
+                break;
+            case SOMD:
+                break;
+            default:
+                exit_error("create_axons", "Unknown axonal delay model!");
+                break;
+        }
+        for (s=0; s<n->nLEff_I; s++)
+        {
+            switch (mp->delayEI) //(mp->axonDelay) 
+            {
+                case UniformD:
+                    delay = round(((gsl_rng_uniform(mSeed)*span)+mp->d_min)/mp->DT);
+                    break;
+                case GaussD:
+                    delay = round((mp->d_mean + gsl_ran_gaussian(mSeed,mp->d_sd))/mp->DT);
+                    break;
+                case SOMD:
+                    delay = 1;
+                    break;
+                default:
+                    break;
+            }
+            n->LEffs_I[s].delay = (delay<1) ? 1 : delay;
+            n->LEffs_I[s].nBins = ceil((n->LEffs_I[s].delay*mp->DT)/mp->refract);
+            n->LEffs_I[s].queue = myalloc(n->LEffs_I[s].nBins * sizeof(tstep));
+            init_queue(&(n->LEffs_I[s]));
+        }
+    }
+    else // Inhibitory Neuron -> {E,I} delays
+    {
+        for (s=0; s<n->nLEff_E; s++)
+        {
+            n->LEffs_E[s].delay = 1;
+            n->LEffs_E[s].nBins = 1;
+            n->LEffs_E[s].queue = myalloc(n->LEffs_E[s].nBins * sizeof(tstep));
+            init_queue(&(n->LEffs_E[s]));
+        }
+        
+        for (s=0; s<n->nLEff_I; s++)
+        {
+            n->LEffs_I[s].delay = 1;
+            n->LEffs_I[s].nBins = 1;
+            n->LEffs_I[s].queue = myalloc(n->LEffs_I[s].nBins * sizeof(tstep));
+            init_queue(&(n->LEffs_I[s]));
+        }
+    }
 	return;
 }
+
 
 void initNetwork(SETSV resetBuffers)
 {
 	int s, n, l;
-	
-	/*if (regime == Learning) // Only initialise before training, not testing
-	{
-		if (mp->nRecords)
-		{
-			int choice;
-			int r; //, syn, t;
-			int * choices = NULL;
-			int * chosen = NULL;
-			// Print Records file
-			char rString[BUFSIZ];
-			int slen = 0;
-			FILE * rFile = myfopen("records.m", "w");
-			fprintf(rFile, "MP.Records = cell(1,MP.nLayers);\n"); 
-			
-			// Set up recording bins
-			printf("\n");
-			for (l=0; l<mp->nLayers; l++)
-			{
-				assert((mp->vRecords[l] >= 0) && (mp->vRecords[l] <= mp->vExcit[l]));
-				chosen = myalloc(mp->vRecords[l] * sizeof(*chosen));
-				choices = myalloc(mp->vExcit[l] * sizeof(*choices));
-				for (n=0; n<mp->vExcit[l]; n++)
-					choices[n] = n;
-				//choice=rands1_new(0,0,&iv,1);	// Initialise RNG
-				gsl_ran_choose(mSeed, chosen, mp->vRecords[l], choices, mp->vExcit[l], sizeof(*choices));
-				for (r=0; r<mp->vRecords[l]; r++)
-				{
-					// Randomly set NRECORDS flags
-					//choice=rands1_new(0,mp->vExcit[l]-1,&iv,1);
-					//n_E[l][choice].rec_flag = true;
-					n_E[l][chosen[r]].rec_flag = true;
-					printf("\tLayer #%d, Record %d Assigned nID: #%d\n",l,r+1,chosen[r]);
-				}
-				slen = snprintf(rString, BUFSIZ, "MP.Records{%d}", l+1);
-				assert(slen < BUFSIZ);
-				printIntArray(rFile, rString, chosen, mp->vRecords[l]); 
-				myfree(chosen);
-				myfree(choices);
-			}
-			//myfree(chosen);
-			fclose(rFile); // Close Records file
-			// Create recording structures - (mp->RecordMS+1) so that initial conditions are recorded
-			for (l=0; l<mp->nLayers; l++)
-				for (n=0; n<mp->vExcit[l]; n++)
-					if (n_E[l][n].rec_flag)
-					{
-						n_E[l][n].rec = myalloc(sizeof(RECORD));
-						n_E[l][n].rec->bin = 0;
-						n_E[l][n].rec->cellV = myalloc((mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->cellV))); // get_2D_farray(mp->loops, mp->RecordMS, 0.0);
-						memset(n_E[l][n].rec->cellV, 0, (mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->cellV)));
-						if (mp->adaptation)
-						{
-							n_E[l][n].rec->cellcCa = myalloc((mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->cellcCa)));
-							memset(n_E[l][n].rec->cellcCa, 0, (mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->cellcCa)));
-						}
-						else
-							n_E[l][n].rec->cellcCa = NULL;
-						n_E[l][n].rec->cellD = myalloc((mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->cellD))); // get_2D_farray(mp->loops, mp->RecordMS, 0.0);
-						memset(n_E[l][n].rec->cellD, 0, (mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->cellD)));
-						if (l>0) // Here the synaptic variables are stored with the post-synaptic neuron
-						{
-							n_E[l][n].rec->FSynC = get_2D_farray(n_E[l][n].nFAff_E, (mp->RecordMS+1), 0.0); // get_3D_farray(mp->loops, n_E[l][n].nFAff_E, mp->RecordMS, 0.0);
-							n_E[l][n].rec->FSynG = get_2D_farray(n_E[l][n].nFAff_E, (mp->RecordMS+1), 0.0);
-							n_E[l][n].rec->FSynDG = get_2D_farray(n_E[l][n].nFAff_E, (mp->RecordMS+1), 0.0);
-						}
-						if (mp->trainElE && mp->train) // Create recording structures for ElE variables
-						{
-							n_E[l][n].rec->LSynC = get_2D_farray(n_E[l][n].nLAff_E, (mp->RecordMS+1), 0.0);
-							n_E[l][n].rec->LSynG = get_2D_farray(n_E[l][n].nLAff_E, (mp->RecordMS+1), 0.0);
-							n_E[l][n].rec->LSynDG = get_2D_farray(n_E[l][n].nLAff_E, (mp->RecordMS+1), 0.0);
-						}
-					}
-		} // End of Record initialisation
-		
-		
-		if (mp->loadWeights)
-		{
-			char * str, fname[FNAMEBUFF], buff[131072]; //128KB
-			char * delims = " \t";
-			int sLen=0, nSyn=0;
-			FILE * weightsFP = NULL;
-			const char * suffix = ""; // Check for passed filename or archive file???
-			for (l=0; l<mp->nLayers; l++)
-			{
-				if (l>0) // Load Feed-forward weights
-				{
-					sLen = snprintf(fname, FNAMEBUFF, "L%dweightsEfE%s.dat", l, suffix);
-					assert(sLen < FNAMEBUFF);
-					weightsFP = myfopen(fname, "r"); //Feed-forward weights
-					for (n=0; n<mp->vExcit[l]; n++)
-					{
-						if (!(str = fgets(buff, sizeof(buff), weightsFP)))
-							exit_error("loadWeights", "NULL string reading EfE weights");
-						nSyn = atoi(strtok(buff, delims)); // First number in each row is #presyn connections
-						assert(n_E[l][n].nFAff_E == nSyn);
-						for (s=0; s<nSyn && (str = strtok(NULL, delims))!=NULL; s++)
-							n_E[l][n].FAffs_E[s]->delta_g = n_E[l][n].FAffs_E[s]->delta_g_tm1 = atof(str);
-					}
-					fclose(weightsFP);
-				}
-				
-				// Load Lateral weights
-				sLen = snprintf(fname, FNAMEBUFF, "L%dweightsElE%s.dat", l, suffix);
-				assert(sLen < FNAMEBUFF);
-				weightsFP = myfopen(fname, "r"); //Lateral weights
-				for (n=0; n<mp->vExcit[l]; n++)
-				{
-					if (!(str = fgets(buff, sizeof(buff), weightsFP)))
-						exit_error("loadWeights", "NULL string reading ElE weights");
-					nSyn = atoi(strtok(buff, delims)); // First number in each row is #presyn connections
-					assert(n_E[l][n].nLAff_E == nSyn);
-					for (s=0; s<nSyn && (str = strtok(NULL, delims))!=NULL; s++)
-						n_E[l][n].LAffs_E[s]->delta_g = n_E[l][n].LAffs_E[s]->delta_g_tm1 = atof(str);
-
-					
-					//s=0;
-					//while ((str = strtok(NULL, delims)) != NULL && s++ < nSyn)
-					//	n_E[l][n].LAffs_E[s].delta_g = n_E[l][n].LAffs_E[s].delta_g_tm1 = atof(str);
-					
-					// Could also try fscanf (slower)
-					//sscanf(str, "%d %*[ \t]%s", nSyn, str);
-					//for (s=0; s<nSyn; s++)
-					//	sscanf(str, "%f %*[ \t]%s", n_E[l][n].LAffs_E[s].delta_g, str);
-					
-				}
-				fclose(weightsFP);
-			}
-		}
-		else
-		{
-			
-			
-		// E_ Synaptic weights
-		//for (l=0; l<mp->nWLayers; l++)
-		//	for (n=0; n<mp->vExcit[l]; n++)
-		//		for (s=0; s<n_E[l][n].nFEff_E; s++)
-		//			n_E[l][n].FEffs_E[s].delta_g = n_E[l][n].FEffs_E[s].delta_g_tm1 = gsl_rng_uniform(mSeed); //ran3(&idum);
-
-		switch (mp->initEfE) {
-			//case Zero:
-			//	for (l=0; l<mp->nWLayers; l++)
-			//		for (n=0; n<mp->vExcit[l]; n++)
-			//			for (s=0; s<n_E[l][n].nFEff_E; s++)
-			//				n_E[l][n].FEffs_E[s].delta_g = n_E[l][n].FEffs_E[s].delta_g_tm1 = 0.0;
-			//	break;
-			case Constant:
-				for (l=0; l<mp->nWLayers; l++)
-					for (n=0; n<mp->vExcit[l]; n++)
-						for (s=0; s<n_E[l][n].nFEff_E; s++)
-							n_E[l][n].FEffs_E[s].delta_g = n_E[l][n].FEffs_E[s].delta_g_tm1 = mp->iEfE; //mp->DgEfE;
-				break;
-			case Uniform:
-				for (l=0; l<mp->nWLayers; l++)
-					for (n=0; n<mp->vExcit[l]; n++)
-						for (s=0; s<n_E[l][n].nFEff_E; s++)
-							n_E[l][n].FEffs_E[s].delta_g = n_E[l][n].FEffs_E[s].delta_g_tm1 = gsl_rng_uniform(mSeed);
-				break;
-			case Gaussian:
-				for (l=0; l<mp->nWLayers; l++)
-					for (n=0; n<mp->vExcit[l]; n++)
-						for (s=0; s<n_E[l][n].nFEff_E; s++)
-							n_E[l][n].FEffs_E[s].delta_g = n_E[l][n].FEffs_E[s].delta_g_tm1 = gsl_ran_gaussian(mSeed, mp->SOMsigE); // Create seperate sigma?
-				break;
-			case SOM: // Convergent feed-forward connections
-				exit_error("init_network", "Feed-forward convergent connections not yet implemented!");
-				//fprintf(stderr, "Warning: Feed-forward convergent connections not yet implemented!\n");
-				break;
-			default:
-				exit_error("init_network", "Illegal EfE weight initialisation arguement!");
-				break;
-		}
-
-
-		
-
-		
-		//if (mp->SOM) // pCnxElE ??? nLEff_E == 0 if pCnxElE == 0.0
-		
-		float distance = 0.0;
-		float phiScale = 0.0; 
-		switch (mp->initElE) {
-			//case Zero:
-			//	for (l=0; l<mp->nLayers; l++)
-			//		for (n=0; n<mp->vExcit[l]; n++)
-			//			for (s=0; s<n_E[l][n].nLEff_E; s++)
-			//				n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = 0.0;
-			//	break;
-			case Constant: // mp->DgElE
-				for (l=0; l<mp->nLayers; l++)
-					for (n=0; n<mp->vExcit[l]; n++)
-						for (s=0; s<n_E[l][n].nLEff_E; s++)
-							n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = mp->iElE; //mp->DgElE;
-				break;
-			case Uniform: // mSeed
-				for (l=0; l<mp->nLayers; l++)
-					for (n=0; n<mp->vExcit[l]; n++)
-						for (s=0; s<n_E[l][n].nLEff_E; s++)
-							n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = gsl_rng_uniform(mSeed);
-				break;
-			case Gaussian: // mSeed, mp->SOMsigE
-				for (l=0; l<mp->nLayers; l++)
-					for (n=0; n<mp->vExcit[l]; n++)
-						for (s=0; s<n_E[l][n].nLEff_E; s++)
-							n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = gsl_ran_gaussian(mSeed, mp->SOMsigE); //states[th]
-				break;
-			case SOM: // distE, mp->DgElE, mp->SOMsigE
-				phiScale = (mp->trainElE) ? mp->DgElE/(mp->SOMsigE*sqrt(2*M_PI)) : 1/(mp->SOMsigE*sqrt(2*M_PI));
-				for (l=0; l<mp->nLayers; l++)
-					for (n=0; n<mp->vExcit[l]; n++)
-						for (s=0; s<n_E[l][n].nLEff_E; s++)
-						{
-							distance = readLowTriF(distE, l, n, n_E[l][n].lp0postsyn_E[s]->n); // distE[l][n][n_E[l][n].lp0postsyn_E[s]->n];
-							n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = phiScale * exp(-pow(distance,2)/(2*pow(mp->SOMsigE,2)));
-						}
-				break;					
-			default:
-				exit_error("init_network", "Illegal ElE weight initialisation arguement!");
-				break;
-		}
-		
-	 //if (mp->SOM)
-	 //{
-	 //float distance = 0.0;
-	 //float phiScale = mp->Dg_ElE/(mp->SOMsigE*sqrt(2*M_PI)); 
-	 //for (l=0; l<mp->nLayers; l++)
-	 //for (n=0; n<mp->vExcit[l]; n++)
-	 //for (s=0; s<n_E[l][n].nLEff_E; s++)
-	 //{
-	 //distance = readLowTriF(distE, l, n, n_E[l][n].lp0postsyn_E[s]->n); // distE[l][n][n_E[l][n].lp0postsyn_E[s]->n];
-	 //n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = phiScale * exp(-pow(distance,2)/(2*pow(mp->SOMsigE,2)));
-	 //}
-	 
-	 //			if (!mp->SOMinput)
-	 //				for (n=0; n<mp->sInputs; n++)
-	 //					for (s=0; s<n_E[0][n].nLEff_E; s++)
-	 //						n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = mp->Dg_ElE; 
-	 //}
-	 //else
-	 //{
-	 //for (l=0; l<mp->nLayers; l++)
-	 //for (n=0; n<mp->vExcit[l]; n++)
-	 //for (s=0; s<n_E[l][n].nLEff_E; s++)
-	 //n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = mp->Dg_ElE; // * gsl_rng_uniform(mSeed); //ran3(&idum);
-	 //}
-	 //}
-		
-		for (l=0; l<mp->nLayers; l++)
-			for (n=0; n<mp->vExcit[l]; n++)
-				for (s=0; s<n_E[l][n].nLEff_I; s++)
-					n_E[l][n].LEffs_I[s].delta_g = n_E[l][n].LEffs_I[s].delta_g_tm1 = mp->DgEI;
-		
-		// I_ Synaptic weights
-		for (l=0; l<mp->nLayers; l++)
-			for (n=0; n<mp->vInhib[l]; n++)
-				for (s=0; s<n_I[l][n].nLEff_E; s++)
-					n_I[l][n].LEffs_E[s].delta_g = n_I[l][n].LEffs_E[s].delta_g_tm1 = mp->DgIE;
-		
-		for (l=0; l<mp->nLayers; l++)
-			for (n=0; n<mp->vInhib[l]; n++)
-				for (s=0; s<n_I[l][n].nLEff_I; s++)
-					n_I[l][n].LEffs_I[s].delta_g = n_I[l][n].LEffs_I[s].delta_g_tm1 = mp->DgII;
-		
-	} // End of if (regime==1) clause */
 	
 	/********** Training and Testing **********/
 	// Executed for all types of initialization (except Settle where shown)
@@ -1957,8 +1562,7 @@ void initNetwork(SETSV resetBuffers)
 			{
 				n_E[l][n].spkbin = 0;
 				//bins = (mp->useFilteredImages && l==0) ? mp->inpSpkBuff : mp->spkBuffer;
-#ifndef __llvm__ //&& #ifdef __GNUC__ // __clang__
-				// The new LLVM-GCC compiler has a problem with this memset
+#ifndef __llvm__ // The new LLVM-GCC compiler has a problem with this memset
 				memset(n_E[l][n].spikeTimes, 0, mp->spkBuffer*sizeof(n_E[l][n].spikeTimes[0])); //[0]?
 #endif
 			}
@@ -2005,16 +1609,6 @@ void initNetwork(SETSV resetBuffers)
 		}
 	}
 	
-	/* Recording structures */ // Moved to simulatePhase
-/*	if (mp->nRecordsPL && regime != Settle)
-		for (l=0; l<mp->nLayers; l++)
-		{
-#pragma omp for
-			for (n=0; n<mp->vExcit[l]; n++)
-				if (n_E[l][n].rec_flag)
-					n_E[l][n].rec->bin = 0;
-		}*/
-		
 	} // End of parallel region
 
 	return;
@@ -2068,6 +1662,7 @@ void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed) // if (mp->nRecords
 				n_E[l][n].rec = myalloc(sizeof(RECORD));
                 n_E[l][n].rec->cellcCa = NULL;
                 n_E[l][n].rec->cellD = NULL;
+                n_E[l][n].rec->LsigGI = NULL;
                 n_E[l][n].rec->FSynDG = NULL;
                 n_E[l][n].rec->FSynC = NULL;
                 n_E[l][n].rec->LSynDG = NULL;
@@ -2080,6 +1675,11 @@ void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed) // if (mp->nRecords
 					n_E[l][n].rec->cellcCa = myalloc((mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->cellcCa)));
 					memset(n_E[l][n].rec->cellcCa, 0, (mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->cellcCa)));
 				}
+                if (n_E[l][n].nLAff_I)
+                {
+                    n_E[l][n].rec->LsigGI = myalloc((mp->RecordMS+1)*sizeof(*(n_E[l][n].rec->LsigGI)));
+                    memset(n_E[l][n].rec->LsigGI, 0, (mp->RecordMS+1)*sizeof(*(n_E[l][n].rec->LsigGI)));
+                }
                 if (n_E[l][n].nFAff_E) //(l>0) // Here the synaptic variables are stored with the post-synaptic neuron
                     n_E[l][n].rec->FSynG = get_2D_farray(n_E[l][n].nFAff_E, (mp->RecordMS+1), 0.0);
                 if (n_E[l][n].nLAff_E) //(mp->pCnxElE[l]>EPS)
@@ -3100,7 +2700,6 @@ int genShuffles(STIMULI * stim, PARAMS * mp)
 {
 	int loop=0, p=0, trans=0, count=0;
 	int * choices = NULL;
-	//int * chosen = NULL;
 	
 	if (mp->randStimOrder)
 	{
@@ -3110,9 +2709,6 @@ int genShuffles(STIMULI * stim, PARAMS * mp)
 		stim->stimShuffle = get_2D_iarray(mp->loops, stim->nStim, 0);
 		for (loop=0; loop<mp->loops; loop++)
 		{
-			/*i=rands1_new(0,0,&iv,1);	// Initialise RNG (clear internal array of numbers drawn)
-			for (p=0; p<mp->nStimuli; p++)
-				stim->stimShuffle[loop][p] = rands1_new(0,mp->nStimuli-1,&iv,1);*/
 			gsl_ran_shuffle(mSeed, choices, stim->nStim, sizeof(int));
 			memcpy(stim->stimShuffle[loop], choices, stim->nStim * sizeof(int));
 		}
@@ -3131,9 +2727,6 @@ int genShuffles(STIMULI * stim, PARAMS * mp)
 		{
 			for (p=0; p<stim->nStim; p++)
 			{
-				/*i=rands1_new(0,0,&iv,1);	// Initialise RNG (clear internal array of numbers drawn)
-				 for (trans=0; trans<mp->nTransPS; trans++)
-				 stim->transShuffle[loop][p][trans] = rands1_new(0,mp->nTransPS-1,&iv,1);*/
 				gsl_ran_shuffle(mSeed, choices, stim->nTrans, sizeof(int));
 				memcpy(stim->transShuffle[loop][p], choices, stim->nTrans * sizeof(int));
 			}
@@ -3252,69 +2845,6 @@ void printSchedule(STIMULI * stim, const char * filename)
 
 void calcInput(PARAMS * mp, int loop, int pat, int trans, STIMULI * stim, float ** input, int regime) // return int * input?
 {	// Assumes all stimuli translate
-	/*float *****patArray = NULL;
-	if (mp->useFilteredImages) // Select stimuli from array of filtered images
-	{
-		switch (regime) 
-		{
-			case 0:
-				*input = ****(stim->tstImages[pat][trans]);	//memcpy(input, ****(stim->tstImages[pat][trans]), mp->sInputs*sizeof(input[0])); // Use pointer not memcpy
-				break;
-				
-			case 1:
-				pat = (mp->randStimOrder) ? stim->stimShuffle[loop][pat] : pat;
-				trans = (mp->randTransOrder) ? stim->transShuffle[loop][pat][trans] : trans;
-				patArray = (mp->newTestSet) ? stim->tstImages[pat][trans] : stim->trnImages[pat][trans];
-				*input = ****patArray; //memcpy(input, ****patArray, mp->sInputs*sizeof(input[0]));
-				break;
-				
-			default:
-				exit_error("calc_input", "Unknown regime");
-				break;
-		}
-	}
-	//else if (mp->stimGroups)
-	//{
-	//	switch (regime)
-	//	{
-	//		case 0: // Combine pairs of stimuli for testing
-				//for (g=0; g<mp->nTestGroups; g++)
-				//	for (n=0; n<mp->sInputs; n++)
-				//		(*input)[n] = (*input)[n] || stim->tstGrpStim[grp][pat][trans][n];
-	//			*input = stim->tstGrpStim[grp][pat][trans];
-	//			break;
-				
-	//		case 1:
-	//			pat = (mp->randStimOrder) ? stim->stimShuffle[loop][pat] : pat;
-	//			trans = (mp->randTransOrder) ? stim->transShuffle[loop][pat][trans] : trans;
-	//			*input = stim->trnGrpStim[grp][pat][trans];
-	//			break;
-	//	}
-	//}
-	else
-	{
-		switch (regime)
-		{
-			case 0: // Testing stimuli
-				*input = stim->tst_stimuli[pat][trans]; //Test me!	//memcpy(input, stim->tst_stimuli[pat][trans], mp->nExcit*sizeof(input[0])); // Copy row of tst_stimuli to input
-				break;
-				
-			case 1: // Training stimuli
-				pat = (mp->randStimOrder) ? stim->stimShuffle[loop][pat] : pat;
-				trans = (mp->randTransOrder) ? stim->transShuffle[loop][pat][trans] : trans;
-				*input = stim->trn_stimuli[pat][trans];	//memcpy(input, stim->trn_stimuli[pat][trans], mp->nExcit*sizeof(input[0]));
-				break;
-				
-			default:
-				exit_error("calc_input", "Unknown regime");
-				break;
-		}
-	}*/
-
-	/*// Move print statements outside function?
-	if ( trans==0 || (mp->interleaveTrans && regime) )
-		printf("\t\tPresenting stimulus %d/%d...\n", (pat+1), mp->nStimuli);
-	printf("\t\t\tTransform %d/%d...\n", (trans+1), mp->nTransPS);*/
 
 	switch (regime)
 	{
@@ -3425,7 +2955,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 	
 	//printf("\tNow beginning %s phase...\n",phaseString); // *** Move outside
 	if (regime == Training) //(sPhase == Training)
-		printf("\tSimulating %2.2f s per loop for %d loop%s.\n",mp->EpochTime,nLoops,(nLoops>1)?"s":"");
+		printf("\tSimulating %2.3f s per loop for %d loop%s.\n",mp->EpochTime,nLoops,(nLoops>1)?"s":"");
 	for (loop=0; loop<nLoops; loop++)
 	{
 		initNetwork(Hard);//(NoLearning); // Reset V's, g's, C's, D's and spike buffers - NoLearning even for Training! 
@@ -3464,7 +2994,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 					if ( tr==0 || (mp->interleaveTrans && regime) )
 						printf("\t\tPresenting stimulus %d/%d...\n", (p+1), nStimuli);
 					if (nTrans > 1)
-						printf("\r\t\t\tTransform %d/%d...\n", (reverse ? nTrans-tr : tr+1), nTrans);
+						printf("\t\t\tTransform %d/%d...\n", (reverse ? nTrans-tr : tr+1), nTrans); //\r
 					t_start = round((*i + (*o * iCount)) * transP * ceil(1/mp->DT));
 					t_end = t_start + round(transP * ceil(1/mp->DT));
 
@@ -3674,6 +3204,16 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
                             fclose(recFile);
                             memset(n_E[l][n].rec->cellD,(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->cellD)));
                         }
+                        
+                        if (n_E[l][n].nLAff_I)
+                        {
+                            slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dLAffsigGI.dat", pStr, l, n);
+							assert(slen && slen < FNAMEBUFF);
+							recFile = myfopen(filename, "w");
+                            print_frow(recFile, n_E[l][n].rec->LsigGI, n_E[l][n].rec->bin);
+							fclose(recFile);
+							memset(n_E[l][n].rec->LsigGI, (mp->RecordMS+1), sizeof(*(n_E[l][n].rec->LsigGI)));
+                        }
 						
 						if (n_E[l][n].nFAff_E) //(l>0) // The presynaptic cell's values are attached to each record
 						{
@@ -3762,6 +3302,8 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 					n_E[l][n].rec->cellV[bin] = n_E[l][n].V_tm1;
 					if (mp->adaptation)
 						n_E[l][n].rec->cellcCa[bin] = n_E[l][n].cCa_tm1;
+                    for (syn=0; syn<n_E[l][n].nLAff_I; syn++)
+                        n_E[l][n].rec->LsigGI[bin] += n_E[l][n].LAffs_I[syn]->g_tm1; // Sum
                     for (syn=0; syn<n_E[l][n].nFAff_E; syn++) // nFAff_E == 0 for l=0
                         n_E[l][n].rec->FSynG[syn][bin] = n_E[l][n].FAffs_E[syn]->g_tm1;
                     for (syn=0; syn<n_E[l][n].nLAff_E; syn++) // Implicit: if (mp->pCnxElE[l] > EPS) //mp->trainElE && mp->train && 
@@ -3969,6 +3511,8 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 						n_E[l][n].rec->cellV[bin] = n_E[l][n].V;
 						if (mp->adaptation)
 							n_E[l][n].rec->cellcCa[bin] = n_E[l][n].cCa;
+                        for (syn=0; syn<n_E[l][n].nLAff_I; syn++)
+                            n_E[l][n].rec->LsigGI[bin] += n_E[l][n].LAffs_I[syn]->g; // Sum
                         for (syn=0; syn<n_E[l][n].nFAff_E; syn++)  // nFAff_E == 0 for l=0
                             n_E[l][n].rec->FSynG[syn][bin] = n_E[l][n].FAffs_E[syn]->g;
                         for (syn=0; syn<n_E[l][n].nLAff_E; syn++) // Implicit: if (mp->pCnxElE[l] > EPS) //mp->trainElE && mp->train && 
@@ -4291,11 +3835,16 @@ inline void enqueue(AXON *a, tstep t)
 {
 #ifndef __llvm__
 	assert(a->count < a->nBins);
+#else
+    #ifndef NDEBUG
+    if (a->count >= a->nBins)
+        exit_error("enqueue", "Queue full");
+    #endif
 #endif
 	a->last = (a->last+1) % a->nBins;
 	a->queue[ a->last ] = t + a->delay;
 	a->count++;
-	return;
+	return; //a->count++;
 }
 
 inline int dequeue(AXON *a)
@@ -4303,6 +3852,11 @@ inline int dequeue(AXON *a)
 	int t;
 #ifndef __llvm__
 	assert(a->count > 0);
+#else
+    #ifndef NDEBUG
+    if (a->count <= 0) // isempty(a)
+        exit_error("dequeue", "Queue empty");
+    #endif
 #endif
 	t = a->queue[ a->next ];
 	a->next = (a->next+1) % a->nBins;

@@ -9,6 +9,7 @@
 
 #include "utils.h"
 
+char errloc[PATHBUFF];
 // -> #include <errno.h> for errno and perror(), and <string.h> for strerror(). 
 // TSF: int strerror_r(int errnum, char *strerrbuf, size_t buflen);
 void exit_error(const char * process, const char * statement)

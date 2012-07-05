@@ -73,6 +73,7 @@ typedef enum {
 typedef struct {
 	// Simulation
 	float DT;
+    bool initialised; // Internal
 	int loops;
 	bool pretrain;// = true;
 	bool train;// = true;
@@ -172,7 +173,10 @@ typedef struct {
 	int LpII;
 	INITIALISATION initEfE;
 	float iEfE;
-	DELAY axonDelay;
+	bool axonDelay; //DELAY axonDelay;
+    DELAY delayEfE;
+    DELAY delayElE;
+    DELAY delayEI;
 	float d_const;
 	float d_min;
 	float d_max;
