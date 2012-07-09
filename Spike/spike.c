@@ -1146,6 +1146,10 @@ void loadAfferents(const char * suffix)
 	
 }
 
+// Try using this macro trick to condense wiring routines by replacing lm0presynE etc.
+// #define BUILD_FIELD(field) my_struct.inner_struct.union_a.##field
+// Now, when used with a particular field name, it will expand to something like
+// my_struct.inner_struct.union_a.field1
 
 void wireAfferents(NEURON * n, float pEfn, float pEln, float pIln)
 {
@@ -1724,7 +1728,7 @@ void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed) // if (mp->nRecords
 					print_frow(recFile, n_E[l][n].rec->cellV, n_E[l][n].rec->bin); // bin already points to the next free slot
 					// print_farray(rCellVout, n_E[l][n].rec->cellV, mp->loops, mp->RecordMS); //fwrite(n_E[l][n].rec->cellV, sizeof(float), mp->loops*mp->RecordMS, r_cellV_ptr); // See nifty trick #1
 					fclose(recFile);
-					memset(n_E[l][n].rec->cellV, (mp->RecordMS+1), sizeof(*(n_E[l][n].rec->cellV)));
+					memset(n_E[l][n].rec->cellV, 0, (mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->cellV)));
 					
 					if (mp->adaptation)
 					{
@@ -1733,7 +1737,7 @@ void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed) // if (mp->nRecords
 						recFile = myfopen(filename, "w");
 						print_frow(recFile, n_E[l][n].rec->cellcCa, n_E[l][n].rec->bin);
 						fclose(recFile);
-						memset(n_E[l][n].rec->cellcCa, (mp->RecordMS+1), sizeof(*(n_E[l][n].rec->cellcCa)));
+						memset(n_E[l][n].rec->cellcCa, 0, (mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->cellcCa)));
 					}
 					
 					slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dD.dat", prefix, l, n);
@@ -1741,7 +1745,7 @@ void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed) // if (mp->nRecords
 					recFile = myfopen(filename, "w"); //r_D_ptr = fopen(filename, "wb");
 					print_frow(recFile, n_E[l][n].rec->cellD, n_E[l][n].rec->bin); // (rDout, n_E[l][n].rec->cellD, mp->loops, mp->RecordMS);
 					fclose(recFile);
-					memset(n_E[l][n].rec->cellD,(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->cellD)));
+					memset(n_E[l][n].rec->cellD, 0, (mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->cellD)));
 					
 					if (l>0) // The presynaptic cell's values are attached to each record
 					{
@@ -1751,7 +1755,7 @@ void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed) // if (mp->nRecords
 						//for (loop=0; loop<mp->loops; loop++)
 						print_farray(recFile, n_E[l][n].rec->FSynC, n_E[l][n].nFAff_E, n_E[l][n].rec->bin); //print_farray(recFile, n_E[l][n].rec->SynC[loop], n_E[l][n].nFAff_E, mp->RecordMS);
 						fclose(recFile);
-						memset(n_E[l][n].rec->FSynC[0], n_E[l][n].nFAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->FSynC)));
+						memset(n_E[l][n].rec->FSynC[0], 0, n_E[l][n].nFAff_E*(mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->FSynC)));
 						
 						slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dFAffg.dat", prefix, l, n);
 						assert(slen && slen < FNAMEBUFF);
@@ -1759,7 +1763,7 @@ void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed) // if (mp->nRecords
 						//for (loop=0; loop<mp->loops; loop++)
 						print_farray(recFile, n_E[l][n].rec->FSynG, n_E[l][n].nFAff_E, n_E[l][n].rec->bin);
 						fclose(recFile);
-						memset(n_E[l][n].rec->FSynG[0], n_E[l][n].nFAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->FSynG)));
+						memset(n_E[l][n].rec->FSynG[0], 0, n_E[l][n].nFAff_E*(mp->RecordMS+1) * sizeof(**(n_E[l][n].rec->FSynG)));
 						
 						slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dFAffdg.dat", prefix, l, n);
 						assert(slen && slen < FNAMEBUFF);
@@ -1767,7 +1771,7 @@ void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed) // if (mp->nRecords
 						//for (loop=0; loop<mp->loops; loop++)
 						print_farray(recFile, n_E[l][n].rec->FSynDG, n_E[l][n].nFAff_E, n_E[l][n].rec->bin);
 						fclose(recFile);
-						memset(n_E[l][n].rec->FSynDG[0], n_E[l][n].nFAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->FSynDG)));
+						memset(n_E[l][n].rec->FSynDG[0], 0, n_E[l][n].nFAff_E*(mp->RecordMS+1) * sizeof(**(n_E[l][n].rec->FSynDG)));
 					}
 					
 					if (mp->trainElE && mp->train && mp->pCnxElE[l] > EPS)
@@ -1777,21 +1781,21 @@ void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed) // if (mp->nRecords
 						recFile = myfopen(filename, "w"); 
 						print_farray(recFile, n_E[l][n].rec->LSynC, n_E[l][n].nLAff_E, n_E[l][n].rec->bin); 
 						fclose(recFile);
-						memset(n_E[l][n].rec->LSynC[0], n_E[l][n].nLAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->LSynC)));
+						memset(n_E[l][n].rec->LSynC[0], 0, n_E[l][n].nLAff_E*(mp->RecordMS+1) * sizeof(**(n_E[l][n].rec->LSynC)));
 						
 						slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dLAffg.dat", prefix, l, n);
 						assert(slen && slen < FNAMEBUFF);
 						recFile = myfopen(filename, "w");
 						print_farray(recFile, n_E[l][n].rec->LSynG, n_E[l][n].nLAff_E, n_E[l][n].rec->bin);
 						fclose(recFile);
-						memset(n_E[l][n].rec->LSynG[0], n_E[l][n].nLAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->LSynG)));
+						memset(n_E[l][n].rec->LSynG[0], 0, n_E[l][n].nLAff_E*(mp->RecordMS+1) * sizeof(**(n_E[l][n].rec->LSynG)));
 						
 						slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dLAffdg.dat", prefix, l, n);
 						assert(slen && slen < FNAMEBUFF);
 						recFile = myfopen(filename, "w");
 						print_farray(recFile, n_E[l][n].rec->LSynDG, n_E[l][n].nLAff_E, n_E[l][n].rec->bin);
 						fclose(recFile);
-						memset(n_E[l][n].rec->LSynDG[0], n_E[l][n].nLAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->LSynDG)));
+						memset(n_E[l][n].rec->LSynDG[0], 0, n_E[l][n].nLAff_E*(mp->RecordMS+1) * sizeof(**(n_E[l][n].rec->LSynDG)));
 					}
 					n_E[l][n].rec->bin = 0; // Reset record counter ready for next phase/epoch
 				}
@@ -3183,7 +3187,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 						print_frow(recFile, n_E[l][n].rec->cellV, n_E[l][n].rec->bin); // bin already points to the next free slot
 						// print_farray(rCellVout, n_E[l][n].rec->cellV, mp->loops, mp->RecordMS); //fwrite(n_E[l][n].rec->cellV, sizeof(float), mp->loops*mp->RecordMS, r_cellV_ptr); // See nifty trick #1
 						fclose(recFile);
-						memset(n_E[l][n].rec->cellV, (mp->RecordMS+1), sizeof(*(n_E[l][n].rec->cellV)));
+						memset(n_E[l][n].rec->cellV, 0, (mp->RecordMS+1)*sizeof(*(n_E[l][n].rec->cellV)));
 						
 						if (mp->adaptation)
 						{
@@ -3192,7 +3196,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 							recFile = myfopen(filename, "w");
 							print_frow(recFile, n_E[l][n].rec->cellcCa, n_E[l][n].rec->bin);
 							fclose(recFile);
-							memset(n_E[l][n].rec->cellcCa, (mp->RecordMS+1), sizeof(*(n_E[l][n].rec->cellcCa)));
+							memset(n_E[l][n].rec->cellcCa, 0, (mp->RecordMS+1)*sizeof(*(n_E[l][n].rec->cellcCa)));
 						}
 						
                         if (regime == Training) // *** && mp->train for preTraining?
@@ -3202,7 +3206,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
                             recFile = myfopen(filename, "w"); //r_D_ptr = fopen(filename, "wb");
                             print_frow(recFile, n_E[l][n].rec->cellD, n_E[l][n].rec->bin); // (rDout, n_E[l][n].rec->cellD, mp->loops, mp->RecordMS);
                             fclose(recFile);
-                            memset(n_E[l][n].rec->cellD,(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->cellD)));
+                            memset(n_E[l][n].rec->cellD, 0, (mp->RecordMS+1)*sizeof(*(n_E[l][n].rec->cellD)));
                         }
                         
                         if (n_E[l][n].nLAff_I)
@@ -3212,7 +3216,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 							recFile = myfopen(filename, "w");
                             print_frow(recFile, n_E[l][n].rec->LsigGI, n_E[l][n].rec->bin);
 							fclose(recFile);
-							memset(n_E[l][n].rec->LsigGI, (mp->RecordMS+1), sizeof(*(n_E[l][n].rec->LsigGI)));
+							memset(n_E[l][n].rec->LsigGI, 0, (mp->RecordMS+1) * sizeof(*(n_E[l][n].rec->LsigGI)));
                         }
 						
 						if (n_E[l][n].nFAff_E) //(l>0) // The presynaptic cell's values are attached to each record
@@ -3222,7 +3226,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 							recFile = myfopen(filename, "w");
 							print_farray(recFile, n_E[l][n].rec->FSynG, n_E[l][n].nFAff_E, n_E[l][n].rec->bin);
 							fclose(recFile);
-							memset(n_E[l][n].rec->FSynG[0], n_E[l][n].nFAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->FSynG)));
+							memset(n_E[l][n].rec->FSynG[0], 0, n_E[l][n].nFAff_E*(mp->RecordMS+1)*sizeof(**(n_E[l][n].rec->FSynG)));
                             
                             if (regime == Training) // *** && mp->train for preTraining?
                             {
@@ -3231,14 +3235,14 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
                                 recFile = myfopen(filename, "w"); //r_C_ptr = fopen(filename, "wb");
                                 print_farray(recFile, n_E[l][n].rec->FSynC, n_E[l][n].nFAff_E, n_E[l][n].rec->bin); //print_farray(recFile, n_E[l][n].rec->SynC[loop], n_E[l][n].nFAff_E, mp->RecordMS);
                                 fclose(recFile);
-                                memset(n_E[l][n].rec->FSynC[0], n_E[l][n].nFAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->FSynC)));
+                                memset(n_E[l][n].rec->FSynC[0], 0, n_E[l][n].nFAff_E*(mp->RecordMS+1)*sizeof(**(n_E[l][n].rec->FSynC)));
                                 
                                 slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dFAffdg.dat", pStr, l, n);
                                 assert(slen && slen < FNAMEBUFF);
                                 recFile = myfopen(filename, "w");
                                 print_farray(recFile, n_E[l][n].rec->FSynDG, n_E[l][n].nFAff_E, n_E[l][n].rec->bin);
                                 fclose(recFile);
-                                memset(n_E[l][n].rec->FSynDG[0], n_E[l][n].nFAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->FSynDG)));
+                                memset(n_E[l][n].rec->FSynDG[0], 0, n_E[l][n].nFAff_E*(mp->RecordMS+1)*sizeof(**(n_E[l][n].rec->FSynDG)));
                             }
 						}
 						
@@ -3249,7 +3253,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 							recFile = myfopen(filename, "w");
 							print_farray(recFile, n_E[l][n].rec->LSynG, n_E[l][n].nLAff_E, n_E[l][n].rec->bin);
 							fclose(recFile);
-							memset(n_E[l][n].rec->LSynG[0], n_E[l][n].nLAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->LSynG)));
+							memset(n_E[l][n].rec->LSynG[0], 0, n_E[l][n].nLAff_E*(mp->RecordMS+1)*sizeof(**(n_E[l][n].rec->LSynG)));
                             
                             if (mp->trainElE && regime == Training) //mp->train
                             {
@@ -3258,14 +3262,14 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
                                 recFile = myfopen(filename, "w"); 
                                 print_farray(recFile, n_E[l][n].rec->LSynC, n_E[l][n].nLAff_E, n_E[l][n].rec->bin); 
                                 fclose(recFile);
-                                memset(n_E[l][n].rec->LSynC[0], n_E[l][n].nLAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->LSynC)));
+                                memset(n_E[l][n].rec->LSynC[0], 0, n_E[l][n].nLAff_E*(mp->RecordMS+1)*sizeof(**(n_E[l][n].rec->LSynC)));
                                 
                                 slen = snprintf(filename, FNAMEBUFF, "%sL%dN%dLAffdg.dat", pStr, l, n);
                                 assert(slen && slen < FNAMEBUFF);
                                 recFile = myfopen(filename, "w");
                                 print_farray(recFile, n_E[l][n].rec->LSynDG, n_E[l][n].nLAff_E, n_E[l][n].rec->bin);
                                 fclose(recFile);
-                                memset(n_E[l][n].rec->LSynDG[0], n_E[l][n].nLAff_E*(mp->RecordMS+1), sizeof(*(n_E[l][n].rec->LSynDG)));
+                                memset(n_E[l][n].rec->LSynDG[0], 0, n_E[l][n].nLAff_E*(mp->RecordMS+1)*sizeof(**(n_E[l][n].rec->LSynDG)));
                             }
 						}
 						n_E[l][n].rec->bin = 0; // Reset record counter ready for next phase/epoch

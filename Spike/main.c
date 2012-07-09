@@ -487,7 +487,7 @@ int main (int argc, const char * argv[])
 				fprintf(stderr, "*** Warning! Undersized buffer: %s ***", syscmd);
 			syserr = system(syscmd);
 			if (syserr)
-				EE("Error extracting image archive")
+				EE("Error extracting image archive");
 			else
 				printf("Images successfully extracted to %s\n", mp->imgDir);
 		}
@@ -573,7 +573,7 @@ int main (int argc, const char * argv[])
 			if (system(syscmd)) // Delete *.tbz except image archive
 				printf("Archive files successfully cleaned!\n");
 			else
-				EE("Error cleaning archive files!") //exit_error("main.c", "Error cleaning archive files!\n");		
+				EE("Error cleaning archive files!"); //exit_error("main.c", "Error cleaning archive files!\n");		
 		}
 		else
 			system("rm *.tbz"); // Delete *.tbz
@@ -591,7 +591,7 @@ int main (int argc, const char * argv[])
 			if (file_exists("connectivity.tbz"))
 				system("tar -xvf connectivity.tbz");
 			else
-				EE("No connectivity files to load") //exit_error("main", "No connectivity files to load");
+				EE("No connectivity files to load"); //exit_error("main", "No connectivity files to load");
 		}
 		if (mp->nLayers > 1)
 		{
@@ -602,7 +602,7 @@ int main (int argc, const char * argv[])
 				if (file_exists("postTraining.tbz"))
 					system("tar -xvf postTraining.tbz");
 				else
-					EE("No weights files to load") //exit_error("main", "No weights files to load");
+					EE("No weights files to load"); //exit_error("main", "No weights files to load");
 			}
 		}
 	}

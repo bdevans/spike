@@ -44,10 +44,11 @@ extern void getFileParts(char * fullname, FILEPARTS * fp);
 extern void getTimeString(char * timeStr, size_t buffer, double secs, const char * format);
 
 extern char errloc[PATHBUFF]; 
-#define EE(errmsg)   { \
-                    snprintf(errloc, PATHBUFF, "\n[%s (%d) : %s] --> ", \
+#define EE(errmsg)   do { \
+                    snprintf(errloc, PATHBUFF, "\n[%s (%u) : %s] --> ", \
                         strrchr(__FILE__, '/')+1, __LINE__, __FUNCTION__); \
-                    exit_error(errloc,errmsg); } 
+                    exit_error(errloc,errmsg); } while(0)
+// Replace ;'s with ,'s so it can be used as EE();? c.f. assert.h
 //const char *buildString = "Compiled at "__DATE__", "__TIME__".";
 
 #define PRINT_INT(token) printf(#token " = %d;\n", token);

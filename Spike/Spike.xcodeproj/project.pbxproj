@@ -41,7 +41,7 @@
 
 /* Begin PBXFileReference section */
 		010D9BF50EE047F400F13FC5 /* read_parameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = read_parameters.h; sourceTree = "<group>"; };
-		010D9BF60EE047F400F13FC5 /* read_parameters.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = read_parameters.c; sourceTree = "<group>"; };
+		010D9BF60EE047F400F13FC5 /* read_parameters.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = read_parameters.c; sourceTree = "<group>"; usesTabs = 1; };
 		010D9DC10EEEF2D100F13FC5 /* globals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = globals.h; sourceTree = "<group>"; };
 		0118F1ED0F3A13D80043C7E9 /* array_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = array_utils.h; sourceTree = "<group>"; };
 		0118F1EE0F3A13D80043C7E9 /* array_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = array_utils.c; sourceTree = "<group>"; };
@@ -269,6 +269,7 @@
 		1DEB928708733DD80010E9CD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CONFIGURATION_BUILD_DIR = "~/bin/SpikeNet/Release";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_OPENMP_SUPPORT = YES;
 				GCC_MODEL_TUNING = G5;
