@@ -248,9 +248,9 @@ int spike(PARAMS * mp)
 	
 	if (mp->priorPhases && !mp->loadWeights) // Lateral weight training
 	{
-		mp->trainElE = true;
+		/*mp->trainElE = true;
 		if (mp->isolateEfE)
-			mp->trainEfE = false;
+			mp->trainEfE = false;*/
 		
 		mp->nRecords = 0;	// Disable records (or recalculate buffers)
 		
@@ -261,10 +261,48 @@ int spike(PARAMS * mp)
 			printf("\tPP PreTraining complete!\n");
 		}
 		
-		// Incorporate additional time steps into SIM.totTS
+        if (mp->isolateEfE)
+        {
+            mp->trainElE = true;
+            mp->trainEfE = false;
+            
+            // Incorporate additional time steps into SIM.totTS
+            printf("\tNow beginning PP Training phase...\n"); 
+            simulatePhase(Training, "_PP_", gStim); // Train ElE <only> with exemplars individually
+            printf("\tPP Training complete!\n");
+			
+			printf("\tFixing PP weights...\t");
+			mp->trainElE = false; // May be better to let ElE adjust during EfE training...
+			mp->trainEfE = true;
+			printf("PP weights fixed!\n");
+        }
+		else //if (mp->isolateLayers) // Layer by layer training
+		{ // Allow combination i.e. layer by layer ElE then EfE?
+			char phasePrefix[BUFSIZ];
+			int l=0; //unsigned short int l=0;
+			int slen=0;
+			// Make a vector of REGIMETYPE or bools for training layers
+			bool * layerTrain = myalloc(mp->nLayers * sizeof(*layerTrain));
+			for (l=0; l<mp->nLayers; l++) { layerTrain[l] = false; }
+			int lstart = (mp->trainElE) ? 0 : 1;
+			for (l=lstart; l<mp->nLayers; l++)
+			{
+				// Print prefix
+				slen = snprintf(phasePrefix, BUFSIZ, "PPL%dEfEtrain", l);
+				assert(slen < BUFSIZ);
+				// Set the FF layer to train
+				memset(layerTrain, 0, mp->nLayers*sizeof(*layerTrain));
+				layerTrain[l] = true;
+				simulatePhase(Training, phasePrefix, stim); // Add PPstim
+				// Skip all processing of layers beyond the last training layer?
+				// Test layer by layer?
+			}
+		}
+        
+		/*// Incorporate additional time steps into SIM.totTS
 		printf("\tNow beginning PP Training phase...\n"); 
 		simulatePhase(Training, "_PP_", gStim); // Train ElE <only> with exemplars individually
-		printf("\tPP Training complete!\n");
+		printf("\tPP Training complete!\n");*/
 		
 		if (mp->pretrain) // Test to confirm desynchronised representations for novel exemplars
 		{
@@ -273,12 +311,12 @@ int spike(PARAMS * mp)
 			printf("\tPP Testing complete!\n");
 		}
 		
-		printf("\tFixing PP weights...\t");
+		/*printf("\tFixing PP weights...\t");
 		mp->trainElE = false; // May be better to let ElE adjust during EfE training...
 		printf("PP weights fixed!\n");
 		
 		if (mp->isolateEfE)
-			mp->trainEfE = true;
+			mp->trainEfE = true;*/
 		
 		if (mp->vRecords)
 		{
@@ -697,7 +735,7 @@ void calcConnectivity(bool probConnect)
 #if DEBUG > 3
 				printf("L%dN%d [R%d,C%d]:(%f,%f); ",l,i,n_E[l][i].row,n_E[l][i].col,n_E[l][i].x,n_E[l][i].y);
 #endif
-				for (j=0; j<=i; j++)
+				for (j=0; j<=i; j++) // Triangular array
 				{
 					distE[l][i][j] = calcDistance(&n_E[l][i], &n_E[l][j], mp->spatialScale);//mp->layDim);
 #if DEBUG > 3
@@ -855,6 +893,7 @@ void calcConnectivity(bool probConnect)
 	/************** FILE OUTPUT **************/
 	if (mp->printConnections && !mp->loadWeights)
 	{
+		printf("\n\t\tPrinting connectivity to files...\t");
 		for (l=0; l<mp->nWLayers; l++) // Loop up to nWLayers
 		{
 			slen = snprintf(filename, FNAMEBUFF, "L%daffNeuronsEfE.dat", l+1);
@@ -1000,6 +1039,7 @@ void calcConnectivity(bool probConnect)
 			}
 			fclose(connections_FP);
 		}
+		printf("Connectivity saved!\n");
 	}
 	
 	/************** END OF FILE OUTPUT **************/
@@ -1199,7 +1239,7 @@ void wireAfferents(NEURON * n, float pEfn, float pEln, float pIln)
 			/* Collapse this branch!!! */
 			if (n->type==EXCIT && (readLowTriF(distE, n->l, n->n, n_E[n->l][s].n) < cutoff)) // ElE of SOM within range //mp->SOM && 
 			{
-				if(gsl_rng_uniform(mSeed) < pEln) // Connect //ran3(&idum)
+				if(gsl_rng_uniform(mSeed) < pEln) // Connect
 				{
 					n->lm0presyn_E[n->nLAff_E++] = &n_E[n->l][s];
 					n_E[n->l][s].nLEff_E++;
@@ -1212,7 +1252,7 @@ void wireAfferents(NEURON * n, float pEfn, float pEln, float pIln)
 			}
 			else // ElI || !SOM && ElE
 			{
-				if(gsl_rng_uniform(mSeed) < pEln) // Connect //ran3(&idum)
+				if(gsl_rng_uniform(mSeed) < pEln) // Connect 
 				{//if (mp->SOM && n->type==EXCIT && (readLowTriF(distE, n->l, n->n, n_E[n->l][s].n) > mp->SOMclip*mp->SOMsigE)); continue; // Out of range
 					n->lm0presyn_E[n->nLAff_E++] = &n_E[n->l][s];
 					if (n->type == EXCIT)
@@ -1645,7 +1685,7 @@ void setRecords(PARAMS * mp, NEURON ** n_E, gsl_rng * mSeed) // if (mp->nRecords
 		for (r=0; r<mp->vRecords[l]; r++) // Randomly set NRECORDS flags
 		{
 			n_E[l][chosen[r]].rec_flag = true;
-			printf("\tLayer #%d, Record %d Assigned nID: #%d\n",l,r+1,chosen[r]);
+			printf("\t\tLayer #%d, Record %d Assigned nID: #%d\n",l,r+1,chosen[r]);
 		}
 		
 		slen = snprintf(rString, BUFSIZ, "MP.Records{%d}", l+1);
@@ -1917,7 +1957,8 @@ void setWeights(PARAMS * mp, NEURON ** n_E, NEURON ** n_I, const char * suffix)
 							n_E[l][n].LEffs_E[s].delta_g = n_E[l][n].LEffs_E[s].delta_g_tm1 = gsl_ran_gaussian(mSeed, mp->SOMsigE); //states[th]
 				break;
 			case SOM: // distE, mp->DgElE, mp->SOMsigE
-				phiScale = (mp->trainElE) ? mp->DgElE/(mp->SOMsigE*sqrt(2*M_PI)) : 1/(mp->SOMsigE*sqrt(2*M_PI));
+				//phiScale = (mp->trainElE) ? mp->DgElE/(mp->SOMsigE*sqrt(2*M_PI)) : 1/(mp->SOMsigE*sqrt(2*M_PI));
+                phiScale = ((mp->trainElE) ? mp->DgElE : 1) / (mp->SOMsigE*sqrt(2*M_PI));
 				for (l=0; l<mp->nLayers; l++)
 					for (n=0; n<mp->vExcit[l]; n++)
 						for (s=0; s<n_E[l][n].nLEff_E; s++)
@@ -2506,20 +2547,48 @@ void gen_stimuli(bool rep, STIMULI * stim, PARAMS * mp)
 		if (mp->K == mp->nTestStimuli) // mp->nStimuli = 1
 			assert(mp->M == 1);
 		
-		/*if (mp->K == mp->nTestStimuli) // Try this!
+		/*// Alternative combination generator routine... 
+		// Currently set so that M <= gsl_sf_choose(mp->nTestStimuli-1, mp->K-1)
+		int nCombs = gsl_sf_choose(mp->nTestStimuli, mp->K);
+		assert(mp->M <= nCombs);
+		// Generate all combinations in an nComb by K array
+		// ...
+		
+		// Select M at random
+		for (p=0; p<mp->M; p++)
 		{
-			assert(mp->M == 1);
+			// Sample from 0 to M-1 without replacement
+			
+			// Copy K test patterns into current training pattern
+			for (k=0; k<mp->K; k++)
+			{
+				combs[r,k]
+			}
+		}
+		// End of alternative routine*/
+		
+
+		if (mp->K == mp->nTestStimuli) 
+		{ // This is a hack which results in less training than when K<nTestStimuli
+			int c=0;
+			//assert(mp->M == 1);
 			mp->nStimuli = 1;
 			stim->trn_stimuli = get_3D_farray(mp->nStimuli, mp->nTransPS, mp->sInputs, 0.0);
-			memcpy(stim->trn_stimuli[0][0], stim->tst_stimuli[0][0], mp->nTestTransPS*mp->sInputs*sizeof(stim->tst_stimuli[0][0][0]));
+			
+			/*memcpy(stim->trn_stimuli[0][0], stim->tst_stimuli[0][0], mp->nTestTransPS*mp->sInputs*sizeof(stim->tst_stimuli[0][0][0]));
 			
 			for (c=0; c<mp->K-1; c++)
 				for (trans=0; trans<mp->nTestTransPS; trans++) // memcpy pth test stimulus ? - does not work for dist. stim
 					for (n=0; n<mp->sInputs; n++)
-						stim->trn_stimuli[0][trans][n] = (stim->tst_stimuli[c][trans][n]) ? mp->current : stim->trn_stimuli[0][trans][n];			
+						stim->trn_stimuli[0][trans][n] = (stim->tst_stimuli[c][trans][n]) ? mp->current : stim->trn_stimuli[0][trans][n];*/
+			
+			for (c=0; c<mp->K; c++)
+				for (trans=0; trans<mp->nTestTransPS; trans++) // memcpy pth test stimulus ? - does not work for dist. stim
+					for (n=0; n<mp->sInputs; n++)
+						stim->trn_stimuli[0][trans][n] = (stim->tst_stimuli[c][trans][n]) ? mp->current : stim->trn_stimuli[0][trans][n]; 
 		}
-		else ...*/
-		
+		else //...
+		{
 		/*if (abs(mp->nStimuli - mp->K)==1) // || mp->K == 1
 		{
 			mp->nStimuli = mp->nTestStimuli
@@ -2556,6 +2625,7 @@ void gen_stimuli(bool rep, STIMULI * stim, PARAMS * mp)
 		
 		myfree(choices);
 		myfree(chosen);
+		}
 		
 		stim->nStim = mp->nStimuli;
 		stim->nTrans = mp->nTransPS;
@@ -2868,7 +2938,7 @@ void calcInput(PARAMS * mp, int loop, int pat, int trans, STIMULI * stim, float 
 			
 			FILE * fp = myfopen("stimuli.m", "a+"); //schedule.m
 			//fprintf(fp, "%d %d %d\n", loop, pat, trans);
-			fprintf(fp, "%d,%d; ",pat, trans);
+			fprintf(fp, "%d,%d; ",pat, trans); // Change to 'Matlab friendly' i.e. pat+1, trans+1
 			fclose(fp);
 			
 			break;
@@ -2958,8 +3028,10 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 	}
 	
 	//printf("\tNow beginning %s phase...\n",phaseString); // *** Move outside
-	if (regime == Training) //(sPhase == Training)
-		printf("\tSimulating %2.3f s per loop for %d loop%s.\n",mp->EpochTime,nLoops,(nLoops>1)?"s":"");
+	if (regime == Testing) // pre and post training
+		printf("\tSimulating %2.3f s [%.0fms/transform].\n",mp->TestTime,mp->transP_Test*1000);
+	else if (regime == Training) //(sPhase == Training)
+		printf("\tSimulating %2.3fs for %d epoch%s [%.0fms/transform].\n",mp->EpochTime,nLoops,(nLoops>1)?"s":"",mp->transP_Train*1000);
 	for (loop=0; loop<nLoops; loop++)
 	{
 		initNetwork(Hard);//(NoLearning); // Reset V's, g's, C's, D's and spike buffers - NoLearning even for Training! 
@@ -3539,6 +3611,8 @@ void updateNetwork(tstep t_start, tstep t_end, float input[], int regime) //int 
 					}
 			}
 			//#pragma omp barrier
+			// Could use #pragma omp single to print out progress bar every ms
+			// e.g. printf("\r");
 		}
 		
 #pragma omp barrier
@@ -3670,6 +3744,16 @@ inline void update_weights(NEURON * n, tstep t)
 	//float Dg = 0.0;
 	if (mp->trainEfE)
 	{
+		if (mp->noSTDPdelay) // Use unmodified STDP rule
+			for (syn=0; syn<n->nFAff_E; syn++)
+			{
+				Dg_tm1 = n->FAffs_E[syn]->delta_g_tm1;
+				LTD = (t == n->lm1presyn_E[syn]->lastSpike+1) ? n->FAffs_E[syn]->delta_g_tm1 * n->D_tm1 : 0.0; // Include artefactual delay of 1 tstep
+				LTP = (t == n->lastSpike) ? (1 - n->FAffs_E[syn]->delta_g_tm1) * n->FAffs_E[syn]->C_tm1 : 0.0;
+				n->FAffs_E[syn]->delta_g += (LTP - LTD) * mp->learnR;
+			}
+		else
+		{
 		for (syn=0; syn<n->nFAff_E; syn++)
 		{
 			Dg_tm1 = n->FAffs_E[syn]->delta_g_tm1;
@@ -3680,6 +3764,7 @@ inline void update_weights(NEURON * n, tstep t)
 			LTP = (t == n->lastSpike) ? (1 - n->FAffs_E[syn]->delta_g_tm1) * n->FAffs_E[syn]->C_tm1 : 0.0; //tm0?
 			n->FAffs_E[syn]->delta_g += (LTP - LTD) * mp->learnR; //*DT/TAU_DG;
 			//Dg = n->FAffs_E[syn]->delta_g;
+		}
 		}
 	}
 	
@@ -3710,11 +3795,21 @@ inline void update_C(NEURON * n, tstep t, float decayRate)
 
 	if (mp->trainEfE) // Loop over afferent synapses (skip first layer)
 	{
+		if (mp->noSTDPdelay)
+			for (syn=0; syn<n->nFAff_E; syn++)
+			{
+				C_tm1 = n->FAffs_E[syn]->C_tm1;
+				impulse = (t == n->lm1presyn_E[syn]->lastSpike+1) ? mp->alphaC * (1 - C_tm1) : 0.0;
+				n->FAffs_E[syn]->C += (impulse - (C_tm1 * decayRate));
+			}
+		else
+		{
 		for (syn=0; syn<n->nFAff_E; syn++)
 		{
 			C_tm1 = n->FAffs_E[syn]->C_tm1;
 			impulse = (t == next_spike(n->FAffs_E[syn])) ? mp->alphaC * (1 - C_tm1) : 0.0;
 			n->FAffs_E[syn]->C += (impulse - (C_tm1 * decayRate));
+		}
 		}
 	}
 	

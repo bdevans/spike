@@ -64,13 +64,18 @@ int read_parameters(PARAMS * params, char * paramfile)
 		if (mp->K > 1)		// Assumption: when training with multiples, test with individual stimuli
 		{
 			mp->newTestSet = true;
-			mp->nTestStimuli = mp->nStimuli;
+			if (mp->K == mp->nTestStimuli) // Hack
+				mp->nStimuli = 1;
+			else
+			{
+			mp->nTestStimuli = mp->nStimuli; // THINK! Be careful changing nStimuli or K again...
 			int nCombs = gsl_sf_choose(mp->nTestStimuli-1, mp->K-1);
 			if (mp->M > nCombs)
 				mp->M = nCombs;
 			mp->M = (mp->nStimuli == 1) ? 1 : mp->M; // Just present the same stimuli again in a loop instead if M>nStimuli?
-			mp->nStimuli = mp->nTestStimuli * mp->M;
 			
+				mp->nStimuli = mp->nTestStimuli * mp->M;
+			}
 			/*nCombs = gsl_sf_choose(mp->nTestStimuli, mp->K);
 			 mp->nStimuli = (nCombs == 1) ? nCombs : mp->nStimuli;*/
 			//mp->nStimuli = mp->M * gsl_sf_choose(mp->nTestStimuli, mp->K) / mp->nTestStimuli; // Check ////////
@@ -307,6 +312,11 @@ int read_parameters(PARAMS * params, char * paramfile)
 		latprob += params->pCnxElE[l];
 	mp->SOM = (latprob>EPS) ? true : false;
 	
+	if (mp->delayEfE || mp->delayElE || mp->delayEI)
+		mp->axonDelay = true;
+	else // Make axonDelay an internal variable c.f. SOM
+		mp->axonDelay = false;
+	
 	if (mp->initElE || mp->axonDelay) // Include delayEfE, delayElE, delayEI
 	{
 		mp->SOM = true;
@@ -367,15 +377,32 @@ int read_parameters(PARAMS * params, char * paramfile)
 	assert(params->LpIE == params->nLayers);
 	assert(params->LpII == params->nLayers);
 	
-	if (params->nRecordsPL && params->vRecords==NULL)
+	/*if (mp->vRecords==NULL)
 	{
-		params->nRecords = 0;
+		mp->vRecords = myalloc(mp->nLayers * sizeof(*(mp->vRecords)));
+		memset(mp->vRecords, 0, mp->nLayers * sizeof(*(mp->vRecords)));
+	}
+	
+	if (mp->nRecordsPL)
+	{
+		mp->nRecords = 0;
+		for (l=0; l<mp->nLayers; l++)
+		{
+			mp->vRecords[l] = mp->nRecordsPL;
+			assert((0 <= mp->vRecords[l]) && (mp->vRecords[l] <= mp->vExcit[l]));
+			mp->nRecords += mp->vRecords[l]; // Not necessary - see below
+		}
+	}*/
+	
+	if (params->nRecordsPL && params->vRecords==NULL) // Only if vRecords has not been parsed
+	{
+		//params->nRecords = 0;
 		params->vRecords = myalloc(params->nLayers * sizeof(int)); // * params->nRecordsPL
 		for (l=0; l<params->nLayers; l++)
 		{
 			params->vRecords[l] = params->nRecordsPL;
-			assert((0 <= params->vRecords[l]) && (params->vRecords[l] <= params->vExcit[l]));
-			params->nRecords += params->vRecords[l];
+			//assert((0 <= params->vRecords[l]) && (params->vRecords[l] <= params->vExcit[l]));
+			//params->nRecords += params->vRecords[l]; // Not necessary? - see below
 		}
 	}
 	
@@ -568,6 +595,7 @@ int parse_string(PARAMS * params, char * string)
 {
 	static char name[MAXLEN], value[MAXLEN];
 	char * sptr;
+	int l=0;
 	//int slen=0;
 	
 	if (string[0] == '\n' || string[0] == '#' || string[0] == '%') 	/* Skip blank lines and comments */
@@ -607,7 +635,7 @@ int parse_string(PARAMS * params, char * string)
         ; // Skip - Matlab variables
 	else if (strcmp(name, "DT")==0)
 		params->DT = atof(value);
-	else if (strcmp(name, "loops")==0 || strcmp(name, "nEpochs")==0)
+	else if (strcmp(name, "loops")==0 || strcmp(name, "nLoops")==0 || strcmp(name, "nEpochs")==0)
 		params->loops = atoi(value);
 	else if (strcmp(name, "pretrain")==0)
 		params->pretrain = atoi(value);
@@ -626,7 +654,12 @@ int parse_string(PARAMS * params, char * string)
 	else if (strcmp(name, "normalise")==0)
 		params->normalise = atoi(value);
 	else if (strcmp(name, "nRecordsPL")==0)
+	{
 		params->nRecordsPL = atoi(value);
+		if (mp->vRecords) // If vRecords already allocated and wish to reset e.g. to 0
+			for (l=0; l<mp->nLayers; l++)
+				mp->vRecords[l] = mp->nRecordsPL;
+	}
     else if (strcmp(name, "nRecords")==0)
         ; // Skip - Matlab variable
 	else if (strcmp(name, "vRecords")==0)
@@ -797,21 +830,21 @@ int parse_string(PARAMS * params, char * string)
 	else if (strcmp(name, "iEfE")==0)
 		params->iEfE = atof(value);
 	else if (strcmp(name, "axonDelay")==0)
-		params->axonDelay = atoi(value);
+		printf("axonDelay is now an internal variable!\n");//params->axonDelay = atoi(value);
     else if (strcmp(name, "delayEfE")==0)
     {
         params->delayEfE = atoi(value);
-        params->axonDelay = true;
+        //params->axonDelay = true;
     }
     else if (strcmp(name, "delayElE")==0)
     {
         params->delayElE = atoi(value);
-        params->axonDelay = true;
+        //params->axonDelay = true;
     }
     else if (strcmp(name, "delayEI")==0)
     {
         params->delayEI = atoi(value);
-        params->axonDelay = true;
+        //params->axonDelay = true;
     }
 	else if (strcmp(name, "d_const")==0)
 		params->d_const = atof(value);
@@ -892,6 +925,8 @@ int parse_string(PARAMS * params, char * string)
 		params->VK = atof(value);	
 	
 	/* Synapses */
+	else if (strcmp(name, "noSTDPdelay")==0)
+		mp->noSTDPdelay = atoi(value);
 	else if (strcmp(name, "alphaC")==0)
 		params->alphaC = atof(value);
 	else if (strcmp(name, "tauC")==0)
@@ -1250,6 +1285,7 @@ int printParameters(PARAMS * mp, char * paramfile) // Update list of parameters
 	
 	/* Synapses */
 	fprintf(pFP, "\n%%%% Synapse Parameters %%%%\n");
+	FPRINT_INT(pFP, MP.noSTDPdelay); c++;
 	FPRINT_FLOAT(pFP, MP.alphaC); c++;
 	FPRINT_FLOAT(pFP, MP.tauC); c++;
 	FPRINT_FLOAT(pFP, MP.alphaD); c++;

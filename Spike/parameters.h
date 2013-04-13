@@ -220,6 +220,7 @@ typedef struct {
 	float VK;
 	
 	// Synapses (afferent axons)
+    bool noSTDPdelay;
 	float alphaC;// = 0.5;
 	float tauC;// = 0.005;
 	float alphaD;// = 0.5;

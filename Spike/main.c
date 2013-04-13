@@ -34,6 +34,9 @@ char PPSTFILE[BUFSIZ] = "";
 // http://discussions.apple.com/thread.jspa?threadID=1741520
 // http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 
+// Apple's malloc debugging library: libgmalloc
+// To use: export DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib
+
 PARAMS * mp;
 unsigned long int seed = 0;
 gsl_rng * mSeed = NULL;
@@ -286,7 +289,9 @@ int main (int argc, const char * argv[])
 //#ifndef __llvm__
 					assert(0.0 < proportion && proportion <= 1.0);
 //#endif
-					omp_set_num_threads(round(omp_get_num_procs()*proportion));
+                    nThreads = round(omp_get_num_procs()*proportion);
+                    nThreads = (nThreads>1) ? nThreads : 1;
+					omp_set_num_threads(nThreads);
 #else
 					fprintf(stderr, "*** -m %f: OpenMP disabled! ***\n",proportion);
 #endif
@@ -649,7 +654,10 @@ int main (int argc, const char * argv[])
 			
 		if (mp->printConnections)
 		{
-			if (mp->SOM)
+            if (snprintf(syscmd, BUFSIZ, "tar -cjf connectivity.tbz *affNeurons*.dat %s %s",(mp->SOM)?"*dist*.dat":"",(mp->axonDelay)?"*affDelays*.dat":"") >= BUFSIZ)
+                fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
+            syserr = system(syscmd);
+			/*if (mp->SOM)
 				syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat *affDelays*.dat *dist*.dat");
 			else
             {
@@ -657,7 +665,7 @@ int main (int argc, const char * argv[])
                     syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat *affDelays*.dat"); //system("tar --remove-files -cjvf connectivity.tbz *affNeurons*.dat > fileList");
                 else
                     syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat");
-            }
+            }*/
 			if (!syserr)
 				system("tar -tf connectivity.tbz | xargs rm");
 		}
@@ -702,7 +710,8 @@ int main (int argc, const char * argv[])
 		system("md5 datHashs.txt");
 		//system("md5 *.tbz"); // Contains metadata (e.g. timestamps) which will give different #s
 	 }*/
-		
+    
+    printf("Computing SHA checksums...\n");
 	slen = snprintf(syscmd, sizeof(syscmd)-1, "shasum %s", exec);
 #ifndef __llvm__
 	assert(slen < (signed) sizeof(syscmd));
@@ -710,6 +719,7 @@ int main (int argc, const char * argv[])
 	system(syscmd);
 	system("shasum parameters.m");
 	system("shasum datHashs.txt");
+    printf("Checksums computed!\n");
 	} // End of section
 		
 	// Clean up
