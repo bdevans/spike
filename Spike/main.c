@@ -1,3 +1,12 @@
+/*
+ *  spike.c
+ *  Spike
+ *
+ *  Created by Ben Evans on 19/06/2008.
+ *  Copyright 2008 University of Oxford. All rights reserved.
+ *
+ */
+
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>

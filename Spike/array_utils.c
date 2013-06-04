@@ -3,7 +3,7 @@
  *  Spike
  *
  *  Created by Ben Evans on 04/02/2009.
- *  Copyright 2009 __MyCompanyName__. All rights reserved.
+ *  Copyright 2009 University of Oxford. All rights reserved.
  *
  */
 
@@ -19,28 +19,26 @@ void normalize(double *vec, int size)
 		sf += vec[i] * vec[i];
 	
 	sf = sqrt(sf);
-	
-	if (sf>=EPS)
-		for (i=0; i<size; i++)
-			vec[i] /= sf;
+    if (sf>EPS)
+    {
+        sf = 1/sf;
+        for (i=0; i<size; i++)
+			vec[i] *= sf;
+    }
 	
 	return;
 }
 
 double ndp(double *vec_x, double *vec_y, int size)
 {
+    // Return the normalised dot product (cos \theta) between two vectors
 	int i;
 	double sxsq = 0.0;
 	double sysq = 0.0;
 	double sxy = 0.0;
 	double root = 0.0;
-	// double eps = ...	
-	
-	if (size <= 0)
-	{
-		return 9.999999;
-		printf("NDP error: Vector lengths must be >= 1");
-	}
+
+    assert(size >= 1);
 	
 	for (i=0; i<size; i++)
 	{
@@ -51,20 +49,7 @@ double ndp(double *vec_x, double *vec_y, int size)
 	
 	root = sqrt(sxsq * sysq);
 	
-	// double cos_theta = ((fabs(root)<=eps) ? 0.0 : (sxy/root));
-	// return cos_theta;
-	
-	
-	return ((fabs(root)<=EPS) ? 0.0 : (sxy/root));
-	/*
-	 if (fabs(root) <= EPS)
-	 {
-	 return 0.0;
-	 }
-	 else
-	 return (sxy / root); // returns cos @
-	 }
-	 */
+	return (fabs(root)>EPS) ? (sxy/root) : 0.0;
 }
 
 void print_irow(FILE * file_ptr, int * data, int ncols)
@@ -81,19 +66,14 @@ void print_iarray(FILE *file_ptr, int **data, int nrows, int ncols)
 { // Change to void **data in order to take ints and doubles
 	int i = 0;
 	int j = 0;
-	//FILE * file_ptr;
-	//file_ptr = fopen(file_name, "w"); // See nifty trick #2
 	assert(file_ptr != NULL);
 	for (i=0; i<nrows; i++)
 	{
 		for (j=0; j<ncols; j++)
-		{
 			fprintf(file_ptr, "%d\t", data[i][j]);
-		}
 		fprintf(file_ptr, "\n");
-		fflush(file_ptr); // Is this necessary?
+		fflush(file_ptr);
 	}
-	//fclose(file_ptr);
 	return;
 }
 
@@ -111,19 +91,14 @@ void print_farray(FILE *file_ptr, float **data, int nrows, int ncols)
 { // Change to void **data in order to take ints and doubles
 	int i = 0;
 	int j = 0;
-	//FILE * file_ptr;
-	//file_ptr = fopen(file_name, "w"); // See nifty trick #2
 	assert(file_ptr != NULL);
 	for (i=0; i<nrows; i++)
 	{
 		for (j=0; j<ncols; j++)
-		{
 			fprintf(file_ptr, "%G\t", data[i][j]);
-		}
 		fprintf(file_ptr, "\n");
-		fflush(file_ptr); // Is this necessary?
+		fflush(file_ptr);
 	}
-	//fclose(file_ptr);
 	return;
 }
 
@@ -132,19 +107,14 @@ void print_darray(FILE *file_ptr, double **data, int nrows, int ncols)
 { // Change to void **data in order to take ints and doubles
 	int i = 0;
 	int j = 0;
-	//FILE * file_ptr;
-	//file_ptr = fopen(file_name, "w"); // See nifty trick #2
 	assert(file_ptr != NULL);
 	for (i=0; i<nrows; i++)
 	{
 		for (j=0; j<ncols; j++)
-		{
 			fprintf(file_ptr, "%lf\t", data[i][j]);
-		}
 		fprintf(file_ptr, "\n");
-		fflush(file_ptr); // Is this necessary?
+		fflush(file_ptr);
 	}
-	//fclose(file_ptr);
 	return;
 }
 
@@ -158,7 +128,6 @@ void ** array2d(size_t rows, size_t cols, size_t value_size)
     size_t store_size = value_size * rows * cols;
 	
     char * a = myalloc(index_size + store_size);
-    //if(!a) return NULL;
 	
     memset(a + index_size, 0, store_size); // Be careful with memsets rezeroing the array
 	size_t i=0;
@@ -194,13 +163,9 @@ int ** get_2D_iarray(int nrows, int ncols, int init)
 
 void free_2D_iarray(int ** array2D)//, int nrows)
 {
-	//int i;
 	if (!array2D)
 		return;
-/*	for (i=0; i<nrows; i++)
-		free(array2D[i]);*/
 	free(*array2D); // Since the memory is contiguous
-	
 	free(array2D);
 	return;
 }
@@ -240,17 +205,12 @@ int *** get_3D_iarray(int nlays, int nrows, int ncols, int init)
 
 void free_3D_iarray(int *** array3D, int nlays)//, int nrows)
 {
-	//int y,z;
 	int z;
 	if (!array3D)
 		return;
 	free(**array3D);
 	for (z=0; z<nlays; z++)
-	{
-		/*for (y=0; y<nrows; y++)
-			free(array3D[z][y]);*/
 		free(array3D[z]);
-	}
 	free(array3D);
 	return;
 }
@@ -284,11 +244,8 @@ float ** get_2D_farray(int nrows, int ncols, float init)
 
 void free_2D_farray(float ** array2D)//, int nrows)
 {
-	//int i;
 	if (!array2D)
 		return;
-	/*for (i=0; i<nrows; i++)
-		free(array2D[i]);*/
 	free(array2D[0]); // Since memory is contiguous
 	free(array2D);
 	return;
@@ -329,17 +286,12 @@ float *** get_3D_farray(int nlays, int nrows, int ncols, float init)
 
 void free_3D_farray(float *** array3D, int nlays)//, int nrows)
 {
-	//int y,z;
 	int z;
 	if (!array3D)
 		return;
 	free(**array3D);
 	for (z=0; z<nlays; z++)
-	{
-		/*for (y=0; y<nrows; y++)
-			free(array3D[z][y]);*/
 		free(array3D[z]);
-	}
 	free(array3D);
 	return;
 }
@@ -507,13 +459,6 @@ float *** getLowTriF(int nlays, int * lDims, float init)
 			for (y=0; y<lDims[z]; y++)
 				for (x=0; x<y+1; x++)
 					lowTri[z][y][x] = init; //(z * nrows * ncols) + (y * ncols) + x;
-	/*for (z=0; z<tot; z++)
-		lowTri[0][0][z] = z;
-	
-	for (z=0; z<nlays; z++)
-		for (y=0; y<lDims[z]; y++)
-			for (x=0; x<y+1; x++)
-				fprintf(stderr, "L%d(%d,%d)=%.0f",z,y,x,lowTri[z][y][x]);*/
 	
 	return lowTri;
 }
@@ -637,13 +582,10 @@ double ** get_2D_darray(int nrows, int ncols, double init)
 	return array2D;	
 }
 
-void free_2D_darray(double ** array2D)//, int nrows)
+void free_2D_darray(double ** array2D)
 {
-	//int i;
 	if (!array2D)
 		return;
-	/*for (i=0; i<nrows; i++)
-	 free(array2D[i]);*/
 	free(array2D[0]); // Since memory is contiguous
 	free(array2D);
 	return;

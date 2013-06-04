@@ -3,7 +3,7 @@
  *  Spike
  *
  *  Created by Ben Evans on 28/11/2008.
- *  Copyright 2008 __MyCompanyName__. All rights reserved.
+ *  Copyright 2008 University of Oxford. All rights reserved.
  *
  */
 
@@ -16,7 +16,6 @@ int read_parameters(PARAMS * params, char * paramfile)
 {
 	int count = 0;
 	int l = 0;
-	//int square = 0;
 	char * string, buff[BUFFER];
 	
 	int prevNLayers = (mp->initialised) ? mp->nLayers : 0;
@@ -32,10 +31,6 @@ int read_parameters(PARAMS * params, char * paramfile)
 		char * imgParams = myalloc(slen);
 		if (snprintf(imgParams, slen, "%s/%s", mp->imgDir, IPFILE) >= slen)
 			fprintf(stderr, "*** Warning! Undersized buffer: %s ***", imgParams);
-		/*strncpy(imgParams, mp->imgDir, strlen(mp->imgDir)+1);
-		 strncat(imgParams, "/", 1);
-		 strncat(imgParams, IPFILE, strlen(IPFILE)+1);
-		 imgParams[slen-1]='\0';*/
 		fp = myfopen(imgParams, "r");	/* Read imgParams file */
 		while ((string = fgets(buff, sizeof(buff), fp)) != NULL) 	/* Read next line */
 			count += parse_string(params, buff);
@@ -61,7 +56,7 @@ int read_parameters(PARAMS * params, char * paramfile)
 	
 	/*if (!mp->stimGroups)
 	{*/
-		if (mp->K > 1)		// Assumption: when training with multiples, test with individual stimuli
+		if (mp->K > 1)	// Assumption: when training with multiples, test with individual stimuli
 		{
 			mp->newTestSet = true;
 			if (mp->K == mp->nTestStimuli) // Hack
@@ -101,22 +96,16 @@ int read_parameters(PARAMS * params, char * paramfile)
 	mp->TestTime = mp->nTestStimuli * mp->nTestTransPS * mp->transP_Test;
 	mp->TestMS = round(mp->TestTime * 1000);
 	mp->MaxTime = MAX(mp->TestTime, mp->EpochTime);
-	//float transP = (params->transP_Train >= params->transP_Test ? params->transP_Train : params->transP_Test);
-	//params->TotalTime = params->nStimuli * params->nTransPS * transP;
 	mp->TotalMS = round(mp->MaxTime * 1000); // Was ceil, used for recording structures
 	mp->RecordMS = mp->TotalMS; //Relabel these
-	//params->TotalTS = round(params->TotalTime/mp->DT); // Was ceil
 	params->TSperMS = round(1/(mp->DT*1000)); // Was ceil, used for recording structures
 	mp->spkBuffer = ceil(mp->MaxTime / mp->refract);
 	params->SigmaE = params->noiseScale * (params->ThreshE - params->VhyperE);
 	params->SigmaI = params->noiseScale * (params->ThreshI - params->VhyperI);
-	//params->inpSpkBuff = ceil(transP / params->refract);
-	
+		
     if (params->interleaveTrans) // Stop resetting between stimuli (redundant?)
         params->trainPause = false;
     
-
-	
 	// Change all myalloc to myrealloc?
     
     // mp->initialised may make Lv<>'s redundant... collapse into if (mp->initialised) {} else {} and move up
@@ -256,8 +245,6 @@ int read_parameters(PARAMS * params, char * paramfile)
 	if (!params->inputInhib)
 		params->vInhib[0] = 0;
 	
-	
-	
 	/*if (params->LvInhib == 0)
 	{
 		params->vInhib = myalloc(params->nLayers*sizeof(int));
@@ -377,33 +364,11 @@ int read_parameters(PARAMS * params, char * paramfile)
 	assert(params->LpIE == params->nLayers);
 	assert(params->LpII == params->nLayers);
 	
-	/*if (mp->vRecords==NULL)
-	{
-		mp->vRecords = myalloc(mp->nLayers * sizeof(*(mp->vRecords)));
-		memset(mp->vRecords, 0, mp->nLayers * sizeof(*(mp->vRecords)));
-	}
-	
-	if (mp->nRecordsPL)
-	{
-		mp->nRecords = 0;
-		for (l=0; l<mp->nLayers; l++)
-		{
-			mp->vRecords[l] = mp->nRecordsPL;
-			assert((0 <= mp->vRecords[l]) && (mp->vRecords[l] <= mp->vExcit[l]));
-			mp->nRecords += mp->vRecords[l]; // Not necessary - see below
-		}
-	}*/
-	
 	if (params->nRecordsPL && params->vRecords==NULL) // Only if vRecords has not been parsed
 	{
-		//params->nRecords = 0;
-		params->vRecords = myalloc(params->nLayers * sizeof(int)); // * params->nRecordsPL
+		params->vRecords = myalloc(params->nLayers * sizeof(int));
 		for (l=0; l<params->nLayers; l++)
-		{
 			params->vRecords[l] = params->nRecordsPL;
-			//assert((0 <= params->vRecords[l]) && (params->vRecords[l] <= params->vExcit[l]));
-			//params->nRecords += params->vRecords[l]; // Not necessary? - see below
-		}
 	}
 	
 	if (params->vRecords)
@@ -422,9 +387,6 @@ int read_parameters(PARAMS * params, char * paramfile)
 	
 	if (mp->stimGroups && strcmp(STFILE, "")==0) // No STFILE name passed
 	{
-		//slen = strlen(value);
-		//strncpy(STFILE, value, slen*sizeof(char)); // copies <= slen bytes (bytes following null byte are not copied)
-		//STFILE[slen] = '\0';
 		FILEPARTS * fp = myalloc(sizeof(FILEPARTS));
 		getFileParts(pFile, fp);
 		strncpy(STFILE, fp->fname, BUFSIZ);
@@ -458,10 +420,11 @@ int read_parameters(PARAMS * params, char * paramfile)
 
 char * trim(char * string)
 { // Remove leading and trailing whitespace
-	/* Initialize start, end pointers */
+	
 	if (string == NULL)
 		return string;
 	
+	/* Initialize start, end pointers */
 	char *s1 = string, *s2 = &string[strlen(string) - 1];
 	
 	/* Trim and delimit right side */
@@ -489,15 +452,15 @@ int parseIntVector(char * string, int ** array)
 	
 	myfree(*array); // Call free if *array!=NULL in case the array already exists
 	*array = myalloc(VECBUFF*sizeof(int));
-	tstr = strtok(string, delims); // Get first token starting with the first nondelimiter char
+	tstr = trim(strtok(string, delims)); // Get first token starting with the first nondelimiter char
 	
-	while ( (tstr != NULL) && (*trim(tstr) != (']' || '}')) && (*tstr != '\0') ) // Trim and check not end
+	while ( (tstr != NULL) && (*tstr != ']') && (*tstr != '}') && (*tstr != '\0') )
 	{
 		if (numElements == block*VECBUFF) // Check array is not full up
 			*array = myrealloc(*array, ++block*VECBUFF*sizeof(int)); // Reallocate memory
 		
 		(*array)[numElements++] = atoi(tstr); // convert to int for assignment
-		tstr = strtok(NULL, delims); // Get the next token
+		tstr = trim(strtok(NULL, delims)); // Get the next token
 	}
 	
 	if (numElements == 0)
@@ -517,15 +480,15 @@ int parseFloatVector(char * string, float ** array)
 	
 	myfree(*array); // Call free if *array!=NULL in case the array already exists
 	*array = myalloc(VECBUFF*sizeof(float));
-	tstr = strtok(string, delims); // Get first token starting with the first nondelimiter char
+	tstr = trim(strtok(string, delims)); // Get first token starting with the first nondelimiter char
 	
-	while ( (tstr != NULL) && (*trim(tstr) != (']' || '}')) && (*tstr != '\0') ) // Trim and check not end
+	while ( (tstr != NULL) && (*tstr != ']') && (*tstr != '}') && (*tstr != '\0') )
 	{
 		if (numElements == block*VECBUFF) // Check array is not full up
 			*array = myrealloc(*array, ++block*VECBUFF*sizeof(float)); // Reallocate memory
 			
 		(*array)[numElements++] = atof(tstr); // convert to int for assignment
-		tstr = strtok(NULL, delims); // Get the next token
+		tstr = trim(strtok(NULL, delims)); // Get the next token
 	}
 	
 	if (numElements == 0)
@@ -711,6 +674,7 @@ int parse_string(PARAMS * params, char * string)
 		ELESTFILE[slen] = '\0';*/
 		
 		strncpy(PPSTFILE, value, BUFSIZ);
+		assert(strlen(PPSTFILE)<BUFSIZ);
 	}
     	else if (strcmp(name, "randStimOrder")==0)
 		params->randStimOrder = atoi(value);
@@ -726,6 +690,8 @@ int parse_string(PARAMS * params, char * string)
 		params->current = atof(value);
 	else if (strcmp(name, "currentSpread")==0)
 		params->currentSpread = atof(value);
+	else if (strcmp(name, "loadStimuli")==0)
+		params->loadStimuli = atoi(value);
 	else if (strcmp(name, "stimGroups")==0)
 		params->stimGroups = atoi(value);
 	else if (strcmp(name, "nBG")==0)

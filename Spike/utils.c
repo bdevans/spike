@@ -3,7 +3,7 @@
  *  Spike
  *
  *  Created by Ben Evans on 19/02/2009.
- *  Copyright 2009 __MyCompanyName__. All rights reserved.
+ *  Copyright 2009 University of Oxford. All rights reserved.
  *
  */
 
@@ -20,6 +20,7 @@ void exit_error(const char * process, const char * statement)
 	exit(EXIT_FAILURE);
 }
 
+
 void * myalloc(int n)
 {
 	void * mem;
@@ -33,6 +34,7 @@ void * myalloc(int n)
 	
 	return mem;
 }
+
 
 void * myrealloc(void * mem, int n)
 { // N.B. the returned pointer must be assigned to the passed pointer as memory could be moved to a new location
@@ -55,6 +57,7 @@ void * myrealloc(void * mem, int n)
 	return mem;
 }
 
+
 void * myfree(void * mem)
 {
 	if (mem) // != NULL
@@ -65,6 +68,7 @@ void * myfree(void * mem)
 	return mem;
 }
 
+
 FILE * myfopen(const char * filename, const char * args)
 {
 	FILE * fp = NULL;
@@ -72,6 +76,7 @@ FILE * myfopen(const char * filename, const char * args)
 		exit_error("MYFOPEN", filename); //return NULL; else
 	return fp;
 }
+
 
 void filecopy(FILE * ifp, FILE * ofp)
 {
@@ -90,6 +95,7 @@ void append(const char * fname, const char * str)
 	fclose(fp);
 	return;
 }
+
 
 bool file_exists(const char * filename)
 {
@@ -182,6 +188,7 @@ void getFileParts(char * fullname, FILEPARTS * fp)
 	}
 	return;
 }
+
 
 void getTimeString(char * timeStr, size_t buffer, double secs, const char * format)
 {

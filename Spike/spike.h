@@ -2,8 +2,8 @@
  *  spike.h
  *  Spike
  *
- *  Created by Ben Evans on 6/19/08.
- *  Copyright 2008 __MyCompanyName__. All rights reserved.
+ *  Created by Ben Evans on 19/06/2008.
+ *  Copyright 2008 University of Oxford. All rights reserved.
  *
  */
 
@@ -221,9 +221,7 @@ extern NEURON ** allocn(int nlays, int * vNeurons, NTYPE type);
 extern int unallocn(NEURON ** narray, int nlays, int * vNeurons);
 extern void calcConnectivity(bool probConnect);
 extern void wireAfferents(NEURON * n, float pEfn, float pEln, float pIln);
-//extern void calc_connectivity(void);
 extern float calcDistance(NEURON * n1, NEURON * n2, float scale); // DIM * D);
-//extern void wire_afferents(NEURON * n, int l, int * affNcnx_fE, int * affNcnx_lE, int * affNcnx_I);
 extern void alloc_efferents(NEURON * n);
 extern void wire_efferents(NEURON * n);
 extern void create_axons(NEURON * n, PARAMS * mp);
@@ -243,8 +241,7 @@ extern void printSchedule(STIMULI * stim, const char * filename);
 extern void calcInput(PARAMS * mp, int loop, int pat, int trans, STIMULI * stim, float ** input, int regime);
 extern void loadAfferents(const char * suffix);
 extern void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim);
-extern void updateNetwork(tstep t_start, tstep t_end, float input[], int regime); //int loop, 
-//extern void update_network(tstep t, int loop, float input[], int regime);
+extern void updateNetwork(tstep t_start, tstep t_end, float input[], int regime);
 extern void update_V(NEURON * n, tstep t, float decay_rate, float gLeak, float Vrest, float Thresh, float Vhyper, float inj);
 extern inline void update_cCa(NEURON * n, tstep t, float decayRate);
 extern inline void update_g(NEURON * n, tstep t, float decay_E, float decay_I);

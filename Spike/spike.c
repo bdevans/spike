@@ -2,7 +2,7 @@
  *  spike.c
  *  Spike
  *
- *  Created by Ben Evans on 6/19/08.
+ *  Created by Ben Evans on 19/06/2008.
  *  Copyright 2008 University of Oxford. All rights reserved.
  *
  */
@@ -172,7 +172,7 @@ int spike(PARAMS * mp)
                 stim->nTestTrans = mp->nTestTransPS;
             }
 		}
-		else // Generate groups of stimuli
+		else // (! mp->loadStimuli) Generate groups of stimuli
 		{
 			if (mp->priorPhases)
 			{

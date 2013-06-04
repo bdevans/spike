@@ -3,7 +3,7 @@
  *  Spike
  *
  *  Created by Ben Evans on 09/12/2008.
- *  Copyright 2008 __MyCompanyName__. All rights reserved.
+ *  Copyright 2008 University of Oxford. All rights reserved.
  *
  */
 
@@ -12,25 +12,24 @@
 #define _GLOBALS_H
 /**********************************/
 
-//#define DT		0.0001
 #define EPS		1.2e-7
 #define BIG		999999
 
 /* Debugging output */
 #ifndef DEBUG
-#define DEBUG	1	/* Debug output level (defined as 3 in the Xcode Debug TARGETS build settings)		*/
+#define DEBUG	1	/* Debug output level (set to 3 in the Xcode Debug TARGETS build settings) */
 #endif
 #ifndef __OPTIMIZE__
 #define __OPTIMIZE__ -1
 #endif
 #if DEBUG == 0
-#define NDEBUG		/* Define to turn off assert statements	- must come before #include <assert.h>		*/
+#define NDEBUG		/* Define to disable assert statements - must preceed #include <assert.h> */
 #endif
 
 /* Default parameter file names */
 #define RESULTSDIRECTORY	"Results"	/* Output file directory name */
 extern char * RESDIR;
-#define DEFAULTPFILE	"defaults.m" //"DEFAULTS.prm"	/* Default input parameter file name */
+#define DEFAULTPFILE	"defaults.m" 	/* Default input parameter file name */
 extern char * DPFILE;
 #define OUTPUTPFILE		"parameters.m"	/* Default output parameter file name */
 extern char * MPFILE;

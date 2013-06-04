@@ -4,7 +4,7 @@
  *	parse simple name/value pairs
  *
  *  Created by Ben Evans on 28/11/2008.
- *  Copyright 2008 __MyCompanyName__. All rights reserved.
+ *  Copyright 2008 University of Oxford. All rights reserved.
  *
  */
 

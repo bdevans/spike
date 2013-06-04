@@ -3,7 +3,7 @@
  *  Spike
  *
  *  Created by Ben Evans on 19/02/2009.
- *  Copyright 2009 __MyCompanyName__. All rights reserved.
+ *  Copyright 2009 University of Oxford. All rights reserved.
  *
  */
 
@@ -71,7 +71,7 @@ extern char errloc[PATHBUFF];
 #define MIN(A, B) ((A) < (B) ? (A) : (B)) 
 #endif 
 
-#if !defined(SWAP) // XOR swap - ints only I think
+#if !defined(SWAP) // XOR swap - ints only. 
 #define SWAP(a, b) (((a) == (b)) || (((a) ^= (b)), ((b) ^= (a)), ((a) ^= (b))))
 #endif
 
