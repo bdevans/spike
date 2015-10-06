@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Scheme
+   LastUpgradeVersion = "0430"
+   version = "1.3">
+   <BuildAction
+      parallelizeBuildables = "YES"
+      buildImplicitDependencies = "YES">
+      <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "8DD76FA90486AB0100D96B5E"
+               BuildableName = "Spike"
+               BlueprintName = "Spike"
+               ReferencedContainer = "container:Spike.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.GDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.GDB"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      buildConfiguration = "Debug">
+      <Testables>
+      </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "8DD76FA90486AB0100D96B5E"
+            BuildableName = "Spike"
+            BlueprintName = "Spike"
+            ReferencedContainer = "container:Spike.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
+      <CommandLineArguments>
+         <CommandLineArgument
+            argument = "-rt 12 -f somTtrainElE.m -p pretrain=0 -p nRecordsPL=1&#10;-rt 20 -f somTtrainElE.m &#10;-rt 12 -f somTtrainElE.m -p pretrain=0 -p nRecordsPL=1&#10;-rt 20 -f somTtrainElE.m &#10;"
+            isEnabled = "YES">
+         </CommandLineArgument>
+      </CommandLineArguments>
+   </TestAction>
+   <LaunchAction
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.GDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.GDB"
+      launchStyle = "0"
+      useCustomWorkingDirectory = "NO"
+      buildConfiguration = "Debug"
+      ignoresPersistentStateOnLaunch = "NO"
+      debugDocumentVersioning = "YES"
+      allowLocationSimulation = "YES">
+      <BuildableProductRunnable>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "8DD76FA90486AB0100D96B5E"
+            BuildableName = "Spike"
+            BlueprintName = "Spike"
+            ReferencedContainer = "container:Spike.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+      <CommandLineArguments>
+         <CommandLineArgument
+            argument = "-f ~/Code/Spike/diagnostic.prm"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-s 100 -t 12 -f delaysCT.m --delayEfE=1 -p d_const=0.015 --noSTDPdelay=1"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-s 100 -t 12 -f delaysCT.m --DT=0.0005 --delayEfE=1 --transP_Train=0.250 --d_const=0.010 --noSTDPdelay=0"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-us 999 -t 12 -f SOMredux.m --modEf=0.75 --DgIE=1.0 --SOMclip=5 --pCnxElE=[1,0] --SOMsigE=16 --DT=0.0005 --pretrain=0 --transP_Test=0.100 --transP_Train=0.050 --nRecordsPL=0"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-rt 12 -f delaysTrace.m --tauEE=0.150 --DT=0.0005 --delayEfE=3 --d_mean=0.025 --d_sd=0.010 --loops=1"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-rt 12 -f delaysCT.m --DT=0.0005 --delayEfE=3 --d_mean=0.010 --d_sd=0.000 --loops=1"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-xrf SOMredux.m -t 12 --DT=0.0005 -p K=2 -p axonDelay=3 --loops=1 --pCnxElE=[1,1]"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-rf debug.m"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-rf fast.prm -t 4 -p loops=2"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-rxm 0.9 -f som.m -p Dg_IE=0.50 -p Dg_EI=0.5 -p modEf=0.5 -p noise=2 -p current=0.25e-9 -p Dg_ElE=0.2 -p capI=50e-12 -p transP_Train=0.2 -p transP_Test=0.2 -p SOMsigE=4 -p loops=5 -p axonDelay=4 -p condSpeed=5 -p adaptation=1 -p gAHP=30e-3"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-rf benchmark.m -p SOM=1 -p axonDelay=4 -p spatialScale=16 -p randTransDirection=1 -p vRecords=[0,1,2]"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-rxt 1 -f CTshapes2.m -j Images.tbz -p Dg_IE=0.5 -p Dg_EI=0.5 -p modEf=0.05 -p tauEE=0.001"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-urxt 12 -f ImagePairRedux.m -j Images.tbz --DgIE=0.5 --modEf=0.05 --DT=0.0005 --pretrain=0 --train=0"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-us 100 -t 12 -f CTpaperNP.m -p modEf=5 -p current=0.01e-9"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-s 100 -ut 12 -f gTrans.m --DgEfE=0.65 --loadStimuli=1 --DT=0.001 --transP_Train=0.1 --transP_Test=0.1 --stimFile=&apos;groupsBG4.stm&apos; --nRecordsPL=2"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-rt 12 -f somTtrainElE.m -p pretrain=0 -p nRecordsPL=1&#10;-rt 20 -f somTtrainElE.m &#10;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+      </CommandLineArguments>
+      <AdditionalOptions>
+      </AdditionalOptions>
+   </LaunchAction>
+   <ProfileAction
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      savedToolIdentifier = ""
+      useCustomWorkingDirectory = "NO"
+      buildConfiguration = "Release"
+      debugDocumentVersioning = "YES">
+      <BuildableProductRunnable>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "8DD76FA90486AB0100D96B5E"
+            BuildableName = "Spike"
+            BlueprintName = "Spike"
+            ReferencedContainer = "container:Spike.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction
+      buildConfiguration = "Debug">
+   </AnalyzeAction>
+   <ArchiveAction
+      buildConfiguration = "Release"
+      revealArchiveInOrganizer = "YES">
+   </ArchiveAction>
+</Scheme>
