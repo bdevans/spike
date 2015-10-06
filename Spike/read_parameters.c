@@ -371,9 +371,10 @@ int read_parameters(PARAMS * params, char * paramfile)
 			params->vRecords[l] = params->nRecordsPL;
 	}
 	
+	mp->nRecords = 0;	// Initialise nRecords
 	if (params->vRecords)
 	{
-		params->nRecords = 0;
+		//params->nRecords = 0;
 		for (l=0; l<params->nLayers; l++)
 		{
 			//assert((params->vRecords[l] >= 0) && (params->vRecords[l] <= params->vExcit[l]));
@@ -796,7 +797,7 @@ int parse_string(PARAMS * params, char * string)
 	else if (strcmp(name, "iEfE")==0)
 		params->iEfE = atof(value);
 	else if (strcmp(name, "axonDelay")==0)
-		printf("axonDelay is now an internal variable!\n");//params->axonDelay = atoi(value);
+		fprintf(stderr,"Deprecated variable: axonDelay is now an internal variable!\n");
     else if (strcmp(name, "delayEfE")==0)
     {
         params->delayEfE = atoi(value);

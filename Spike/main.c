@@ -210,7 +210,7 @@ int main (int argc, const char * argv[])
 	
 	if (argc==1)
 	{
-		printf("%s usage:\n",argv[0]);
+		printf("%s usage:\n",exec); //argv[0]);
 		printf("-c[lean]\t: Clean all dat and tbz files (including image archives!)\n");
 		printf("-f <filename>\t: Pass parameter filename\n");
 		printf("-r[erun]\t: Rerun simulation with the random seed in %s\n",rsfile);
@@ -229,6 +229,18 @@ int main (int argc, const char * argv[])
 		printf("================================================================================\n");
 		return 0;
 	}
+    
+#ifdef __APPLE__ //__unix__
+    // Output command passed to cmd.sh
+    int a=0;
+    cli_FP = myfopen("cmd.sh", "w");
+    fprintf(cli_FP, "#!/bin/bash\n");
+    for (a=0; a<argc; a++)
+        fprintf(cli_FP, "%s ",argv[a]);
+    fprintf(cli_FP, "\n");
+    fclose(cli_FP);
+    system("chmod 755 cmd.sh");
+#endif
 	
 	while (--argc > 0 && (*++argv)[0] == '-')
 	{
@@ -567,6 +579,7 @@ int main (int argc, const char * argv[])
 	printf("TAU: Smallest time constant = %.3f ms | DT = %.3f ms\n", SIM.minTau*1000, mp->DT*1000); 
 	if (mp->DT >= 2*SIM.minTau) // CHECK THIS
 		fprintf(stderr, "*** Warning: Forward Euler stability condition violated! ***\n");
+    assert(mp->DT <= 0.001); // Timesteps must be no larger than 1 ms or mp->TSperMS==0!
 	// Display dynamic libraries: otool -L ~/bin/SpikeNet/Debug/Spike
 	
 #ifdef _OPENMP // Use omp function omp_get_wtime
@@ -654,7 +667,7 @@ int main (int argc, const char * argv[])
 		if(mp->nRecordsPL)
 		{
 			if (mp->priorPhases)
-				if ((syserr = system("tar -cjf PPrecords.tbz R*_PP_*.dat")) == 0)
+				if ((syserr = system("tar -cjf PPrecords.tbz R*PP_*.dat")) == 0)
 					system("tar -tf PPrecords.tbz | xargs rm");
 
 			if ((syserr = system("tar -cjf records.tbz R*.dat")) == 0)
@@ -682,7 +695,7 @@ int main (int argc, const char * argv[])
 		if (mp->pretrain)
 		{
 			if (mp->priorPhases)
-				if ((syserr = system("tar -cjf PPpreTraining.tbz pt_PP_*.dat")) == 0)
+				if ((syserr = system("tar -cjf PPpreTraining.tbz PP_pt*.dat")) == 0)
 					system("tar -tf PPpreTraining.tbz | xargs rm");
 		
 			if ((syserr = system("tar -cjf preTraining.tbz pt*.dat")) == 0)
@@ -692,7 +705,7 @@ int main (int argc, const char * argv[])
 		if (mp->train)
 		{
 			if (mp->priorPhases)
-				if ((syserr = system("tar -cjf PPtraining.tbz _PP_E*.dat")) == 0) // 2> tar_err
+				if ((syserr = system("tar -cjf PPtraining.tbz PP_E*.dat")) == 0) // 2> tar_err
 					system("tar -tf PPtraining.tbz | xargs rm");
 			
 			if ((syserr = system("tar -cjf training.tbz E*.dat")) == 0) // 2> tar_err
@@ -700,7 +713,7 @@ int main (int argc, const char * argv[])
 		}
 		
 		if (mp->priorPhases)
-			if ((syserr = system("tar -cjf PPpostTraining.tbz _PP_*.dat")) == 0) // 2> tar_err
+			if ((syserr = system("tar -cjf PPpostTraining.tbz PP_*.dat")) == 0) // 2> tar_err
 				system("tar -tf PPpostTraining.tbz | xargs rm");
 				
 		if ((syserr = system("tar -cjf postTraining.tbz L*Spikes.dat L*weights*.dat")) == 0)
@@ -722,6 +735,7 @@ int main (int argc, const char * argv[])
     
     printf("Computing SHA checksums...\n");
 	slen = snprintf(syscmd, sizeof(syscmd)-1, "shasum %s", exec);
+	// To Do: Also print hashes for input files. 
 #ifndef __llvm__
 	assert(slen < (signed) sizeof(syscmd));
 #endif

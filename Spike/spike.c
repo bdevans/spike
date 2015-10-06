@@ -14,7 +14,7 @@ int spike(PARAMS * mp)
 	/*** Declare variables ***/
 	int error = 0;
 	STIMULI * stim = NULL;
-	STIMULI * gStim = NULL;
+	STIMULI * gStim = NULL; // Change to PPstim
 	
 	//RECORD *RECSP = RECS;
 	//RECORD *ptr = &RECS[0][0];
@@ -132,6 +132,10 @@ int spike(PARAMS * mp)
                 gStim->nStim = gStim->nTestStim = 0;
                 gStim->nTrans = gStim->nTestTrans = 0;
                 loadGroups(gStim, mp, PPSTFILE); // Pass filename here *****************************
+				
+				// Print Matlab friendly stimuli
+				printStimuli(gStim, mp, "PP_");
+				
                 printf("\tPP stimuli loaded!\n");
             }
             
@@ -157,6 +161,9 @@ int spike(PARAMS * mp)
             stimuli_FP = myfopen("prototypes.stm", "w");
             print_iarray(stimuli_FP, stim->groups, mp->nGroups, mp->sInputs);
             fclose(stimuli_FP);
+			
+			// Print Matlab friendly stimuli
+			printStimuli(stim, mp, "");
             
             if (stim->newTestSet)
             {
@@ -220,7 +227,7 @@ int spike(PARAMS * mp)
 	{
 		printf("\tCreating the stimuli...");
 		gen_stimuli(mp->localRep, stim, mp);			// Generate Patterns
-		printStimuli(stim, mp);
+		printStimuli(stim, mp, "");		// Generalised to add a file prefix
 		printf("\tStimuli saved!\n");
 	}
 	
@@ -257,7 +264,7 @@ int spike(PARAMS * mp)
 		if (mp->pretrain)
 		{
 			printf("\tNow beginning PP PreTraining phase...\n"); 
-			simulatePhase(Testing, "pt_PP_", gStim);
+			simulatePhase(Testing, "PP_pt", gStim);
 			printf("\tPP PreTraining complete!\n");
 		}
 		
@@ -268,7 +275,7 @@ int spike(PARAMS * mp)
             
             // Incorporate additional time steps into SIM.totTS
             printf("\tNow beginning PP Training phase...\n"); 
-            simulatePhase(Training, "_PP_", gStim); // Train ElE <only> with exemplars individually
+            simulatePhase(Training, "PP_", gStim); // Train ElE <only> with exemplars individually
             printf("\tPP Training complete!\n");
 			
 			printf("\tFixing PP weights...\t");
@@ -288,7 +295,7 @@ int spike(PARAMS * mp)
 			for (l=lstart; l<mp->nLayers; l++)
 			{
 				// Print prefix
-				slen = snprintf(phasePrefix, BUFSIZ, "PPL%dEfEtrain", l);
+				slen = snprintf(phasePrefix, BUFSIZ, "PP_L%dEfEtrain", l);
 				assert(slen < BUFSIZ);
 				// Set the FF layer to train
 				memset(layerTrain, 0, mp->nLayers*sizeof(*layerTrain));
@@ -307,7 +314,7 @@ int spike(PARAMS * mp)
 		if (mp->pretrain) // Test to confirm desynchronised representations for novel exemplars
 		{
 			printf("\tNow beginning PP Testing phase...\n"); 
-			simulatePhase(Testing, "_PP_", gStim); // Test with novel exemplars combined
+			simulatePhase(Testing, "PP_", gStim); // Test with novel exemplars combined
 			printf("\tPP Testing complete!\n");
 		}
 		
@@ -2702,13 +2709,17 @@ void gen_stimuli(bool rep, STIMULI * stim, PARAMS * mp)
 }
 
 
-void printStimuli(STIMULI * stim, PARAMS * mp)
+void printStimuli(STIMULI * stim, PARAMS * mp, const char * prefix)
 {
 	FILE * stFP = NULL;
 	int p=0;
+	char stimFile[FNAMEBUFF];
+	int slen=0;
 	
-	
-	stFP = myfopen("trn_stimuli.dat", "w");
+	/*					// Old dat files now superceeded by .m files
+	slen = snprintf(stimFile, FNAMEBUFF, "%strn_stimuli.dat", prefix);
+	assert(slen < FNAMEBUFF);
+	stFP = myfopen(stimFile, "w");
 	for (p=0; p<stim->nStim; p++)
 	{
 		fprintf(stFP, "*** Stimulus #%d (%d/%d) ***\n", p, p+1, stim->nStim);
@@ -2719,7 +2730,9 @@ void printStimuli(STIMULI * stim, PARAMS * mp)
 	
 	if (stim->newTestSet)
 	{
-		stFP = myfopen("tst_stimuli.dat", "w");
+		slen = snprintf(stimFile, FNAMEBUFF, "%stst_stimuli.dat", prefix);
+		assert(slen < FNAMEBUFF);
+		stFP = myfopen(stimFile, "w");
 		for (p=0; p<stim->nTestStim; p++)
 		{
 			fprintf(stFP, "*** Stimulus #%d (%d/%d) ***\n", p, p+1, stim->nTestStim);
@@ -2727,43 +2740,49 @@ void printStimuli(STIMULI * stim, PARAMS * mp)
 			fprintf(stFP, "\n");
 		}
 		fclose(stFP);
-	}
+	}*/
 	
 	// Matlab friendly stimuli output
 	
 	// Change according to input layer dimensions i.e. print out 1D, 2D or 7D(?) patterns
 	char label[BUFSIZ];
 	int t=0;
-	stFP = myfopen("stimuli.m", "w");
+	slen = snprintf(stimFile, FNAMEBUFF, "%sstimuli.m", prefix);
+	assert(slen < FNAMEBUFF);
+	stFP = myfopen(stimFile, "w");
 	fprintf(stFP, "%% *** Training Stimuli ***\n");
-	fprintf(stFP, "STIM.train = cell(%d,%d);\n",stim->nStim,stim->nTrans);
+	fprintf(stFP, "%sSTIM.train = cell(%d,%d);\n",prefix,stim->nStim,stim->nTrans);
 	for (p=0; p<stim->nStim; p++)
 	{
 		for (t=0; t<stim->nTrans; t++)
 		{
 			//fprintf(stFP, "STIM.train{%d,%d} =", p, p+1, stim->nStim);
-			snprintf(label, BUFSIZ, "STIM.train{%d,%d}",p+1,t+1);
+			snprintf(label, BUFSIZ, "%sSTIM.train{%d,%d}",prefix,p+1,t+1);
 			printFloatArray(stFP, label, (stim->trn_stimuli)[p][t], mp->sInputs);
+			/*fprintf(stFP, ""%sSTIM.train{%d,%d} = \t%f * [",prefix,p+1,t+1,mp->current);
+			for (n=0; n<mp->sInputs; n++) // Change to printIrow()
+				fprintf(stFP, "%d ", stim->trn_stimuli[s][0][n]?1:0); //%1.0f with ceil()
+			fprintf(stFP, "];\n");*/
 		}
 	}
 	
 	if (stim->newTestSet)
 	{
 		fprintf(stFP, "\n%% *** Testing Stimuli ***\n");
-		fprintf(stFP, "STIM.test = cell(%d,%d);\n",stim->nTestStim,stim->nTestTrans);
+		fprintf(stFP, "%sSTIM.test = cell(%d,%d);\n",prefix,stim->nTestStim,stim->nTestTrans);
 		for (p=0; p<stim->nTestStim; p++)
 		{
 			for (t=0; t<stim->nTestTrans; t++)
 			{
-				snprintf(label, BUFSIZ, "STIM.test{%d,%d}",p+1,t+1);
+				snprintf(label, BUFSIZ, "%sSTIM.test{%d,%d}",prefix,p+1,t+1);
 				printFloatArray(stFP, label, (stim->tst_stimuli)[p][t], mp->sInputs);
 			}
 		}
 	}
 	
-	fprintf(stFP, "\n%% *** Training schedule ***\n");
-	fprintf(stFP, "%% Transforms are presented sequentially during (pre)testing.\n");
-	fprintf(stFP, "STIM.schedule = cell(%d,1);\n", mp->loops);
+	//fprintf(stFP, "\n%% *** Training schedule ***\n");
+	//fprintf(stFP, "%% Transforms are presented sequentially during (pre)testing.\n");
+	//fprintf(stFP, "STIM.schedule = cell(%d,1);\n", mp->loops);
 	
 	fclose(stFP);
 	return;
@@ -2917,7 +2936,7 @@ void printSchedule(STIMULI * stim, const char * filename)
 }
 
 
-void calcInput(PARAMS * mp, int loop, int pat, int trans, STIMULI * stim, float ** input, int regime) // return int * input?
+void calcInput(PARAMS * mp, int loop, int pat, int trans, STIMULI * stim, float ** input, int regime, const char * stimFile) // return int * input?
 {	// Assumes all stimuli translate
 
 	switch (regime)
@@ -2936,10 +2955,11 @@ void calcInput(PARAMS * mp, int loop, int pat, int trans, STIMULI * stim, float 
 
 			*input = (mp->useFilteredImages) ? ****(stim->trnImages[pat][trans]) : stim->trn_stimuli[pat][trans];
 			
-			FILE * fp = myfopen("stimuli.m", "a+"); //schedule.m
+			FILE * stFP = myfopen(stimFile, "a+");
+			//FILE * fp = myfopen("stimuli.m", "a+"); //schedule.m
 			//fprintf(fp, "%d %d %d\n", loop, pat, trans);
-			fprintf(fp, "%d,%d; ",pat, trans); // Change to 'Matlab friendly' i.e. pat+1, trans+1
-			fclose(fp);
+			fprintf(stFP, "%d,%d; ",pat, trans); // Change to 'Matlab friendly' i.e. pat+1, trans+1
+			fclose(stFP);
 			
 			break;
 			
@@ -2978,6 +2998,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 	FILE * inhibOutput;
 	FILE * weightOutput;
 	FILE * recFile;
+	FILE * stFP;
 	//char fullprefix[FNAMEBUFF];
 	bool reverse = false;
 	double percentage = 0.0;
@@ -2998,6 +3019,14 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 			nTrans = stim->nTrans;
 			transP = mp->transP_Train;
 			nLoops = mp->loops;
+			
+			slen = snprintf(stimFile, FNAMEBUFF, "%sstimuli.m", prefix);
+			assert(slen < FNAMEBUFF);
+			stFP = myfopen(stimFile, "a+");
+			fprintf(stFP, "\n%% *** Training schedule ***\n");
+			fprintf(stFP, "%% Transforms are presented sequentially during (pre)testing.\n");
+			fprintf(stFP, "%sSTIM.schedule = cell(%d,1);\n", prefix, mp->loops);
+			fclose(stFP);
 			break;
 			
 		case Testing:
@@ -3039,9 +3068,9 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 		{
 			printf("\tLoop #%d (%d/%d)\n", loop, loop+1, mp->loops);
 			
-			slen = snprintf(stimFile, FNAMEBUFF, "%sstimuli.m", prefix);
-			assert(slen < FNAMEBUFF);
-			slen = snprintf(buff, BUFSIZ, "STIM.schedule{%d} = [", loop+1);
+			//slen = snprintf(stimFile, FNAMEBUFF, "%sstimuli.m", prefix);
+			//assert(slen < FNAMEBUFF);
+			slen = snprintf(buff, BUFSIZ, "%sSTIM.schedule{%d} = [", prefix, loop+1);
 			assert(slen < FNAMEBUFF);
 			append(stimFile, buff);
 		}
@@ -3066,7 +3095,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 				{
 					if (regime == Testing) //if (sPhase != Training) //Testing only
 						initNetwork(Soft);
-					calcInput(mp, loop, p, ((reverse) ? (nTrans-1)-tr : tr), stim, &input, regime);
+					calcInput(mp, loop, p, ((reverse) ? (nTrans-1)-tr : tr), stim, &input, regime, stimFile);
 					if ( tr==0 || (mp->interleaveTrans && regime) )
 						printf("\t\tPresenting stimulus %d/%d...\n", (p+1), nStimuli);
 					if (nTrans > 1)
@@ -3236,7 +3265,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 			//}
 		}
 		
-		if (mp->nRecords) // Should be training //sPhase==Testing && 
+		if (mp->nRecords) // Should be training - currently no records during PP
 		{
 			char pStr[BUFSIZ];
 			if (regime == Training)
