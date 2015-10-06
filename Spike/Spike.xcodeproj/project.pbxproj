@@ -46,7 +46,7 @@
 		0118F1ED0F3A13D80043C7E9 /* array_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = array_utils.h; sourceTree = "<group>"; };
 		0118F1EE0F3A13D80043C7E9 /* array_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = array_utils.c; sourceTree = "<group>"; };
 		013A2BB00E0A94F7007F4286 /* spike.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = spike.h; sourceTree = "<group>"; };
-		013A2BB50E0AD6D7007F4286 /* spike.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = spike.c; sourceTree = "<group>"; };
+		013A2BB50E0AD6D7007F4286 /* spike.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = spike.c; sourceTree = "<group>"; usesTabs = 1; };
 		01A355550E598FD600BE1EA9 /* parameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parameters.h; sourceTree = "<group>"; };
 		01BAD21B0F4D8C2900007DF6 /* utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils.h; sourceTree = "<group>"; };
 		01BAD21C0F4D8C2900007DF6 /* utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = utils.c; sourceTree = "<group>"; };
@@ -241,7 +241,9 @@
 				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				INSTALL_PATH = /usr/local/bin;
 				LD_OPENMP_FLAGS = "";
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = Spike;
+				SDKROOT = macosx10.7;
 				VALID_ARCHS = "i386 x86_64";
 				ZERO_LINK = YES;
 			};
@@ -260,7 +262,9 @@
 				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				INSTALL_PATH = /usr/local/bin;
 				LD_OPENMP_FLAGS = "-fopenmp";
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = Spike;
+				SDKROOT = macosx10.7;
 				VALID_ARCHS = "i386 x86_64";
 				ZERO_LINK = YES;
 			};
@@ -277,7 +281,9 @@
 				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				INSTALL_PATH = /usr/local/bin;
 				LD_OPENMP_FLAGS = "-fopenmp";
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = Spike;
+				SDKROOT = macosx10.7;
 				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Release;
