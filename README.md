@@ -1,11 +1,11 @@
 # spike
 Spiking neural network simulator
 
-This project is written in C and parallelised with OpenMP, with data analysis conducted with the accompanying Matlab files.
+This project is written in C, parallelised with OpenMP and requires the [GNU Scientific Library](https://www.gnu.org/software/gsl/) (for pseudo RNGs). Data analysis is conducted with the accompanying Matlab files.
 
-It was developed under OS X and includes Xcode project files and a Makefile. 
+It was developed under OS X and includes Xcode project files and a Makefile.
 
-Released under the BSD license. 
+Released under the BSD license.
 
 Citations
 ---------
