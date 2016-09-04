@@ -1,0 +1,7 @@
+# Backup files
+*.~
+
+# OS metadata
+*/Thumbs.db
+Thumbs.db
+.DS_Store
