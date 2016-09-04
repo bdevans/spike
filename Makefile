@@ -30,8 +30,8 @@ program_TEST_ARGS := -f defaults.m
 # $<	The name of the first dependency.
 # $*	The part of a filename which matched a suffix rule.
 # $?	The names of all the dependencies newer than the target separated by spaces.
-# $^    The names of all the dependencies separated by spaces, but with duplicate names removed.
-# $+    The names of all the dependencies separated by spaces with duplicate names included and in the same order as in the rule.
+# $^	The names of all the dependencies separated by spaces, but with duplicate names removed.
+# $+	The names of all the dependencies separated by spaces with duplicate names included and in the same order as in the rule.
 
 # \ 	Continuation character so commands run in same shell
 # =		Recursively expanded
@@ -101,7 +101,7 @@ commit: clean
 newdoc: $(program_SRCS)	# Generate a new config file with doxygen -g <Doxyfile>
 	$(program_DOCUMENTOR) -g $(program_DOC_CONFIG)
 	# Replace tags in the config file
-	# string='PATTERN_TO_MATCH         = REPLACE_ME '; printf '<%s>\n' "${string%=*}= REPLACE_ME"
+	# string='PATTERN_TO_MATCH = REPLACE_ME '; printf '<%s>\n' "${string%=*}= REPLACE_ME"
 	# PROJECT_NAME
 	# OPTIMIZE_OUTPUT_FOR_C
 	make doc # This uses a second instance of make http://stackoverflow.com/questions/3267145/makefile-execute-another-target
@@ -150,7 +150,7 @@ targetA targetB: targetMain
 #	tar -cjf $(program_NAME).tbz $(program_C_SRCS) $(program_HDRS) $(program_ANALYSIS) $(MAKEFILE_LIST) $(program_NAME).xcodeproj
 # Could just build original archive then include the xcodeproj directory
 
-untar:     # $(program_NAME).tbz
+untar: # $(program_NAME).tbz
 	tar -xvf $(program_ARCHIVE)
 
 hash: # SHA algorithms: 1 (default), 224, 256, 384, 512
