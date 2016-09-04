@@ -73,7 +73,7 @@ typedef struct {
 	float * cellV;
 	float * cellcCa;
 	float * cellD;
-    float * LsigGI; // Sum of Inhibitory conductances
+	float * LsigGI; // Sum of Inhibitory conductances
 	float ** FSynC; // Feed-forward Afferents
 	float ** FSynG;
 	float ** FSynDG;
@@ -100,7 +100,7 @@ typedef struct AXON {
 	unsigned short int count;
 	unsigned short int next;
 	unsigned short int last;
-	
+
 	/* Synapse */
 	float C, C_tm1;
 	float g, g_tm1;
@@ -115,13 +115,13 @@ typedef struct AXON_NP {
 	unsigned short int count;
 	unsigned short int next;
 	unsigned short int last;
-	
+
 	// Synapse
 	float g, g_tm1;
 	float delta_g;		// Constrained to lie in the interval [0,1]
 } AXON_NP;*/
 
-//typedef struct NEURON; 
+//typedef struct NEURON;
 typedef struct NEURON {
 	NTYPE type;
 	int l; // Layer index
@@ -136,22 +136,22 @@ typedef struct NEURON {
 	float V, V_tm1;
 	float D, D_tm1; // afferent
 	float cCa, cCa_tm1;
-	
+
 	int spkbin;
 	tstep * spikeTimes;	// Array of spike times
 	tstep lastSpike;
 	tstep nextUpdate;
-	
+
 	// Afferent (presynaptic) connections
 	struct NEURON ** lm1presyn_E;	// Array of pointers to presynaptic excitatory neurons
 	struct NEURON ** lm0presyn_E;
 	struct NEURON ** lm0presyn_I;	// Array of pointers to presynaptic inhibitory neurons
-	
+
 	// Efferent (post-synaptic) connections
 	struct NEURON ** lp1postsyn_E;
 	struct NEURON ** lp0postsyn_E;
 	struct NEURON ** lp0postsyn_I;
-	
+
 	int nFAff_E; // Counters for the number of presynaptic neurons
 	//int nAffs_Ef; F&R!!
 	int nLAff_E;
@@ -162,18 +162,18 @@ typedef struct NEURON {
 	AXON ** FAffs_E;	// Array of pointers to feed-forward excitatory afferent connections
 	AXON ** LAffs_E;	// Array of lateral excitatory afferent connections
 	AXON ** LAffs_I;	// Array of lateral inhibitory afferent connections
-	
+
 	//int nEffs_fE
 	int nFEff_E;
 	int nLEff_E;
 	int nLEff_I;
-	
+
 	//AXON * Eff_Ef
 	/* Efferent axons */
 	AXON * FEffs_E;
 	AXON * LEffs_E;
 	AXON * LEffs_I;
-	
+
 	bool rec_flag;
 	RECORD * rec; 	// Recording structure
 } NEURON;

@@ -10,7 +10,7 @@
 #include "utils.h"
 
 char errloc[PATHBUFF];
-// -> #include <errno.h> for errno and perror(), and <string.h> for strerror(). 
+// -> #include <errno.h> for errno and perror(), and <string.h> for strerror().
 // TSF: int strerror_r(int errnum, char *strerrbuf, size_t buflen);
 void exit_error(const char * process, const char * statement)
 {
@@ -31,7 +31,7 @@ void * myalloc(int n)
 	}
 	else
 		mem = NULL;
-	
+
 	return mem;
 }
 
@@ -40,7 +40,7 @@ void * myrealloc(void * mem, int n)
 { // N.B. the returned pointer must be assigned to the passed pointer as memory could be moved to a new location
 	void * new;
 	/*if (!mem)	mem = myalloc(n); // Implicit in realloc */
-	
+
 	if (!n) // if size==0 free memory
 		mem = myfree(mem);
 	else
@@ -53,7 +53,7 @@ void * myrealloc(void * mem, int n)
 		{
 			mem = new;
 		}
-			
+
 	return mem;
 }
 
@@ -115,13 +115,13 @@ bool file_exists(const char * filename)
 	int slen = 0;
 	if (snprintf(filename, FNAMEBUFF, format) >= FNAMEBUFF)
 		exit_error("sprintf", "String too long for FNAMEBUFF");
-	
+
 	assert(slen < FNAMEBUFF);
-	
+
 	if (snprintf(syscmd, BUFSIZ, "mkdir %s", mp->imgDir) >= BUFSIZ)
 		fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
- if (snprintf(dst, sizeof(dst) - 1, "%s", src) > sizeof(dst) - 1) { 
- // Overflow
+if (snprintf(dst, sizeof(dst) - 1, "%s", src) > sizeof(dst) - 1) {
+// Overflow
 }
 }*/
 
@@ -160,7 +160,7 @@ void getFileParts(char * fullname, FILEPARTS * fp)
 	unsigned int len = 0, homelen = 0, offset = 0;
 	fp->path[0] = fp->fname[0] = fp->fext[0] = '\0';
 	assert(fullname);
-	
+
 	cptr = strrchr(fullname, '/');
 	if (cptr) // != NULL
 	{
@@ -171,14 +171,14 @@ void getFileParts(char * fullname, FILEPARTS * fp)
 			homepath = getenv("HOME");
 			strncpy(fp->path, homepath, homelen);
 			fp->path[homelen] = '\0';
-			offset = 1;  // Skip leading '~'
+			offset = 1; // Skip leading '~'
 		}
 		len = cptr - (fullname+offset); // Skip leading '~'
 		strncat(fp->path, fullname+offset, len); // Adds \0 at end
 	}
 	else
 		strncpy(fp->fname, fullname, strlen(fullname)+1);
-	
+
 	cptr = strrchr(fp->fname, '.');
 	if (cptr)
 	{
@@ -204,6 +204,6 @@ void getTimeString(char * timeStr, size_t buffer, double secs, const char * form
 		snprintf(timeStr, buffer, "%d:%02d",hours,mins);
 	else
 		exit_error("getTimeString", "Unknown format argument");
-	
+
 	return;
 }

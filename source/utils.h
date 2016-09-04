@@ -43,11 +43,11 @@ typedef struct {
 extern void getFileParts(char * fullname, FILEPARTS * fp);
 extern void getTimeString(char * timeStr, size_t buffer, double secs, const char * format);
 
-extern char errloc[PATHBUFF]; 
-#define EE(errmsg)   do { \
-                    snprintf(errloc, PATHBUFF, "\n[%s (%u) : %s] --> ", \
-                        strrchr(__FILE__, '/')+1, __LINE__, __FUNCTION__); \
-                    exit_error(errloc,errmsg); } while(0)
+extern char errloc[PATHBUFF];
+#define EE(errmsg) do { \
+						snprintf(errloc, PATHBUFF, "\n[%s (%u) : %s] --> ", \
+						strrchr(__FILE__, '/')+1, __LINE__, __FUNCTION__); \
+						exit_error(errloc,errmsg); } while(0)
 // Replace ;'s with ,'s so it can be used as EE();? c.f. assert.h
 //const char *buildString = "Compiled at "__DATE__", "__TIME__".";
 
@@ -59,19 +59,19 @@ extern char errloc[PATHBUFF];
 
 // http://www.xgc.com/manuals/gcc-erc32-ug/p2node29.html
 /* #define max(a,b) \
- ({typedef _ta = (a), _tb = (b);  \
- _ta _a = (a); _tb _b = (b);     \
- _a > _b ? _a : _b; })
- */
-#if !defined(MAX) 
-#define MAX(A, B) ((A) > (B) ? (A) : (B)) 
-#endif 
+({typedef _ta = (a), _tb = (b); \
+_ta _a = (a); _tb _b = (b); \
+_a > _b ? _a : _b; })
+*/
+#if !defined(MAX)
+#define MAX(A, B) ((A) > (B) ? (A) : (B))
+#endif
 
-#if !defined(MIN) 
-#define MIN(A, B) ((A) < (B) ? (A) : (B)) 
-#endif 
+#if !defined(MIN)
+#define MIN(A, B) ((A) < (B) ? (A) : (B))
+#endif
 
-#if !defined(SWAP) // XOR swap - ints only. 
+#if !defined(SWAP) // XOR swap - ints only.
 #define SWAP(a, b) (((a) == (b)) || (((a) ^= (b)), ((b) ^= (a)), ((a) ^= (b))))
 #endif
 

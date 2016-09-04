@@ -14,41 +14,41 @@ void normalize(double *vec, int size)
 {
 	int i;
 	double sf = 0.0; // Scaling factor
-	
+
 	for (i=0; i<size; i++)
 		sf += vec[i] * vec[i];
-	
+
 	sf = sqrt(sf);
-    if (sf>EPS)
-    {
-        sf = 1/sf;
-        for (i=0; i<size; i++)
+	if (sf>EPS)
+	{
+		sf = 1/sf;
+		for (i=0; i<size; i++)
 			vec[i] *= sf;
-    }
-	
+	}
+
 	return;
 }
 
 double ndp(double *vec_x, double *vec_y, int size)
 {
-    // Return the normalised dot product (cos \theta) between two vectors
+	// Return the normalised dot product (cos \theta) between two vectors
 	int i;
 	double sxsq = 0.0;
 	double sysq = 0.0;
 	double sxy = 0.0;
 	double root = 0.0;
 
-    assert(size >= 1);
-	
+	assert(size >= 1);
+
 	for (i=0; i<size; i++)
 	{
 		sxsq += vec_x[i] * vec_x[i];
 		sysq += vec_y[i] * vec_y[i];
 		sxy += vec_x[i] * vec_y[i];
 	}
-	
+
 	root = sqrt(sxsq * sysq);
-	
+
 	return (fabs(root)>EPS) ? (sxy/root) : 0.0;
 }
 
@@ -123,18 +123,18 @@ void ** array2d(size_t rows, size_t cols, size_t value_size)
 {
 	if (rows < 1 || cols < 1) // Catch errors where one or more dimensions is 0 or -ve
 		return NULL;
-	
-    size_t index_size = sizeof(void *) * rows;
-    size_t store_size = value_size * rows * cols;
-	
-    char * a = myalloc(index_size + store_size);
-	
-    memset(a + index_size, 0, store_size); // Be careful with memsets rezeroing the array
+
+		size_t index_size = sizeof(void *) * rows;
+		size_t store_size = value_size * rows * cols;
+
+		char * a = myalloc(index_size + store_size);
+
+		memset(a + index_size, 0, store_size); // Be careful with memsets rezeroing the array
 	size_t i=0;
-    for(i = 0; i < rows; ++i)
-        ((void **)a)[i] = a + index_size + i * cols * value_size;
-	
-    return (void **)a;
+	for(i = 0; i < rows; ++i)
+		((void **)a)[i] = a + index_size + i * cols * value_size;
+
+	return (void **)a;
 }
 
 
@@ -143,22 +143,22 @@ int ** get_2D_iarray(int nrows, int ncols, int init)
 	int i, j;
 	// sizeof(*array) = sizeof(int *)
 	// sizeof(**array) = sizeof(int)
-	
+
 	int **array2D = myalloc(nrows * sizeof(int *));
 	array2D[0] = myalloc(nrows * ncols * sizeof(int));
 	if (!array2D[0]) // if (array2D[0] == NULL)
 		return NULL;
-	for (i=1; i<nrows; i++) 
+	for (i=1; i<nrows; i++)
 		array2D[i] = array2D[0] + (i * ncols);
-	
+
 	if (init == 0)
-		memset(array2D[0], 0, nrows*ncols*sizeof(int)); //sizeof(**array2D)); 
+		memset(array2D[0], 0, nrows*ncols*sizeof(int)); //sizeof(**array2D));
 	else
 		for (i=0; i<nrows; i++)
 			for (j=0; j<ncols; j++)
 				array2D[i][j] = init; //(i * ncols) + j;
-	
-	return array2D;	
+
+	return array2D;
 }
 
 void free_2D_iarray(int ** array2D)//, int nrows)
@@ -177,19 +177,19 @@ int *** get_3D_iarray(int nlays, int nrows, int ncols, int init)
 	// sizeof(*array) = sizeof(int **)
 	// sizeof(**array) = sizeof(int *)
 	// sizeof(***array) = sizeof(int)
-	
+
 	int *space = myalloc(nlays * nrows * ncols * sizeof(*space)); // sizeof(int)
 	if (!space)
 		return NULL;
 	int ***array3D = myalloc(nlays * sizeof(*array3D)); // sizeof(int **)
-	
+
 	for (z=0; z<nlays; z++)
 	{
 		array3D[z] = myalloc(nrows * sizeof(**array3D)); // sizeof(int *)
 		for (y=0; y<nrows; y++)
 			array3D[z][y] = space + (z*ncols*nrows) + (y*ncols);
 	}
-	
+
 	/* Assign values to 3D array */
 	if (init == 0)
 		memset(array3D[0][0], 0, nlays*nrows*ncols*sizeof(*space));
@@ -198,7 +198,7 @@ int *** get_3D_iarray(int nlays, int nrows, int ncols, int init)
 			for (y=0; y<nrows; y++)
 				for (x=0; x<ncols; x++)
 					array3D[z][y][x] = init; //(z * nrows * ncols) + (y * ncols) + x;
-	
+
 	return array3D;
 }
 
@@ -221,25 +221,25 @@ float ** get_2D_farray(int nrows, int ncols, float init)
 	int i, j;
 	// sizeof(*array) = sizeof(int *)
 	// sizeof(**array) = sizeof(int)
-	
+
 	if (nrows == 0 || ncols == 0)
 		return NULL;
-	
+
 	float **array2D = myalloc(nrows * sizeof(float *));
 	array2D[0] = myalloc(nrows * ncols * sizeof(float));
 	if (!array2D[0])
 		return NULL;
-	for (i=1; i<nrows; i++) 
+	for (i=1; i<nrows; i++)
 		array2D[i] = array2D[0] + (i * ncols);
-	
+
 	if (fabs(init) <= EPS) // (int) init == 0
 		memset(array2D[0], 0, nrows*ncols*sizeof(**array2D));
 	else
 		for (i=0; i<nrows; i++)
 			for (j=0; j<ncols; j++)
 				array2D[i][j] = init; //(i * ncols) + j;
-	
-	return array2D;	
+
+	return array2D;
 }
 
 void free_2D_farray(float ** array2D)//, int nrows)
@@ -254,23 +254,23 @@ void free_2D_farray(float ** array2D)//, int nrows)
 float *** get_3D_farray(int nlays, int nrows, int ncols, float init)
 {
 	int x, y, z;
-	
+
 	// sizeof(*array) = sizeof(int **)
 	// sizeof(**array) = sizeof(int *)
 	// sizeof(***array) = sizeof(int)
-	
+
 	float *space = myalloc(nlays * nrows * ncols * sizeof(*space)); // sizeof(float)
 	if (!space)
 		return NULL;
 	float ***array3D = myalloc(nlays * sizeof(*array3D)); // sizeof(float **)
-	
+
 	for (z=0; z<nlays; z++)
 	{
 		array3D[z] = myalloc(nrows * sizeof(**array3D)); // sizeof(float *)
 		for (y=0; y<nrows; y++)
 			array3D[z][y] = space + (z*ncols*nrows) + (y*ncols);
 	}
-	
+
 	/* Assign values to 3D array */
 	if (fabs(init) <= EPS)
 		memset(array3D[0][0], 0, nlays*nrows*ncols*sizeof(***array3D));
@@ -279,7 +279,7 @@ float *** get_3D_farray(int nlays, int nrows, int ncols, float init)
 			for (y=0; y<nrows; y++)
 				for (x=0; x<ncols; x++)
 					array3D[z][y][x] = init; //(z * nrows * ncols) + (y * ncols) + x;
-	
+
 	return array3D;
 }
 
@@ -312,7 +312,7 @@ float **** get4Dfarray(int D1, int D2, int D3, int D4, float init)
 				array4D[w][x][y] = space + (w*D2*D3*D4) + (x*D3*D4) + (y*D4);
 		}
 	}
-	
+
 	//Initialise
 	if (fabs(init) < EPS)
 		memset(array4D[0][0][0], 0, D1*D2*D3*sizeof(****array4D));
@@ -346,16 +346,16 @@ void free4Dfarray(float **** array4D, int D1, int D2) // Can the free functions 
 float ******* get_7D_farray(int D1, int D2, int D3, int D4, int D5, int D6, int D7, float init)
 {
 	int t, u, v, w, x, y, z;
-	
+
 	// sizeof(*array) = sizeof(int **)
 	// sizeof(**array) = sizeof(int *)
 	// sizeof(***array) = sizeof(int)
-	
+
 	float *space = myalloc(D1 * D2 * D3 * D4 * D5 * D6 * D7 * sizeof(*space)); // sizeof(int)
 	if (!space)
 		return NULL;
 	float *******array7D = myalloc(D1 * sizeof(*array7D)); // sizeof(int ******)
-	
+
 	for (t=0; t<D1; t++)
 	{
 		array7D[t] = myalloc(D2 * sizeof(**array7D)); // sizeof(int *****)
@@ -381,7 +381,7 @@ float ******* get_7D_farray(int D1, int D2, int D3, int D4, int D5, int D6, int 
 			}
 		}
 	}
-	
+
 	/* Assign values to 3D array */
 	if (fabs(init) <= EPS)
 		memset(array7D[0][0][0][0][0][0], 0, D1*D2*D3*D4*D5*D6*D7*sizeof(*******array7D));
@@ -393,8 +393,8 @@ float ******* get_7D_farray(int D1, int D2, int D3, int D4, int D5, int D6, int 
 						for (x=0; x<D5; x++)
 							for (y=0; y<D6; y++)
 								for (z=0; z<D7; z++)
-									array7D[t][u][v][w][x][y][z] = init; 
-	
+									array7D[t][u][v][w][x][y][z] = init;
+
 	return array7D;
 }
 
@@ -404,7 +404,7 @@ void free_7D_farray(float ******* array7D, int D1, int D2, int D3, int D4, int D
 	int t, u, v, w, x;//, y;
 	if (!array7D)
 		return;
-	
+
 	free(******array7D); //free space
 	for (t=0; t<D1; t++)
 	{
@@ -450,7 +450,7 @@ float *** getLowTriF(int nlays, int * lDims, float init)
 			lowTri[z][y] = space + laySum + rowSum;
 		}
 	}
-	
+
 	/* Assign values to 3D array */
 	if (fabs(init) <= EPS)
 		memset(lowTri[0][0], 0, tot*sizeof(***lowTri));
@@ -459,7 +459,7 @@ float *** getLowTriF(int nlays, int * lDims, float init)
 			for (y=0; y<lDims[z]; y++)
 				for (x=0; x<y+1; x++)
 					lowTri[z][y][x] = init; //(z * nrows * ncols) + (y * ncols) + x;
-	
+
 	return lowTri;
 }
 
@@ -484,7 +484,7 @@ inline float readLowTriF(float *** lowTri, int l, int x, int y)
 		}
 		fclose(connections_FP);
 	}
-	
+
 }*/
 
 
@@ -509,7 +509,7 @@ float *** getUppTriF(int nlays, int * lDims, float init)
 			uppTri[z][y] = space + laySum + rowSum;
 		}
 	}
-	
+
 	/* Assign values to 3D array */
 	if (fabs(init) <= EPS)
 		memset(uppTri[0][0], 0, tot*sizeof(***uppTri));
@@ -518,7 +518,7 @@ float *** getUppTriF(int nlays, int * lDims, float init)
 			for (y=0; y<lDims[z]; y++)
 				for (x=y; x<lDims[z]; x++) // Needs to start at 0 or memory is skipped
 					uppTri[z][y][x] = init; //(z * nrows * ncols) + (y * ncols) + x;
-	
+
 	return uppTri;
 }
 
@@ -564,22 +564,22 @@ double ** get_2D_darray(int nrows, int ncols, double init)
 	int i, j;
 	// sizeof(*array) = sizeof(int *)
 	// sizeof(**array) = sizeof(int)
-	
+
 	double **array2D = myalloc(nrows * sizeof(double *));
 	array2D[0] = myalloc(nrows * ncols * sizeof(double));
 	if (!array2D[0])
 		return NULL;
-	for (i=1; i<nrows; i++) 
+	for (i=1; i<nrows; i++)
 		array2D[i] = array2D[0] + (i * ncols);
-	
+
 	if (fabs(init) <= EPS) // (int) init == 0
 		memset(array2D[0], 0, nrows*ncols*sizeof(**array2D));
 	else
 		for (i=0; i<nrows; i++)
 			for (j=0; j<ncols; j++)
 				array2D[i][j] = init; //(i * ncols) + j;
-	
-	return array2D;	
+
+	return array2D;
 }
 
 void free_2D_darray(double ** array2D)
@@ -594,23 +594,23 @@ void free_2D_darray(double ** array2D)
 double *** get_3D_darray(int nlays, int nrows, int ncols, double init)
 {
 	int x, y, z;
-	
+
 	// sizeof(*array) = sizeof(int **)
 	// sizeof(**array) = sizeof(int *)
 	// sizeof(***array) = sizeof(int)
-	
+
 	double *space = myalloc(nlays * nrows * ncols * sizeof(*space)); // sizeof(int)
 	if (!space)
 		return NULL;
 	double ***array3D = myalloc(nlays * sizeof(*array3D)); // sizeof(int **)
-	
+
 	for (z=0; z<nlays; z++)
 	{
 		array3D[z] = myalloc(nrows * sizeof(**array3D)); // sizeof(int *)
 		for (y=0; y<nrows; y++)
 			array3D[z][y] = space + (z*ncols*nrows) + (y*ncols);
 	}
-	
+
 	/* Assign values to 3D array */
 	if (fabs(init) <= EPS)
 		memset(array3D[0][0], 0, nlays*nrows*ncols*sizeof(***array3D));
@@ -619,7 +619,7 @@ double *** get_3D_darray(int nlays, int nrows, int ncols, double init)
 			for (y=0; y<nrows; y++)
 				for (x=0; x<ncols; x++)
 					array3D[z][y][x] = init; //(z * nrows * ncols) + (y * ncols) + x;
-	
+
 	return array3D;
 }
 

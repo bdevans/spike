@@ -19,14 +19,14 @@ typedef int tstep; // Signed to allow spikeTimes[0] = -BIG //long long
 
 typedef unsigned char uchar;
 
-struct SIMULATION{
+struct SIMULATION {
 	bool Xgrid;
 	tstep tally;
 	tstep ptTS;
 	tstep trainTS;
 	tstep testTS;
 	tstep totTS;
-	float minTau; 
+	float minTau;
 	double start;
 	double elapsed;
 	double realSecPerSimSec;
@@ -73,7 +73,7 @@ typedef enum {
 typedef struct {
 	// Simulation
 	float DT;
-    bool initialised; // Internal
+	bool initialised; // Internal
 	int loops;
 	bool pretrain;// = true;
 	bool train;// = true;
@@ -104,7 +104,7 @@ typedef struct {
 	bool saveInputSpikes;
 	bool probConnect;
 	bool loadWeights;
-	
+
 	// Stimuli
 	char * imgDir;
 	char * imgList;
@@ -144,7 +144,7 @@ typedef struct {
 	int sInputs;
 	int nRows;
 	int nCols;
-	
+
 	// Network
 	int nLayers;// = 2;
 	int nWLayers;
@@ -174,9 +174,9 @@ typedef struct {
 	INITIALISATION initEfE;
 	float iEfE;
 	bool axonDelay; //DELAY axonDelay;
-    DELAY delayEfE;
-    DELAY delayElE;
-    DELAY delayEI;
+	DELAY delayEfE;
+	DELAY delayElE;
+	DELAY delayEI;
 	float d_const;
 	float d_min;
 	float d_max;
@@ -196,9 +196,9 @@ typedef struct {
 	bool trainElE;
 	INITIALISATION initElE;
 	float iElE;
-	DIM * layDim; 
+	DIM * layDim;
 	int * vSquare;
-	
+
 	// Cell bodies
 	float capE;// = 2.0e-10;
 	float capI;// = 10.0e-12;
@@ -218,9 +218,9 @@ typedef struct {
 	float tauCa;
 	float gAHP;
 	float VK;
-	
+
 	// Synapses (afferent axons)
-    bool noSTDPdelay;
+	bool noSTDPdelay;
 	float alphaC;// = 0.5;
 	float tauC;// = 0.005;
 	float alphaD;// = 0.5;
