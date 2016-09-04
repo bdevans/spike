@@ -38,7 +38,7 @@ char * IPFILE = IMGPARAMFILE;
 char STFILE[BUFSIZ] = ""; // = STIMULIFILE; //char * STFILE = NULL;
 char PPSTFILE[BUFSIZ] = "";
 
-#define GSLDIR  "/opt/local/lib/" // Unnecessary? See checks below
+#define GSLDIR "/opt/local/lib/" // Unnecessary? See checks below
 // otool -L Spike // to test which dynamic libraries are being used
 // http://discussions.apple.com/thread.jspa?threadID=1741520
 // http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
@@ -54,14 +54,14 @@ int nThreads = 1;
 char *pFile = NULL;
 
 int main (int argc, const char * argv[])
-{	
+{
 	//int set_error = 0;
 	bool rerun = false;
 	bool compress = true;
 	bool seedFlag = false;
 	int hours = 0;
 	int mins = 0;
-	
+
 	char *imageArchive = NULL;
 	//char *sfile = NULL;
 	char *cpfile = "CLIparams.m";
@@ -83,27 +83,27 @@ int main (int argc, const char * argv[])
 	int dcount = 0; // Default parameter count
 	int fcount = 0; // File parameter count
 	int pcount = 0; // Parameter count
-    int ocount = 0; // Parameters out count
+	int ocount = 0; // Parameters out count
 	int err = 0;
 	int slen = 0;
-    char * error = NULL;
-    void * dylib = NULL;
-    
+	char * error = NULL;
+	void * dylib = NULL;
+
 	bool recFlag = false;
 	char * recList = NULL;
-	
+
 	bool skip_arg = false;
 	//double wtime, begin;
 	char timeStr[FNAMEBUFF];
-    int c, result;
+	int c, result;
 	struct tm *ts;
 	char hostname[FNAMEBUFF];
-	
+
 	char schedule[BUFSIZ];
 	strncpy(schedule, "<default>", BUFSIZ);
-	
-    printf("--------------------------------------------------------------------------------\n");
-	
+
+	printf("--------------------------------------------------------------------------------\n");
+
 	time_t now = time(NULL);
 	ts = localtime(&now);
 	strftime(timeStr, FNAMEBUFF, "%a %d/%b/%Y %H:%M:%S", ts);
@@ -118,96 +118,95 @@ int main (int argc, const char * argv[])
 		fprintf(stdout, "DIR: %s\n", cwd); // Print directory
 	else
 		perror("getcwd() error");
-    
-// Move this section to a seperate header e.g. compiler.h 
+
+// Move this section to a seperate header e.g. compiler.h
 #ifdef _OPENMP
 #define OMP "T"
 #else
-#define OMP "F"    
+#define OMP "F"
 #endif
-    
+
 #ifdef __GNUC__ // N.B. __GNUC__ is for any compiler implementing GNU compiler extensions, hence is defined for clang and llvm-gcc
-#ifndef __has_feature 
-#define __has_feature(x) 0 
+#ifndef __has_feature
+#define __has_feature(x) 0
 #endif
-    
+
 #ifdef __llvm__ // Using LLVM backend
-    // http://clang.llvm.org/docs/LanguageExtensions.html
-    //printf("%d\n",__COUNTER__);
+// http://clang.llvm.org/docs/LanguageExtensions.html
+//printf("%d\n",__COUNTER__);
 #ifdef __clang__ // Using Clang-LLVM
-    // For a list of builtin defines type: clang -x c /dev/null -dM -E
-    printf("Compiler: Clang-LLVM %s\n", __clang_version__);
-
+	// For a list of builtin defines type: clang -x c /dev/null -dM -E
+	printf("Compiler: Clang-LLVM %s\n", __clang_version__);
 #else // Using GCC-LLVM
-    printf("Compiler: GCC-LLVM %s\n", __VERSION__);
+	printf("Compiler: GCC-LLVM %s\n", __VERSION__);
 #endif
 
-    // Time of last modification of current source file...
-    printf("Compiled on: %s | Optimization: %d | Debug: %d | OpenMP: %s\n", \
-           __TIMESTAMP__, __OPTIMIZE__, DEBUG, OMP); 
-    
+	// Time of last modification of current source file...
+	printf("Compiled on: %s | Optimization: %d | Debug: %d | OpenMP: %s\n", \
+			__TIMESTAMP__, __OPTIMIZE__, DEBUG, OMP);
+
 #if __has_feature(c_static_assert) // Working? Relevent?
-    printf("Includes support for compile-time assertions\n");
+	printf("Includes support for compile-time assertions\n");
 #else
-    fprintf(stderr, "*** Warning: assert() disabled in parallel regions! ***\n");
+	fprintf(stderr, "*** Warning: assert() disabled in parallel regions! ***\n");
 #endif
-    
+
 #else // Using GCC
-    printf("Compiler: %s | Optimization: %d | Debug: %d | OpenMP: %s\n", \
-		   __VERSION__, __OPTIMIZE__, DEBUG, OMP);
-    printf("Source modified on: %s\n",__TIMESTAMP__);
-    printf("Compiled on: %s at %s\n", __DATE__, __TIME__);
+	printf("Compiler: %s | Optimization: %d | Debug: %d | OpenMP: %s\n", \
+			__VERSION__, __OPTIMIZE__, DEBUG, OMP);
+	printf("Source modified on: %s\n",__TIMESTAMP__);
+	printf("Compiled on: %s at %s\n", __DATE__, __TIME__);
 #endif
-#endif
-    
+//#endif	// TODO Check this is unnecessary
+
 #ifdef NDEBUG
 	fprintf(stderr, "*** Warning: Executing without error checking! ***\n");
 #endif
-    
+
 	if (strcmp(user, "nobody")==0)
 		SIM.Xgrid = true;
 	else
 		if (getenv("OMP_SCHEDULE")) // not NULL string
 			strncpy(schedule, getenv("OMP_SCHEDULE"), BUFSIZ);
-	
+
 	char * rsfile = RSFILE;
-	
-	
+
+
 	printf("--------------------------------------------------------------------------------\n");
-    printf("Checking for \"%s\" in current directory... \t\t\t    [%s]\n",DPFILE,\
-           (file_exists(DPFILE))?"OK":"NO");
-    printf("Checking for \"%s\" in current directory... \t\t    [%s]\n",rsfile,\
-           (file_exists(rsfile))?"OK":"NO");
-    // Check for GSL
-    dylib = dlopen(GSLDIR"libgsl.dylib",RTLD_NOW);
-    printf("Checking %s for GSL dyamic libraries... \t\t\t    [%s]\n",GSLDIR,(dylib)?"OK":"NO");
-    if ((error = dlerror()) != NULL || !dylib)
-        exit_error("main: libgsl.dylib check", error);
-    else // dylib != NULL
-        dlclose(dylib);
-    // Check for System libraries
-    dylib = dlopen("libSystem.dylib", RTLD_NOW);
-    printf("Checking for System dynamic libraries... \t\t\t\t    [%s]\n",(dylib)?"OK":"NO");
-    if ((error = dlerror()) != NULL || !dylib)
-        exit_error("main: libSystem.dylib check", error);
-    else // dylib != NULL
-        dlclose(dylib);
-    // Runtime OpenMP check using int omp_in_parallel(void);
+	printf("Checking for \"%s\" in current directory... \t\t\t    [%s]\n",DPFILE,\
+		(file_exists(DPFILE))?"OK":"NO");
+	printf("Checking for \"%s\" in current directory... \t\t    [%s]\n",rsfile,\
+		(file_exists(rsfile))?"OK":"NO");
+	// Check for GSL
+	dylib = dlopen(GSLDIR"libgsl.dylib",RTLD_NOW);
+	printf("Checking %s for GSL dyamic libraries... \t\t\t    [%s]\n",GSLDIR,(dylib)?"OK":"NO");
+	if ((error = dlerror()) != NULL || !dylib)
+		exit_error("main: libgsl.dylib check", error);
+	else // dylib != NULL
+		dlclose(dylib);
+	// Check for System libraries
+	dylib = dlopen("libSystem.dylib", RTLD_NOW);
+	printf("Checking for System dynamic libraries... \t\t\t\t    [%s]\n",(dylib)?"OK":"NO");
+	if ((error = dlerror()) != NULL || !dylib)
+		exit_error("main: libSystem.dylib check", error);
+	else // dylib != NULL
+		dlclose(dylib);
+	// Runtime OpenMP check using int omp_in_parallel(void);
 #ifdef _OPENMP
 #pragma omp parallel
 	{
 #pragma omp master//single
 		{
-            printf("Checking for OpenMP runtime parallelism... \t\t\t\t    [%s]\n",\
-                   omp_in_parallel()?"OK":"NO");
-        }
-    }
+			printf("Checking for OpenMP runtime parallelism... \t\t\t\t    [%s]\n",\
+					omp_in_parallel()?"OK":"NO");
+		}
+	}
 #endif
-    printf("--------------------------------------------------------------------------------\n");
-    
+	printf("--------------------------------------------------------------------------------\n");
+
 	char exec[BUFSIZ];
 	strncpy(exec, argv[0], sizeof(exec)-1);
-	
+
 	if (argc==1)
 	{
 		printf("%s usage:\n",exec); //argv[0]);
@@ -229,19 +228,19 @@ int main (int argc, const char * argv[])
 		printf("================================================================================\n");
 		return 0;
 	}
-    
+
 #ifdef __APPLE__ //__unix__
-    // Output command passed to cmd.sh
-    int a=0;
-    cli_FP = myfopen("cmd.sh", "w");
-    fprintf(cli_FP, "#!/bin/bash\n");
-    for (a=0; a<argc; a++)
-        fprintf(cli_FP, "%s ",argv[a]);
-    fprintf(cli_FP, "\n");
-    fclose(cli_FP);
-    system("chmod 755 cmd.sh");
+	// Output command passed to cmd.sh
+	int a=0;
+	cli_FP = myfopen("cmd.sh", "w");
+	fprintf(cli_FP, "#!/bin/bash\n");
+	for (a=0; a<argc; a++)
+		fprintf(cli_FP, "%s ",argv[a]);
+	fprintf(cli_FP, "\n");
+	fclose(cli_FP);
+	system("chmod 755 cmd.sh");
 #endif
-	
+
 	while (--argc > 0 && (*++argv)[0] == '-')
 	{
 		//skip_arg = 0;
@@ -252,7 +251,7 @@ int main (int argc, const char * argv[])
 				case 'c':	// Clean directory of .dat and .tbz files
 					system("rm *.dat *.tbz");
 					break;
-					
+
 				case 'f':	// Parameter file name
 					pf_flag = true;
 					pFile = myalloc(strlen(*++argv)+1); //sizeof(char)==1 guaranteed
@@ -260,22 +259,22 @@ int main (int argc, const char * argv[])
 					skip_arg = true;
 					argc--;
 					break;
-				
+
 				case 'r':	// Rerun with last seed
 					rerun = true; //RERUN = 1;
 					break;
-					
+
 				case 'g':	// Generate a new random seed and exit
 					genNewSeed = true;
 					break;
-					
+
 				case 's':	// Explicitly pass random seed (takes precedence over -r)
 					seed = atol(*++argv);
 					seedFlag = true;
 					skip_arg = true;
 					argc--;
 					break;
-					
+
 				case 'k':	// Read in list of neurons
 					fprintf(stderr, "*** -k: Specifying neurons for recording is not yet implemented! ***\n");
 					//int * recordSet = NULL;
@@ -292,7 +291,7 @@ int main (int argc, const char * argv[])
 					skip_arg = true;
 					argc--;
 					break;
-					
+
 				case 'd':	// May reduce num_thd depending on system load
 #ifdef _OPENMP
 					dynamic = true;
@@ -303,15 +302,15 @@ int main (int argc, const char * argv[])
 					fprintf(stderr, "*** -d: OpenMP disabled! ***\n");
 #endif
 					break;
-					
+
 				case 'm':	// Set the proportion of threads from the CLI [0.0, 1.0]
 #ifdef _OPENMP
 					proportion = atof(*++argv);
 //#ifndef __llvm__
 					assert(0.0 < proportion && proportion <= 1.0);
 //#endif
-                    nThreads = round(omp_get_num_procs()*proportion);
-                    nThreads = (nThreads>1) ? nThreads : 1;
+					nThreads = round(omp_get_num_procs()*proportion);
+					nThreads = (nThreads>1) ? nThreads : 1;
 					omp_set_num_threads(nThreads);
 #else
 					fprintf(stderr, "*** -m %f: OpenMP disabled! ***\n",proportion);
@@ -319,7 +318,7 @@ int main (int argc, const char * argv[])
 					skip_arg = true;
 					argc--;
 					break;
-				
+
 				case 't':	// Set the number of threads from the CLI
 #ifdef _OPENMP
 					nThreads = atoi(*++argv);
@@ -330,14 +329,14 @@ int main (int argc, const char * argv[])
 					omp_set_num_threads(nThreads);
 					if (nThreads >= omp_get_num_procs())
 						printf("Warning: nThreads (%d) >= nProcessors (%d)!\n",\
-							   nThreads, omp_get_num_procs());
+								nThreads, omp_get_num_procs());
 #else
 					fprintf(stderr, "-t %d: OpenMP disabled\n",nThreads);
-#endif				
+#endif
 					skip_arg = true;
 					argc--;
 					break;
-					
+
 				case 'p':	// Code to pass a parameter string e.g. "param=0"
 					if (!p_flag)
 					{
@@ -349,7 +348,7 @@ int main (int argc, const char * argv[])
 					argc--;
 					pINcount++;
 					break;
-					
+
 				case '-':	// Equivalent to '-p ' but combines the arguments
 					if (!p_flag)
 					{
@@ -361,11 +360,11 @@ int main (int argc, const char * argv[])
 					//argc--;
 					pINcount++;
 					break;
-					
+
 				case 'i':	// Pass Image directory
-					
+
 					break;
-					
+
 				case 'j':	// Alternatively pass compressed tar (cjvf) of images
 					ia_flag = true;
 					slen = strlen(*++argv);
@@ -375,16 +374,16 @@ int main (int argc, const char * argv[])
 					skip_arg = true;
 					argc--;
 					break;
-					
+
 				case 'u':	// Keep data uncompressed
 					compress = false;
 					//printf("Warning: tbz archives should be removed to prevent analysis of them!\n");
 					break;
-					
+
 				case 'x':	// Xgrid simulation
 					SIM.Xgrid = true;
 					break;
-				
+
 				default:
 					printf("Illegal arguement: %c\n", c);
 					argc = 0;
@@ -397,9 +396,9 @@ int main (int argc, const char * argv[])
 			}
 		}
 	}
-	
 
-	
+
+
 #ifdef _OPENMP
 #pragma omp parallel //private (th_id)
 	{
@@ -408,28 +407,28 @@ int main (int argc, const char * argv[])
 #pragma omp single
 		{
 			printf("OMP: (%d/%d)\t{OMP_DYNAMIC=%s, OMP_NESTED=%s, OMP_SCHEDULE=%s}\n", \
-				   nThreads, omp_get_num_procs(), \
-				   (omp_get_dynamic() ? "TRUE" : "FALSE"), \
-				   (omp_get_nested() ? "TRUE" : "FALSE"), \
-				   (schedule));
+					nThreads, omp_get_num_procs(), \
+					(omp_get_dynamic() ? "TRUE" : "FALSE"), \
+					(omp_get_nested() ? "TRUE" : "FALSE"), \
+					(schedule));
 		}
 	}
 #else
 	nThreads = 1;
 	printf("Executing in serial.\n");
 #endif
-	
+
 	FILE * randSeedFP;
 	char * sString, buffer[BUFSIZ];
-	unsigned long long seedMod = pow(2, 32); // 32-bit unsigned seeds (max value = pow(2, 32)-1)	
-	
+	unsigned long long seedMod = pow(2, 32); // 32-bit unsigned seeds (max value = pow(2, 32)-1)
+
 //	printf("This program is compiled with GSL version %s.\n", GSL_VERSION);
 //#if DEBUG > 1	// Print GSL verison and location
 //	system("gsl-config --prefix --version");
 //#endif
 
-    //if (!SIM.Xgrid)
-    //{
+	//if (!SIM.Xgrid)
+	//{
 	// Print GSL verison and location
 	if ((pipeFP = popen("/opt/local/bin/gsl-config --prefix --version", "r")))
 	{
@@ -440,15 +439,15 @@ int main (int argc, const char * argv[])
 	if ((bptr = strpbrk(syscmd, "\r\n"))) //strstr(syscmd, '\n')
 		*bptr = '\0';
 	printf("GSL: Compiled with v%s, found dynamic libraries v%4.2f at: %s\n", \
-           GSL_VERSION,atof(dlver),syscmd);
+			GSL_VERSION,atof(dlver),syscmd);
 	// if atof(dlver) < GSL_MIN
-    //}
-    
-    // Initialise random seed
+	//}
+
+	// Initialise random seed
 	const gsl_rng_type * T = gsl_rng_default; // Set RNG type
 	gsl_rng_env_setup(); // http://www.gnu.org/software/gsl/manual/html_node/Random-number-environment-variables.html
 	mSeed = gsl_rng_alloc(T); // Used for serial sections with randomness
-    
+
 	if (genNewSeed) // Generate a new random seed file and exit
 	{
 		seed = (unsigned long) time((time_t *) NULL);
@@ -456,18 +455,18 @@ int main (int argc, const char * argv[])
 		randSeedFP = myfopen(rsfile, "w");
 		fprintf(randSeedFP, "mSeed: \t%ld\n", seed);
 		fclose(randSeedFP);
-        printf("New seed generated in %s: %ld (%s) <GSL v%s>\n", rsfile, seed, gsl_rng_name(mSeed), GSL_VERSION); // Generator type not strictly necessary here
+		printf("New seed generated in %s: %ld (%s) <GSL v%s>\n", rsfile, seed, gsl_rng_name(mSeed), GSL_VERSION); // Generator type not strictly necessary here
 		return 0;
 	}
-	
-    if (!seedFlag)
+
+	if (!seedFlag)
 	{
 		if (rerun) // Also rerun with parameters.m?
 		{
 			randSeedFP = myfopen(rsfile, "r");
 			if ((sString = fgets(buffer, sizeof(buffer), randSeedFP)) != NULL) //while
 				seed = atol(strrchr(sString,':')+1); //ans[count++]
-			fclose(randSeedFP); 
+			fclose(randSeedFP);
 			printf("Rerunning simulation with %s: %ld (%s) <GSL v%s>\n", rsfile, seed, gsl_rng_name(mSeed), GSL_VERSION);
 		}
 		else
@@ -481,20 +480,20 @@ int main (int argc, const char * argv[])
 		}
 	}
 	gsl_rng_set(mSeed, seed); //gsl_rng_set(mSeed, -idum);
-    
+
 	// Allocate and initialise model parameters structure
 	mp = myalloc(sizeof(*mp)); // Place in getParameters with default init?
-    mp->initialised = false;
+	mp->initialised = false;
 	mp->imgList = NULL;
 	mp->LvExcit = mp->LvInhib = mp->LpEfE = mp->LpElE = mp->LpEI = mp->LpIE = mp->LpII = 0;
 	mp->vExcit = mp->vInhib = mp->vScales = mp->vOrients = mp->vPhases = NULL;
 	mp->pCnxEfE = mp->pCnxElE = mp->pCnxIE = mp->pCnxEI = mp->pCnxII = NULL;
-	mp->layDim = NULL; 
+	mp->layDim = NULL;
 	mp->vSquare = mp->vRecords = NULL;
 	mp->rInhib = 0.0;
-	
+
 	int syserr = 0;
-	
+
 	if (ia_flag) //assert(mp->useFilteredImages);
 	{
 		FILEPARTS * fp = myalloc(sizeof(*fp));
@@ -518,9 +517,9 @@ int main (int argc, const char * argv[])
 				printf("Images successfully extracted to %s\n", mp->imgDir);
 		}
 	}
-    
+
 	SIM.minTau = BIG;
-	
+
 	// Read in parameters from .m file
 	printf("I/O: Processing parameters: \"%s\"", !pFile ? DPFILE : pFile);
 	if (p_flag)
@@ -528,17 +527,17 @@ int main (int argc, const char * argv[])
 	dcount = read_parameters(mp, DPFILE);
 	fcount = (pFile != NULL) ? read_parameters(mp, pFile) : 0;
 	pcount = (p_flag) ? read_parameters(mp, cpfile) : 0;
-	
+
 	if (!mp->useFilteredImages)
 		assert(pcount == pINcount);
 	//printf(" {%d,%d,%d}\tParsing complete!\n", dcount, fcount, pcount);
-		
+
 	// Print parameters to MPFILE (parameters.m)
 	ocount = printParameters(mp, MPFILE); // Variables to read into Matlab
 	//printf("%d parameters written to %s\n", pcount, MPFILE);
-	
-    printf(" {%d,%d,%d} --> \"%s\" {%d} Done!\n", dcount, fcount, pcount, MPFILE, ocount);
-	
+
+	printf(" {%d,%d,%d} --> \"%s\" {%d} Done!\n", dcount, fcount, pcount, MPFILE, ocount);
+
 	// Create a random seed for each thread to ensure thread safety
 	if (mp->noise) // Could add a state to every neuron to achieve same results with different threads
 	{
@@ -558,7 +557,7 @@ int main (int argc, const char * argv[])
 			gsl_rng_set(states[th], seed+th+1);
 		}
 	}
-	
+
 	if (recFlag) // Make recordSet global, prevent random choice in init_network and free at the end
 	{
 		/*int ** recordSet = myalloc(mp->nLayers * sizeof(*recordSet));
@@ -571,17 +570,17 @@ int main (int argc, const char * argv[])
 			mp->vRecords[l] = parseIntVector(list, &recordSet[l]);
 			tstr = strtok(NULL, ";");
 		}*/
-		
+
 		myfree(recList);
 	}
-	
+
 	// Print minimum tau and DT to nearest microsecond
-	printf("TAU: Smallest time constant = %.3f ms | DT = %.3f ms\n", SIM.minTau*1000, mp->DT*1000); 
+	printf("TAU: Smallest time constant = %.3f ms | DT = %.3f ms\n", SIM.minTau*1000, mp->DT*1000);
 	if (mp->DT >= 2*SIM.minTau) // CHECK THIS
 		fprintf(stderr, "*** Warning: Forward Euler stability condition violated! ***\n");
-    assert(mp->DT <= 0.001); // Timesteps must be no larger than 1 ms or mp->TSperMS==0!
+	assert(mp->DT <= 0.001); // Timesteps must be no larger than 1 ms or mp->TSperMS==0!
 	// Display dynamic libraries: otool -L ~/bin/SpikeNet/Debug/Spike
-	
+
 #ifdef _OPENMP // Use omp function omp_get_wtime
 	//double begin = omp_get_wtime();
 	SIM.start = omp_get_wtime();
@@ -589,7 +588,7 @@ int main (int argc, const char * argv[])
 #else
 	time_t start = time(NULL);
 #endif
-	
+
 	if (!SIM.Xgrid && !mp->loadWeights) // Remove *.dat and *.tbz
 	{
 		system("rm *.dat"); //system("rm *.dat *.tbz");
@@ -600,7 +599,7 @@ int main (int argc, const char * argv[])
 			if (system(syscmd)) // Delete *.tbz except image archive
 				printf("Archive files successfully cleaned!\n");
 			else
-				EE("Error cleaning archive files!"); //exit_error("main.c", "Error cleaning archive files!\n");		
+				EE("Error cleaning archive files!"); //exit_error("main.c", "Error cleaning archive files!\n");
 		}
 		else
 			system("rm *.tbz"); // Delete *.tbz
@@ -633,17 +632,17 @@ int main (int argc, const char * argv[])
 			}
 		}
 	}
-	
-	
+
+
 	/***** RUN SIMULATION *****/
 	result = spike(mp);
 	/**************************/
-	
-	
+
+
 	// Compress data files for crash-free xgrid! '-j' Uses bzip (*.tbz equivalent to *.tar.bz2)
 	// Append files to fileList and call system(syscmd); once and keep fileList
 	//snprintf(syscmd, BUFSIZ, "tar -cjvf %s.tbz %s > fileList","connectivity","*affNeurons.dat");
-	
+
 	/*if (!SIM.Xgrid) // /sbin/md5
 		system("md5 *.dat > datHashs.txt");*/
 	system("shasum *.dat > datHashs.txt"); // /usr/bin/shasum
@@ -659,11 +658,11 @@ int main (int argc, const char * argv[])
 	{
 		printf("\tCompressing data to .tbz archives...\t");
 		fflush(stdout);
-		
+
 		if (!(mp->useFilteredImages || mp->stimGroups))
 			if ((syserr = system("tar -cjf stimuli.tbz *stimuli.dat stimuli.m")) == 0)
 				system("tar -tf stimuli.tbz | xargs rm");
-		
+
 		if(mp->nRecordsPL)
 		{
 			if (mp->priorPhases)
@@ -673,54 +672,54 @@ int main (int argc, const char * argv[])
 			if ((syserr = system("tar -cjf records.tbz R*.dat")) == 0)
 				system("tar -tf records.tbz | xargs rm");
 		}
-			
+
 		if (mp->printConnections)
 		{
-            if (snprintf(syscmd, BUFSIZ, "tar -cjf connectivity.tbz *affNeurons*.dat %s %s",(mp->SOM)?"*dist*.dat":"",(mp->axonDelay)?"*affDelays*.dat":"") >= BUFSIZ)
-                fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
-            syserr = system(syscmd);
+			if (snprintf(syscmd, BUFSIZ, "tar -cjf connectivity.tbz *affNeurons*.dat %s %s",(mp->SOM)?"*dist*.dat":"",(mp->axonDelay)?"*affDelays*.dat":"") >= BUFSIZ)
+				fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
+				syserr = system(syscmd);
 			/*if (mp->SOM)
 				syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat *affDelays*.dat *dist*.dat");
 			else
-            {
-                if (mp->axonDelay)
-                    syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat *affDelays*.dat"); //system("tar --remove-files -cjvf connectivity.tbz *affNeurons*.dat > fileList");
-                else
-                    syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat");
-            }*/
+			{
+				if (mp->axonDelay)
+					syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat *affDelays*.dat"); //system("tar --remove-files -cjvf connectivity.tbz *affNeurons*.dat > fileList");
+				else
+					syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat");
+			}*/
 			if (!syserr)
 				system("tar -tf connectivity.tbz | xargs rm");
 		}
-		
+
 		if (mp->pretrain)
 		{
 			if (mp->priorPhases)
 				if ((syserr = system("tar -cjf PPpreTraining.tbz PP_pt*.dat")) == 0)
 					system("tar -tf PPpreTraining.tbz | xargs rm");
-		
+
 			if ((syserr = system("tar -cjf preTraining.tbz pt*.dat")) == 0)
 				system("tar -tf preTraining.tbz | xargs rm");
 		}
-		
+
 		if (mp->train)
 		{
 			if (mp->priorPhases)
 				if ((syserr = system("tar -cjf PPtraining.tbz PP_E*.dat")) == 0) // 2> tar_err
 					system("tar -tf PPtraining.tbz | xargs rm");
-			
+
 			if ((syserr = system("tar -cjf training.tbz E*.dat")) == 0) // 2> tar_err
 				system("tar -tf training.tbz | xargs rm");
 		}
-		
+
 		if (mp->priorPhases)
 			if ((syserr = system("tar -cjf PPpostTraining.tbz PP_*.dat")) == 0) // 2> tar_err
 				system("tar -tf PPpostTraining.tbz | xargs rm");
-				
+
 		if ((syserr = system("tar -cjf postTraining.tbz L*Spikes.dat L*weights*.dat")) == 0)
 			system("tar -tf postTraining.tbz | xargs rm");
 		//system(syscmd);
 		//system("rm fileList");
-		
+
 		printf("Data Compressed!\n");
 		fflush(stdout);
 	}
@@ -731,25 +730,25 @@ int main (int argc, const char * argv[])
 		system("md5 parameters.m"); // shasum
 		system("md5 datHashs.txt");
 		//system("md5 *.tbz"); // Contains metadata (e.g. timestamps) which will give different #s
-	 }*/
-    
-    printf("Computing SHA checksums...\n");
+	}*/
+
+	printf("Computing SHA checksums...\n");
 	slen = snprintf(syscmd, sizeof(syscmd)-1, "shasum %s", exec);
-	// To Do: Also print hashes for input files. 
+	// To Do: Also print hashes for input files.
 #ifndef __llvm__
 	assert(slen < (signed) sizeof(syscmd));
 #endif
 	system(syscmd);
 	system("shasum parameters.m");
 	system("shasum datHashs.txt");
-    printf("Checksums computed!\n");
+	printf("Checksums computed!\n");
 	} // End of section
-		
+
 	// Clean up
 #pragma omp section
 	if (pf_flag)
 		myfree(pFile);
-	
+
 #pragma omp section
 	if (ia_flag)
 	{
@@ -758,8 +757,8 @@ int main (int argc, const char * argv[])
 			fprintf(stderr, "*** Warning! Undersized buffer: %s ***", syscmd);
 		system(syscmd);	// Delete expand image files
 	}
-        // Print out input/output file list? array of structs with a bool and filename string...
-	
+	// Print out input/output file list? array of structs with a bool and filename string...
+
 #pragma omp section
 	{
 	gsl_rng_free(mSeed);
@@ -770,10 +769,10 @@ int main (int argc, const char * argv[])
 		myfree(states);
 	}
 	}
-	
+
 	//if (recFlag)	// Free list of records
 } // End of parallel sections
-	
+
 	if (mp->useFilteredImages)
 	{
 		myfree(mp->imgDir);
@@ -782,7 +781,7 @@ int main (int argc, const char * argv[])
 		myfree(mp->vOrients);
 		myfree(mp->vPhases);
 	}
-	
+
 	myfree(mp->vRecords);
 	myfree(mp->vExcit);
 	myfree(mp->vInhib);
@@ -793,9 +792,9 @@ int main (int argc, const char * argv[])
 	myfree(mp->pCnxII);
 	myfree(mp->layDim);
 	myfree(mp->vSquare);
-		
+
 	myfree(mp);
-	
+
 #ifdef _OPENMP
 	//getTimeString(timeStr, FNAMEBUFF, omp_get_wtime()-begin);
 	double wtime = omp_get_wtime() - SIM.start; //begin;
@@ -807,7 +806,7 @@ int main (int argc, const char * argv[])
 	mins = floor(wtime/60);
 	wtime -= mins*60; //secs = wtime - (mins*60) - (hours*3600);
 	snprintf(timeStr, FNAMEBUFF, "%d:%02d:%06.3lf (%d Threads)",\
-			 hours,mins,wtime,nThreads);
+				hours,mins,wtime,nThreads);
 #else
 	time_t duration = time(NULL) - start; //	finish = round(time(NULL) - start);
 	hours = floor(duration/3600);
@@ -817,7 +816,7 @@ int main (int argc, const char * argv[])
 	int secs = duration;
 	snprintf(timeStr, FNAMEBUFF, "%d:%02d:%02d (Serial)",hours,mins,secs);
 #endif
-	
+
 	if (result==0)
 		printf("Simulation completed in %s!\n",timeStr);
 	else
@@ -826,7 +825,7 @@ int main (int argc, const char * argv[])
 		return 1;
 	}
 	//printf("--------------------------------------------------------------------------------\n");
-    printf("================================================================================\n");
-	
-    return 0;
+	printf("================================================================================\n");
+
+	return 0;
 }
