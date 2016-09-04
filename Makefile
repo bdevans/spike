@@ -63,7 +63,7 @@ $(program_NAME): $(program_OBJS)
 
 debug: $(program_NAME)	# private?
 	$(OPT_FLAGS) := $(DBG_FLAGS)
-	
+
 profile: $(program_NAME)
 	$(OPT_FLAGS) := $(PRO_FLAGS)
 
@@ -83,7 +83,7 @@ clean:
 	@- $(RM) $(program_OBJS)
 	find . -name ._\* -exec rm -f {} \;
 
-# Using the pipe `|' means : normal-prerequisites | order-only-prerequisites 
+# Using the pipe `|' means : normal-prerequisites | order-only-prerequisites
 fresh : | clean clearscr all
 
 clearscr:
@@ -100,7 +100,7 @@ commit: clean
 
 newdoc: $(program_SRCS)	# Generate a new config file with doxygen -g <Doxyfile>
 	$(program_DOCUMENTOR) -g $(program_DOC_CONFIG)
-	# Replace tags in the config file 
+	# Replace tags in the config file
 	# string='PATTERN_TO_MATCH         = REPLACE_ME '; printf '<%s>\n' "${string%=*}= REPLACE_ME"
 	# PROJECT_NAME
 	# OPTIMIZE_OUTPUT_FOR_C
@@ -122,7 +122,7 @@ $(program_ARCHIVE) : $(program_C_SRCS) $(program_HDRS) $(program_ANALYSIS) $(pro
 ### http://stackoverflow.com/questions/2148892/conditionally-appending-to-a-variable-inside-a-makefile-target
 LIST = item1
 
-targetMain: 
+targetMain:
 # DO all the work in here
 	echo $(LIST)
 
@@ -146,7 +146,7 @@ targetA targetB: targetMain
 #project : clean tar # $(program_NAME).tbz
 #	find . -name ._\* -exec rm -f {} \;
 #	$(TAR) $(program_NAME).xcodeproj
-# 	$(program_ADDITIONAL) += $(program_NAME).xcodeproj
+#	$(program_ADDITIONAL) += $(program_NAME).xcodeproj
 #	tar -cjf $(program_NAME).tbz $(program_C_SRCS) $(program_HDRS) $(program_ANALYSIS) $(MAKEFILE_LIST) $(program_NAME).xcodeproj
 # Could just build original archive then include the xcodeproj directory
 
