@@ -157,7 +157,7 @@ int main (int argc, const char * argv[])
 	printf("Source modified on: %s\n",__TIMESTAMP__);
 	printf("Compiled on: %s at %s\n", __DATE__, __TIME__);
 #endif
-//#endif	// TODO Check this is unnecessary
+#endif // __GNUC__
 
 #ifdef NDEBUG
 	fprintf(stderr, "*** Warning: Executing without error checking! ***\n");
