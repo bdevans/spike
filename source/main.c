@@ -178,10 +178,11 @@ int main (int argc, const char * argv[])
 	printf("Checking for \"%s\" in current directory... \t\t    [%s]\n",rsfile,\
 		(file_exists(rsfile))?"OK":"NO");
 	// Check for GSL
-	dylib = dlopen(GSLDIR"libgsl.dylib",RTLD_NOW);
+#ifdef __APPLE__
+	dylib = dlopen("libgsl.dylib", RTLD_NOW);  //dylib = dlopen(GSLDIR"libgsl.dylib",RTLD_NOW);
 	printf("Checking %s for GSL dyamic libraries... \t\t\t    [%s]\n",GSLDIR,(dylib)?"OK":"NO");
 	if ((error = dlerror()) != NULL || !dylib)
-		exit_error("main: libgsl.dylib check", error);
+		exit_error("main: libgsl.dylib check - set LD_LIBRARY_PATH", error);
 	else // dylib != NULL
 		dlclose(dylib);
 	// Check for System libraries
@@ -191,6 +192,7 @@ int main (int argc, const char * argv[])
 		exit_error("main: libSystem.dylib check", error);
 	else // dylib != NULL
 		dlclose(dylib);
+#endif
 	// Runtime OpenMP check using int omp_in_parallel(void);
 #ifdef _OPENMP
 #pragma omp parallel
