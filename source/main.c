@@ -40,7 +40,6 @@ char PPSTFILE[BUFSIZ] = "";
 
 #define GSLDIR "/opt/local/lib/" // Unnecessary? See checks below
 // otool -L Spike // to test which dynamic libraries are being used
-// http://discussions.apple.com/thread.jspa?threadID=1741520
 // http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 
 // Apple's malloc debugging library: libgmalloc
