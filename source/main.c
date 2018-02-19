@@ -147,7 +147,7 @@ int main (int argc, const char * argv[])
 #if __has_feature(c_static_assert) // Working? Relevent?
 	printf("Includes support for compile-time assertions\n");
 #else
-	fprintf(stderr, "*** Warning: assert() disabled in parallel regions! ***\n");
+	fprintf(stderr, "Warning: assert() disabled in parallel regions!\n");
 #endif // __has_feature(c_static_assert)
 
 #else // Using GCC
@@ -159,7 +159,7 @@ int main (int argc, const char * argv[])
 #endif // __GNUC__
 
 #ifdef NDEBUG
-	fprintf(stderr, "*** Warning: Executing without error checking! ***\n");
+	fprintf(stderr, "Warning: Executing without error checking!\n");
 #endif
 
 	if (strcmp(user, "nobody")==0)
@@ -474,7 +474,7 @@ int main (int argc, const char * argv[])
 		{
 			seed = (unsigned long) time((time_t *) NULL);
 			seed %= seedMod;
-			fprintf(stderr, "*** Warning: Creating new seed in %s: %ld (%s) <GSL v%s> ***\n", rsfile, seed, gsl_rng_name(mSeed), GSL_VERSION);
+			fprintf(stderr, "Warning: Creating new seed in %s: %ld (%s) <GSL v%s>\n", rsfile, seed, gsl_rng_name(mSeed), GSL_VERSION);
 			randSeedFP = myfopen(rsfile, "w");
 			fprintf(randSeedFP, "mSeed: \t%ld\n", seed);
 			fclose(randSeedFP);
@@ -510,7 +510,7 @@ int main (int argc, const char * argv[])
 		{
 			printf("Now extracting %s...\t", imageArchive);
 			if(snprintf(syscmd, BUFSIZ, "tar -xf %s -C %s/",imageArchive, mp->imgDir) >= BUFSIZ)
-				fprintf(stderr, "*** Warning! Undersized buffer: %s ***", syscmd);
+				fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
 			syserr = system(syscmd);
 			if (syserr)
 				EE("Error extracting image archive");
@@ -578,7 +578,7 @@ int main (int argc, const char * argv[])
 	// Print minimum tau and DT to nearest microsecond
 	printf("TAU: Smallest time constant = %.3f ms | DT = %.3f ms\n", SIM.minTau*1000, mp->DT*1000);
 	if (mp->DT >= 2*SIM.minTau) // CHECK THIS
-		fprintf(stderr, "*** Warning: Forward Euler stability condition violated! ***\n");
+		fprintf(stderr, "Warning: Forward Euler stability condition violated!\n");
 	assert(mp->DT <= 0.001); // Timesteps must be no larger than 1 ms or mp->TSperMS==0!
 	// Display dynamic libraries: otool -L ~/bin/SpikeNet/Debug/Spike
 
@@ -755,7 +755,7 @@ int main (int argc, const char * argv[])
 	{
 		myfree(imageArchive);
 		if(snprintf(syscmd, BUFSIZ, "rm -R %s/", mp->imgDir) >= BUFSIZ)
-			fprintf(stderr, "*** Warning! Undersized buffer: %s ***", syscmd);
+			fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
 		system(syscmd);	// Delete expand image files
 	}
 	// Print out input/output file list? array of structs with a bool and filename string...
