@@ -139,7 +139,7 @@ int main (int argc, const char * argv[])
 	printf("Compiler: Clang-LLVM %s\n", __clang_version__);
 #else // Using GCC-LLVM
 	printf("Compiler: GCC-LLVM %s\n", __VERSION__);
-#endif
+#endif // __clang__
 
 	// Time of last modification of current source file...
 	printf("Compiled on: %s | Optimization: %d | Debug: %d | OpenMP: %s\n", \
@@ -149,14 +149,14 @@ int main (int argc, const char * argv[])
 	printf("Includes support for compile-time assertions\n");
 #else
 	fprintf(stderr, "*** Warning: assert() disabled in parallel regions! ***\n");
-#endif
+#endif // __has_feature(c_static_assert)
 
 #else // Using GCC
 	printf("Compiler: %s | Optimization: %d | Debug: %d | OpenMP: %s\n", \
 			__VERSION__, __OPTIMIZE__, DEBUG, OMP);
 	printf("Source modified on: %s\n",__TIMESTAMP__);
 	printf("Compiled on: %s at %s\n", __DATE__, __TIME__);
-#endif
+#endif // __llvm__
 #endif // __GNUC__
 
 #ifdef NDEBUG
