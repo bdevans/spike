@@ -3938,7 +3938,7 @@ void normalise(NEURON ** narray, PARAMS * mp)
 
 		default:
 		{
-			EE("Unknown normalisation mode.\n");
+			EE("Unknown normalisation mode");
 			break;
 		}
 	}
