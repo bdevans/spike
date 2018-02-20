@@ -2987,7 +2987,6 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 	tstep t_start = 0, t_end = 0;
 	int loop, l, wl, n, syn;
 	int nLoops = 0;
-	int result = 0;
 	//LEARNREGIME regime = Continuous; //NoLearning;
 	int slen = 0;
 	//char phaseString[FNAMEBUFF];
@@ -3118,7 +3117,7 @@ void simulatePhase(LEARNREGIME regime, const char * prefix, STIMULI * stim)
 
 					// Update to normalise ElE weights and skip if not Training
 					if (mp->normalise) // Normalise plastic weights
-						result = normalise(n_E, mp);
+						normalise(n_E, mp);
 
 					/*if (mp->saveInputSpikes)
 					 {
@@ -3867,7 +3866,7 @@ inline void update_D(NEURON * n, tstep t, float decayRate)
 }
 
 
-int normalise(NEURON ** narray, PARAMS * mp)
+void normalise(NEURON ** narray, PARAMS * mp)
 {
 	int l = 0;
 	int n = 0;
@@ -3880,7 +3879,7 @@ int normalise(NEURON ** narray, PARAMS * mp)
 		case None:
 		{
 			printf("No normalisation.\n");
-			return 0;
+			return;
 		}
 		case MaintainLength: // Standard normalisation: set sum of squares to 1
 		{
@@ -3939,12 +3938,11 @@ int normalise(NEURON ** narray, PARAMS * mp)
 
 		default:
 		{
-			printf("Unknown normalisation mode.\n");
-			return 1;
+			EE("Unknown normalisation mode.\n");
 			break;
 		}
 	}
-	return 0;
+	return;
 }
 
 

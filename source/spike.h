@@ -248,7 +248,7 @@ extern inline void update_g(NEURON * n, tstep t, float decay_E, float decay_I);
 extern inline void update_weights(NEURON * n, tstep t);
 extern inline void update_C(NEURON * n, tstep t, float decayRate);
 extern inline void update_D(NEURON * n, tstep t, float decayRate);
-extern int normalise(NEURON ** narray, PARAMS * mp);
+extern void normalise(NEURON ** narray, PARAMS * mp);
 extern inline void init_queue(AXON * a);
 extern inline void enqueue(AXON * a, tstep t);
 extern inline int dequeue(AXON * a);
