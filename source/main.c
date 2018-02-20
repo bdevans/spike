@@ -663,7 +663,7 @@ int main (int argc, const char * argv[])
 		fflush(stdout);
 
 		if (!(mp->useFilteredImages || mp->stimGroups))
-			if ((syserr = system("tar -cjf stimuli.tbz *stimuli.dat stimuli.m")) == 0)
+			if ((syserr = system("tar -cjf stimuli.tbz stimuli.m")) == 0)  // Removed *stimuli.dat
 				system("tar -tf stimuli.tbz | xargs rm");
 
 		if(mp->nRecordsPL)
