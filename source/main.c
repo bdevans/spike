@@ -85,8 +85,10 @@ int main (int argc, const char * argv[])
 	int ocount = 0; // Parameters out count
 	int err = 0;
 	int slen = 0;
+#ifdef __APPLE__
 	char * error = NULL;
 	void * dylib = NULL;
+#endif
 
 	bool recFlag = false;
 	char * recList = NULL;
