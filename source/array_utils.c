@@ -124,12 +124,12 @@ void ** array2d(size_t rows, size_t cols, size_t value_size)
 	if (rows < 1 || cols < 1) // Catch errors where one or more dimensions is 0 or -ve
 		return NULL;
 
-		size_t index_size = sizeof(void *) * rows;
-		size_t store_size = value_size * rows * cols;
+	size_t index_size = sizeof(void *) * rows;
+	size_t store_size = value_size * rows * cols;
 
-		char * a = myalloc(index_size + store_size);
+	char * a = myalloc(index_size + store_size);
 
-		memset(a + index_size, 0, store_size); // Be careful with memsets rezeroing the array
+	memset(a + index_size, 0, store_size); // Be careful with memsets rezeroing the array
 	size_t i=0;
 	for(i = 0; i < rows; ++i)
 		((void **)a)[i] = a + index_size + i * cols * value_size;

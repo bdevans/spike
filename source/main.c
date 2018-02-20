@@ -678,7 +678,7 @@ int main (int argc, const char * argv[])
 		{
 			if (snprintf(syscmd, BUFSIZ, "tar -cjf connectivity.tbz *affNeurons*.dat %s %s",(mp->SOM)?"*dist*.dat":"",(mp->axonDelay)?"*affDelays*.dat":"") >= BUFSIZ)
 				fprintf(stderr, "Warning! Undersized buffer: %s", syscmd);
-				syserr = system(syscmd);
+			syserr = system(syscmd);
 			/*if (mp->SOM)
 				syserr = system("tar -cjf connectivity.tbz *affNeurons*.dat *affDelays*.dat *dist*.dat");
 			else
