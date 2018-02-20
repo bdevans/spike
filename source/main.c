@@ -232,13 +232,13 @@ int main (int argc, const char * argv[])
 		return 0;
 	}
 
-#ifdef __APPLE__ //__unix__
+#ifdef __unix__ //__APPLE__ //__unix__
 	// Output command passed to cmd.sh
 	int a=0;
 	cli_FP = myfopen("cmd.sh", "w");
 	fprintf(cli_FP, "#!/bin/bash\n");
 	for (a=0; a<argc; a++)
-		fprintf(cli_FP, "%s ",argv[a]);
+		fprintf(cli_FP, "%s ", argv[a]);
 	fprintf(cli_FP, "\n");
 	fclose(cli_FP);
 	system("chmod 755 cmd.sh");
