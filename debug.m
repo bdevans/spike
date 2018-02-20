@@ -5,7 +5,7 @@ nRecordsPL  = 5;
 
 nStimuli    = 2;
 nTransPS    = 21;
-transP_Train = 0.5;
+transP_Train= 0.5;
 transP_Test = 0.5;
 shift       = 1;
 a           = 0.167;

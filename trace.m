@@ -3,7 +3,7 @@ loops       = 50;
 
 nStimuli    = 2;
 nTransPS    = 4;
-transP_Train = 0.3;
+transP_Train= 0.3;
 transP_Test = 0.5;
 shift       = 5;
 a           = 0.0;
