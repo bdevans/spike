@@ -42,7 +42,7 @@ extern char STFILE[BUFSIZ];
 //#define PPSTIMULIFILE	"ElE_groups.stm"
 extern char PPSTFILE[BUFSIZ];
 #ifndef RSFILE
-#define RSFILE	"random_seeds.rsd"	/* Default random seed file name */
+#define RSFILE	"random_seeds.rnd"	/* Default random seed file name */
 #endif
 extern char * rsfile; // = RSFILE;
 //extern char * pFile;
@@ -55,30 +55,30 @@ extern char * rsfile; // = RSFILE;
 #endif // _FILE_H
 
 /* Notes */
-/* 
+/*
  %d:	Decimal Integer
  %f:	Float			e.g. %8.2f: 8 spaces wide with 2 d.p. Use '-' before e.g. '8' to right justify
  %c:	Character
  %s:	String
- 
+
  arr[0] == *arr
  arr[n] == *(arr + n)
- 
- Zero spike bins: Try calloc or double Array[size]={0} for the first time, memset(Array, 0, size), bzero. 
- May be quicker just to loop. 
- 
- memcpy(DestArray, SourceArray, sizeof(DestArray)); // Quick way of copying contents of an array	
- 
+
+ Zero spike bins: Try calloc or double Array[size]={0} for the first time, memset(Array, 0, size), bzero.
+ May be quicker just to loop.
+
+ memcpy(DestArray, SourceArray, sizeof(DestArray)); // Quick way of copying contents of an array
+
  Nifty tricks
  ============
- 
+
  #1 // Allocate memory or write files without keeping track of variable type
  fwrite(array, sizeof(array), arraydim, ArrayFile);
- 
+
  #2
  if(!(ptr = malloc(...)))
 	fprintf(stderr, "Error: Out of memory!");
- 
+
  #3 // Allocate memory and test allocation (or fopen)
  if ( ( a = (int *)malloc(i*sizeof(int)) ) == NULL )
  {
