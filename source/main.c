@@ -40,6 +40,8 @@ char PPSTFILE[BUFSIZ] = "";
 
 #define GSLDIR "/opt/local/lib/" // Unnecessary? See checks below
 // otool -L Spike // to test which dynamic libraries are being used
+// ldd spike
+// lsof -P -T -p Application_PID
 // http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 
 // Apple's malloc debugging library: libgmalloc
@@ -582,7 +584,8 @@ int main (int argc, const char * argv[])
 	if (mp->DT >= 2*SIM.minTau) // CHECK THIS
 		fprintf(stderr, "Warning: Forward Euler stability condition violated!\n");
 	assert(mp->DT <= 0.001); // Timesteps must be no larger than 1 ms or mp->TSperMS==0!
-	// Display dynamic libraries: otool -L ~/bin/SpikeNet/Debug/Spike
+	// Display dynamic libraries: macOS: otool -L ~/bin/SpikeNet/Debug/Spike
+	// Linux ldd spike
 
 #ifdef _OPENMP // Use omp function omp_get_wtime
 	//double begin = omp_get_wtime();
