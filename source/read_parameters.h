@@ -1,7 +1,7 @@
 /*
  *  read_parameters.h
  *  Spike
- *	parse simple name/value pairs
+ *  parse simple name/value pairs
  *
  *  Created by Ben Evans on 28/11/2008.
  *  Copyright 2008 University of Oxford. All rights reserved.

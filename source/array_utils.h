@@ -18,7 +18,7 @@
 //#include "globals.h"
 
 #ifndef EPS
-#define EPS		1.2e-7
+#define EPS        1.2e-7
 #endif
 //const double eps = 1.0e-8;
 

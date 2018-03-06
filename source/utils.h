@@ -22,7 +22,7 @@
 #include <assert.h>
 //#include <stdarg.h> // For passing variable number or arguments
 
-#define PATHBUFF	1024
+#define PATHBUFF    1024
 
 extern void exit_error(const char * process, const char * statement);
 extern void * myalloc(int n);
@@ -35,9 +35,9 @@ extern bool file_exists(const char * filename);
 extern void dprint(const char * debug_str, const char * args);
 
 typedef struct {
-	char path[PATHBUFF];
-	char fname[PATHBUFF];
-	char fext[PATHBUFF];
+    char path[PATHBUFF];
+    char fname[PATHBUFF];
+    char fext[PATHBUFF];
 }FILEPARTS;
 
 extern void getFileParts(char * fullname, FILEPARTS * fp);
@@ -45,9 +45,9 @@ extern void getTimeString(char * timeStr, size_t buffer, double secs, const char
 
 extern char errloc[PATHBUFF];
 #define EE(errmsg) do { \
-						snprintf(errloc, PATHBUFF, "\n[%s (%u) : %s] --> ", \
-						strrchr(__FILE__, '/')+1, __LINE__, __FUNCTION__); \
-						exit_error(errloc,errmsg); } while(0)
+                        snprintf(errloc, PATHBUFF, "\n[%s (%u) : %s] --> ", \
+                        strrchr(__FILE__, '/')+1, __LINE__, __FUNCTION__); \
+                        exit_error(errloc,errmsg); } while(0)
 // Replace ;'s with ,'s so it can be used as EE();? c.f. assert.h
 //const char *buildString = "Compiled at "__DATE__", "__TIME__".";
 
