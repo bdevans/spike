@@ -16,9 +16,9 @@ program_LIBRARY_DIRS := /opt/local/lib		# $(shell gsl-config --prefix)/lib
 program_LIBRARIES := m gomp gsl
 program_ARCHIVE := $(program_NAME).tbz
 program_REPO_UPDATE := svn update
-program_REPO_CHECKOUT := svn checkout
-program_REPO_COMMIT := svn commit
-program_REPO_SRCS := https://evans@mac0.cns.ox.ac.uk:443/svn/SpikeNet
+program_REPO_CHECKOUT := git clone
+program_REPO_COMMIT := git commit
+program_REPO_SRCS := https://github.com/bdevans/spike.git
 program_TEST_ARGS := -f defaults.m
 # program_LIBRARIES := -lm -lgomp -lgsl
 
