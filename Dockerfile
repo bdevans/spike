@@ -11,7 +11,7 @@ RUN apt-get update && \
                     git \
                     nano \
                     libgsl-dev && \
-                    apt-get clean && \
+    apt-get clean && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/*
 
